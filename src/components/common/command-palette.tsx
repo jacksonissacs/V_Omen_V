@@ -37,7 +37,7 @@ export function CommandPalette() {
       { section: "Ask", label: "Why did rate-cut odds move today?", href: "/events/evt-boc-cut", icon: Sparkles },
       { section: "Ask", label: "Which related event normally reacts but hasn't moved?", href: "/relations", icon: Sparkles },
       { section: "Rewind", label: "Rewind this event to August 17 at 10:35 AM", href: "/archive", icon: History },
-      { section: "Navigate", label: "Intelligence", href: "/", icon: Activity },
+      { section: "Navigate", label: "Intelligence", href: "/pulse", icon: Activity },
       { section: "Navigate", label: "Events", href: "/events", icon: Activity },
       { section: "Navigate", label: "Agents", href: "/agents", icon: Database },
       { section: "Navigate", label: "Your record", href: "/research", icon: Braces },
@@ -72,8 +72,8 @@ export function CommandPalette() {
             ref={inputRef}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Ask AION, search, navigate, rewind…"
-            aria-label="Ask AION"
+            placeholder="Ask OMEN, search, navigate, rewind…"
+            aria-label="Ask OMEN"
           />
         </label>
         <div className="aion-palette-body">

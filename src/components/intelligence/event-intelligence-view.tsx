@@ -54,7 +54,7 @@ export function EventIntelligenceView({ event }: { event: AionEvent }) {
             small
           />
           <EventFigure
-            label="AION estimate"
+            label="OMEN estimate"
             value={formatProbability(Math.max(event.probability - 2.6, 0.1))}
             muted
             small

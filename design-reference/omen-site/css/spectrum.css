@@ -1,0 +1,45 @@
+/* Spectrum footer — the reference-derived atmospheric section */
+.spectrum-footer{background:var(--black);color:var(--tx-0);position:relative;isolation:isolate}
+.spectrum-stage{position:relative;height:clamp(380px,54vw,640px);background:var(--black);overflow:hidden}
+.spectrum-stage canvas{position:absolute;inset:0;display:block}
+/* controls that float on the atmosphere — dark glass, as in the reference's social row */
+.glass-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;min-width:34px;padding:0 8px;border-radius:var(--r-2);
+  background:rgba(8,8,10,.62);border:1px solid rgba(255,255,255,.14);color:#E7E9EC;font-size:12px;font-weight:500;letter-spacing:.01em;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:background var(--t-fast),border-color var(--t-fast)}
+.glass-btn:hover{background:rgba(20,20,24,.78);border-color:rgba(255,255,255,.24)}
+.glass-btn:active{background:rgba(30,30,34,.85)}
+.glass-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.spectrum-social{position:absolute;left:var(--gutter);bottom:22px;display:flex;gap:8px;z-index:2}
+.spectrum-motion{position:absolute;right:var(--gutter);bottom:22px;z-index:2}
+.spectrum-motion .when-paused{display:none}
+.spectrum-motion[aria-pressed="true"] .when-playing{display:none}
+.spectrum-motion[aria-pressed="true"] .when-paused{display:inline-flex}
+.motion-note{position:absolute;right:var(--gutter);bottom:62px;z-index:2;font-size:11px;color:var(--tx-1);background:rgba(8,8,10,.62);border:1px solid rgba(255,255,255,.1);border-radius:var(--r-2);padding:4px 8px;display:none}
+.motion-note.on{display:block}
+
+/* footer content below the atmosphere */
+.spectrum-body{max-width:var(--max-w);margin:0 auto;padding:0 var(--gutter)}
+.spectrum-row{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-6);padding:26px 0 30px;border-top:1px solid var(--border-2)}
+.footer-brand{display:flex;align-items:center;gap:14px}
+.footer-brand img{height:76px;width:auto;object-fit:contain} /* symbol proportions preserved (586×820 alpha box) */
+.footer-brand .wordmark{font-size:30px;font-weight:550;letter-spacing:.26em;line-height:1;color:var(--silver-0);padding-left:.1em}
+.footer-nav{display:flex;align-items:center;gap:var(--sp-7)}
+.footer-nav ul{list-style:none;display:grid;gap:7px}
+.footer-nav a{font-size:12px;color:var(--tx-1);transition:color var(--t-fast)}
+.footer-nav a:hover{color:var(--tx-0)}
+.back-top{width:76px;height:76px;border-radius:var(--r-2);background:var(--bg-1);border:1px solid var(--border-1);display:grid;place-content:center;gap:5px;font-size:10.5px;color:var(--tx-1);text-align:center;line-height:1.1;transition:background var(--t-fast),color var(--t-fast)}
+.back-top:hover{background:var(--bg-2);color:var(--tx-0)}
+.back-top svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;margin:0 auto}
+.spectrum-legal{display:flex;justify-content:space-between;gap:var(--sp-4);flex-wrap:wrap;padding:14px 0 18px;border-top:1px solid var(--border-1);font-size:11px;color:var(--tx-2)}
+.spectrum-legal nav{display:flex;gap:var(--sp-4)}
+.spectrum-legal a{text-decoration:underline;text-underline-offset:2px;color:var(--tx-2)}
+.spectrum-legal a:hover{color:var(--tx-1)}
+
+@media (max-width:720px){
+  .spectrum-stage{height:clamp(300px,90vw,420px)}
+  .spectrum-row{flex-direction:column;align-items:flex-start;gap:var(--sp-5);padding:22px 0}
+  .footer-brand img{height:48px}
+  .footer-brand .wordmark{font-size:22px}
+  .footer-nav{width:100%;justify-content:space-between}
+  .spectrum-legal{flex-direction:column;gap:8px}
+}

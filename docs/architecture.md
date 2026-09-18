@@ -1,4 +1,4 @@
-# AION architecture
+# OMEN architecture
 
 This document describes a **practical MVP architecture**: modular enough to grow into a production system, small enough to ship as a local Next.js application with mock intelligence.
 
@@ -89,12 +89,18 @@ The App Router pages currently read the repository in-process (no extra hop, no 
 ## Frontend composition
 
 ```
-AppShell
-├── Sidebar (routed product areas)
-├── TopBar (crumbs + Ask AION)
+(marketing)                       public surface, no AppShell
+├── SiteHeader (client: mobile menu)
+├── /                             Landing: Hero → Preview → Walkthrough → Pulse → Archive → Ledger
+│                                 → Relations → Methodology → FAQ → Final CTA
+└── SiteFooter (SpectrumStage)
+
+(workspace) AppShell
+├── Sidebar (routed product areas; logo → /pulse)
+├── TopBar (crumbs + "Demo data" chip + Ask OMEN)
 ├── CommandPalette + CallModal
 └── pages
-    ├── /                Pulse / Intelligence
+    ├── /pulse           Pulse / Intelligence (workspace home)
     ├── /events          Event book
     ├── /events/[id]     Event intelligence
     ├── /markets         Linked markets
@@ -111,13 +117,18 @@ The graph is **intentionally a placeholder**: SVG layout from catalog topology, 
 
 ## Visual system
 
-Forced dark, monochrome:
+Workspace — forced dark, monochrome:
 
-- Near-black field, hairline borders, Geist + Geist Mono.
+- Near-black field, hairline borders, Inter + IBM Plex Mono.
 - Probability **up** is brighter; **down** is dimmer. Direction is also written as `+ / −` and `pp`.
 - Significance is weight and label (`CRITICAL`, `HIGH`), not a rainbow.
 
-See `src/app/globals.css`.
+See `src/app/globals.css` (shadcn theme) and `src/app/aion-workspace.css` (`.aion-app` tokens).
+
+Landing — the Fable OMEN design: the same graphite surfaces and type, silver brand, and one
+atmospheric rainbow spectrum (hero and footer). Tokens are scoped to `.omen-marketing` as `--m-*`
+in `src/app/(marketing)/marketing.css` so nothing leaks into the workspace. Details and open items
+in `design-reference/README.md`.
 
 ## What is deliberately absent
 

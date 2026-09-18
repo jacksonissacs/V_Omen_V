@@ -12,7 +12,7 @@ export function TopBar() {
   const { setPaletteOpen } = useWorkspace()
   const eventMatch = pathname.match(/^\/events\/([^/]+)$/)
   const event = eventMatch ? getEvent(eventMatch[1]) : undefined
-  const heading = event ? event.title : (routeHeadings[pathname] ?? "AION")
+  const heading = event ? event.title : (routeHeadings[pathname] ?? "OMEN")
 
   return (
     <header className="aion-topbar">
@@ -27,14 +27,18 @@ export function TopBar() {
         ) : null}
         <b>{heading}</b>
       </div>
+      <span className="aion-chip aion-demo-chip" title="Every figure in this workspace is illustrative fixture data, not a live feed.">
+        <span className="aion-chip-dot" aria-hidden />
+        Demo data
+      </span>
       <button
         type="button"
         className="aion-ask"
         onClick={() => setPaletteOpen(true)}
-        aria-label="Ask AION"
+        aria-label="Ask OMEN"
       >
         <Search size={13} />
-        Ask AION…
+        Ask OMEN…
         <span className="aion-kbd">⌘K</span>
       </button>
     </header>

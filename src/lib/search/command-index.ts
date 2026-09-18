@@ -3,7 +3,7 @@ import { DOMAIN_LABEL, type SearchHit } from "@/lib/domain/types"
 import type { AionEvent } from "@/types/event"
 
 const STATIC_COMMANDS: SearchHit[] = [
-  { id: "cmd-feed", kind: "command", title: "Open intelligence feed", subtitle: "Dashboard", href: "/" },
+  { id: "cmd-feed", kind: "command", title: "Open intelligence feed", subtitle: "Dashboard", href: "/pulse" },
   { id: "cmd-events", kind: "command", title: "Open events", subtitle: "Events", href: "/events" },
   { id: "cmd-markets", kind: "command", title: "Open markets", subtitle: "Markets", href: "/markets" },
   { id: "cmd-signals", kind: "command", title: "Open signals", subtitle: "Signals", href: "/signals" },

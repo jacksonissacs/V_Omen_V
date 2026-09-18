@@ -1,4 +1,4 @@
-# AION roadmap
+# OMEN roadmap
 
 A practical sequence from this MVP to a production operating system. No calendar estimates — only dependencies and exit criteria.
 

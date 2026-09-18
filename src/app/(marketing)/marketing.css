@@ -1,0 +1,1743 @@
+/* OMEN public landing — styles ported from design-reference/omen-site/css/{tokens,site,spectrum}.css.
+ *
+ * Everything is scoped under `.omen-marketing` so nothing here reaches the workspace
+ * (`.aion-app`) or the shadcn theme. Tokens are prefixed `--m-` and defined on the wrapper.
+ * Fonts come from the root layout (`--font-inter`, `--font-ibm-plex-mono`); no duplicate
+ * @font-face. Tailwind's preflight already provides the margin/list/heading resets the
+ * prototype applied globally, so only the scoped remainder is repeated here. */
+
+.omen-marketing {
+  /* surfaces */
+  --m-bg-0: #0c0e11;
+  --m-bg-1: #111418;
+  --m-bg-2: #161a1f;
+  --m-bg-3: #1c2127;
+  --m-black: #000000;
+  --m-border-0: rgba(255, 255, 255, 0.055);
+  --m-border-1: rgba(255, 255, 255, 0.09);
+  --m-border-2: rgba(255, 255, 255, 0.14);
+  --m-border-focus: rgba(129, 148, 255, 0.55);
+  /* text */
+  --m-tx-0: #e7e9ec;
+  --m-tx-1: #9ba3ad;
+  --m-tx-2: #5e6670;
+  /* accent — icy indigo, functional UI only */
+  --m-ac: #8194ff;
+  --m-ac-dim: rgba(129, 148, 255, 0.13);
+  --m-ac-line: rgba(129, 148, 255, 0.35);
+  /* semantic movement */
+  --m-up: #6fae8f;
+  --m-up-dim: rgba(111, 174, 143, 0.12);
+  --m-dn: #c08383;
+  --m-dn-dim: rgba(192, 131, 131, 0.12);
+  --m-warn: #c9a96a;
+  /* brand silver — matches the supplied symbol's tonal range */
+  --m-silver-0: #f2f1ec;
+  --m-silver-1: #b9b6ae;
+  --m-silver-2: #6e6c66;
+  /* type — reuse the fonts loaded by the root layout */
+  --m-sans: var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --m-mono: var(--font-ibm-plex-mono), "IBM Plex Mono", "SF Mono", ui-monospace, monospace;
+  /* radii & spacing */
+  --m-r-1: 3px;
+  --m-r-2: 6px;
+  --m-r-3: 9px;
+  --m-r-4: 14px;
+  --m-sp-1: 4px;
+  --m-sp-2: 8px;
+  --m-sp-3: 12px;
+  --m-sp-4: 16px;
+  --m-sp-5: 24px;
+  --m-sp-6: 32px;
+  --m-sp-7: 48px;
+  --m-sp-8: 72px;
+  --m-sp-9: 112px;
+  /* motion */
+  --m-t-fast: 120ms;
+  --m-t-med: 200ms;
+  --m-t-slow: 360ms;
+  --m-ease: cubic-bezier(0.3, 0.7, 0.4, 1);
+  /* layout */
+  --m-max-w: 1180px;
+  --m-gutter: clamp(20px, 4vw, 48px);
+
+  min-height: 100dvh;
+  background: var(--m-bg-0);
+  color: var(--m-tx-0);
+  font-family: var(--m-sans);
+  font-size: 15px;
+  font-weight: 450;
+  letter-spacing: 0.005em;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+}
+
+html:has(.omen-marketing) {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:has(.omen-marketing) {
+    scroll-behavior: auto;
+  }
+}
+
+.omen-marketing ::selection {
+  background: rgba(129, 148, 255, 0.28);
+}
+
+.omen-marketing [id] {
+  scroll-margin-top: 64px;
+}
+
+.omen-marketing .mono,
+.omen-marketing .num {
+  font-family: var(--m-mono);
+  font-feature-settings: "tnum" 1;
+  letter-spacing: -0.01em;
+}
+
+.omen-marketing button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.omen-marketing a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.omen-marketing button:focus-visible,
+.omen-marketing a:focus-visible,
+.omen-marketing [tabindex]:focus-visible,
+.omen-marketing input:focus-visible,
+.omen-marketing summary:focus-visible {
+  outline: 1.5px solid var(--m-border-focus);
+  outline-offset: 2px;
+}
+
+.omen-marketing img {
+  display: block;
+  max-width: 100%;
+}
+
+.omen-marketing .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- layout primitives ---------- */
+.omen-marketing .wrap {
+  max-width: var(--m-max-w);
+  margin: 0 auto;
+  padding-left: var(--m-gutter);
+  padding-right: var(--m-gutter);
+}
+
+.omen-marketing .section {
+  padding: var(--m-sp-9) 0;
+  border-top: 1px solid var(--m-border-0);
+}
+
+.omen-marketing .section-head {
+  max-width: 720px;
+  margin-bottom: var(--m-sp-7);
+}
+
+.omen-marketing .section-head h2 {
+  font-size: clamp(26px, 3vw, 36px);
+  font-weight: 550;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.omen-marketing .section-head p {
+  color: var(--m-tx-1);
+  font-size: 16px;
+  margin-top: var(--m-sp-3);
+  line-height: 1.55;
+}
+
+.omen-marketing .cols {
+  display: grid;
+  grid-template-columns: 5fr 7fr;
+  gap: var(--m-sp-8);
+  align-items: start;
+}
+
+.omen-marketing .cols.flip {
+  grid-template-columns: 7fr 5fr;
+}
+
+.omen-marketing .cols.flip > :first-child {
+  order: 2;
+}
+
+.omen-marketing .lead {
+  font-size: 16px;
+  color: var(--m-tx-1);
+  line-height: 1.6;
+  max-width: 52ch;
+}
+
+.omen-marketing .lead + .lead {
+  margin-top: var(--m-sp-4);
+}
+
+.omen-marketing .quiet {
+  color: var(--m-tx-2);
+}
+
+/* ---------- buttons ---------- */
+.omen-marketing .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 18px;
+  border-radius: var(--m-r-2);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  border: 1px solid transparent;
+  transition:
+    background var(--m-t-fast),
+    color var(--m-t-fast),
+    border-color var(--m-t-fast);
+  white-space: nowrap;
+}
+
+.omen-marketing .btn-primary {
+  background: var(--m-silver-0);
+  color: var(--m-bg-0);
+  border-color: var(--m-silver-0);
+}
+
+.omen-marketing .btn-primary:hover {
+  background: #fff;
+  border-color: #fff;
+}
+
+.omen-marketing .btn-primary:active {
+  background: var(--m-silver-1);
+  border-color: var(--m-silver-1);
+}
+
+.omen-marketing .btn-secondary {
+  background: transparent;
+  color: var(--m-tx-0);
+  border-color: var(--m-border-2);
+}
+
+.omen-marketing .btn-secondary:hover {
+  background: var(--m-bg-2);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.omen-marketing .btn-secondary:active {
+  background: var(--m-bg-3);
+}
+
+.omen-marketing .btn-sm {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.omen-marketing .btn svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---------- top bar ---------- */
+.omen-marketing .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: 56px;
+  background: rgba(12, 14, 17, 0.86);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--m-border-0);
+}
+
+.omen-marketing .topbar .wrap {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--m-sp-6);
+}
+
+.omen-marketing .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.omen-marketing .brand img {
+  height: 30px;
+  width: auto;
+  object-fit: contain;
+}
+
+.omen-marketing .brand .wordmark {
+  font-size: 13px;
+  font-weight: 550;
+  letter-spacing: 0.22em;
+  color: var(--m-silver-0);
+}
+
+.omen-marketing .nav {
+  display: flex;
+  align-items: center;
+  gap: var(--m-sp-5);
+  margin-left: auto;
+}
+
+.omen-marketing .nav a:not(.btn) {
+  font-size: 13.5px;
+  color: var(--m-tx-1);
+  transition: color var(--m-t-fast);
+}
+
+.omen-marketing .nav a:not(.btn):hover {
+  color: var(--m-tx-0);
+}
+
+.omen-marketing .nav .btn {
+  margin-left: var(--m-sp-3);
+}
+
+.omen-marketing .nav-toggle {
+  display: none;
+  margin-left: auto;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--m-r-2);
+  border: 1px solid var(--m-border-1);
+  align-items: center;
+  justify-content: center;
+}
+
+.omen-marketing .nav-toggle svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+}
+
+/* ---------- hero ---------- */
+.omen-marketing .hero {
+  position: relative;
+  background: var(--m-black);
+  color: var(--m-tx-0);
+  overflow: hidden;
+}
+
+.omen-marketing .hero-stage {
+  position: relative;
+  height: clamp(300px, 34vw, 440px);
+  background: var(--m-black);
+}
+
+.omen-marketing .hero-stage .spectrum-motion {
+  bottom: 18px;
+}
+
+.omen-marketing .hero-stage .motion-note {
+  bottom: 58px;
+}
+
+.omen-marketing .hero-body {
+  position: relative;
+  padding: var(--m-sp-5) 0 var(--m-sp-8);
+  background: linear-gradient(var(--m-black), var(--m-bg-0) 70%);
+}
+
+.omen-marketing .hero-body h1 {
+  font-size: clamp(40px, 6.2vw, 76px);
+  font-weight: 550;
+  letter-spacing: -0.03em;
+  line-height: 1.02;
+  max-width: 14ch;
+  color: var(--m-silver-0);
+}
+
+.omen-marketing .hero-body p {
+  margin-top: var(--m-sp-5);
+  font-size: clamp(16px, 1.4vw, 19px);
+  line-height: 1.5;
+  color: var(--m-tx-1);
+  max-width: 46ch;
+}
+
+.omen-marketing .hero-actions {
+  display: flex;
+  gap: var(--m-sp-3);
+  margin-top: var(--m-sp-6);
+  flex-wrap: wrap;
+}
+
+.omen-marketing .hero-note {
+  margin-top: var(--m-sp-5);
+  font-size: 12.5px;
+  color: var(--m-tx-2);
+}
+
+/* ---------- product primitives ---------- */
+.omen-marketing .panel {
+  container-type: inline-size;
+  background: var(--m-bg-1);
+  border: 1px solid var(--m-border-0);
+  border-radius: var(--m-r-3);
+  overflow: hidden;
+}
+
+.omen-marketing .panel-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px var(--m-sp-3);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--m-border-0);
+  font-size: 12px;
+  color: var(--m-tx-1);
+}
+
+.omen-marketing .panel-head b {
+  color: var(--m-tx-0);
+  font-weight: 500;
+}
+
+.omen-marketing .panel-head .chip.demo {
+  margin-left: auto;
+}
+
+.omen-marketing .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--m-tx-1);
+  border: 1px solid var(--m-border-0);
+  border-radius: 999px;
+  padding: 2.5px 9px;
+  background: var(--m-bg-0);
+  white-space: nowrap;
+}
+
+.omen-marketing .chip .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--m-tx-2);
+}
+
+.omen-marketing .chip.hi .dot {
+  background: var(--m-up);
+}
+
+.omen-marketing .chip.med .dot {
+  background: var(--m-warn);
+}
+
+.omen-marketing .chip.lo .dot {
+  background: var(--m-dn);
+}
+
+.omen-marketing .chip.demo {
+  color: var(--m-warn);
+  border-color: rgba(201, 169, 106, 0.35);
+}
+
+.omen-marketing .kv {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  font-size: 12.5px;
+  align-items: baseline;
+}
+
+.omen-marketing .kv .k {
+  color: var(--m-tx-2);
+}
+
+.omen-marketing .kv .v {
+  color: var(--m-tx-0);
+}
+
+.omen-marketing .up {
+  color: var(--m-up);
+}
+
+.omen-marketing .dn {
+  color: var(--m-dn);
+}
+
+.omen-marketing .warn {
+  color: var(--m-warn);
+}
+
+.omen-marketing .bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--m-bg-3);
+  overflow: hidden;
+  display: flex;
+}
+
+.omen-marketing .bar i {
+  display: block;
+  height: 100%;
+  background: var(--m-ac);
+}
+
+.omen-marketing .bar i.rest {
+  background: var(--m-tx-2);
+  opacity: 0.5;
+}
+
+.omen-marketing .tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.omen-marketing .tbl th {
+  font-weight: 500;
+  color: var(--m-tx-2);
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--m-border-0);
+  white-space: nowrap;
+}
+
+.omen-marketing .tbl td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--m-border-0);
+  vertical-align: middle;
+}
+
+.omen-marketing .tbl tr:last-child td {
+  border-bottom: none;
+}
+
+.omen-marketing .tbl .num,
+.omen-marketing .tbl th.num {
+  text-align: right;
+}
+
+/* probability readout */
+.omen-marketing .prob {
+  font-family: var(--m-mono);
+  font-feature-settings: "tnum" 1;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--m-tx-0);
+}
+
+.omen-marketing .prob-xl {
+  font-size: clamp(44px, 5vw, 64px);
+}
+
+.omen-marketing .prob-xl small {
+  font-size: 0.5em;
+  color: var(--m-tx-1);
+  font-weight: 400;
+  letter-spacing: 0;
+  margin-left: 2px;
+}
+
+.omen-marketing .prob-md {
+  font-size: 20px;
+}
+
+.omen-marketing .move {
+  font-family: var(--m-mono);
+  font-feature-settings: "tnum" 1;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.omen-marketing .stamp {
+  font-family: var(--m-mono);
+  font-feature-settings: "tnum" 1;
+  font-size: 12px;
+  color: var(--m-tx-2);
+}
+
+.omen-marketing .stamp.strong {
+  color: var(--m-tx-0);
+  font-size: 13px;
+}
+
+/* ---------- event card ---------- */
+.omen-marketing .event-card {
+  display: grid;
+  grid-template-columns: 7fr 5fr;
+}
+
+.omen-marketing .event-main {
+  padding: 18px 20px 16px;
+  border-right: 1px solid var(--m-border-0);
+  min-width: 0;
+}
+
+.omen-marketing .event-side {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--m-sp-4);
+  min-width: 0;
+}
+
+.omen-marketing .event-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.omen-marketing .event-title {
+  font-size: 17px;
+  font-weight: 550;
+  letter-spacing: -0.01em;
+  margin: 6px 0 14px;
+}
+
+.omen-marketing .readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--m-sp-4) var(--m-sp-6);
+  align-items: flex-end;
+  margin-bottom: 14px;
+}
+
+.omen-marketing .readout > div {
+  min-width: 120px;
+}
+
+.omen-marketing .readout .lbl {
+  font-size: 11.5px;
+  color: var(--m-tx-2);
+  margin-bottom: 6px;
+}
+
+.omen-marketing .chart {
+  position: relative;
+  height: 190px;
+}
+
+.omen-marketing .chart svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+.omen-marketing .chart .axis {
+  font-family: var(--m-mono);
+  font-size: 10px;
+  fill: var(--m-tx-2);
+}
+
+.omen-marketing .chart .grid {
+  stroke: var(--m-border-1);
+  stroke-width: 1;
+}
+
+.omen-marketing .chart .band {
+  fill: rgba(129, 148, 255, 0.1);
+}
+
+.omen-marketing .chart .line {
+  fill: none;
+  stroke: var(--m-ac);
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+}
+
+.omen-marketing .chart .est {
+  fill: none;
+  stroke: var(--m-tx-1);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.omen-marketing .chart .hl {
+  fill: rgba(111, 174, 143, 0.08);
+}
+
+.omen-marketing .chart .cursor {
+  stroke: var(--m-silver-0);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.omen-marketing .chart .marker {
+  fill: var(--m-bg-1);
+  stroke: var(--m-silver-0);
+  stroke-width: 1.5;
+}
+
+.omen-marketing .chart .callout {
+  font-family: var(--m-mono);
+  font-size: 10.5px;
+  fill: var(--m-tx-1);
+}
+
+.omen-marketing .chart .future {
+  fill: var(--m-bg-1);
+  opacity: 0.62;
+}
+
+.omen-marketing .side-title {
+  font-size: 12px;
+  color: var(--m-tx-1);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.omen-marketing .side-title b {
+  color: var(--m-tx-0);
+  font-weight: 500;
+}
+
+.omen-marketing .ev-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.5px;
+}
+
+.omen-marketing .ev-list li {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  gap: 10px;
+  align-items: baseline;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--m-border-0);
+  transition: opacity var(--m-t-med);
+}
+
+.omen-marketing .ev-list li:last-child {
+  border-bottom: none;
+}
+
+.omen-marketing .ev-list .t {
+  font-family: var(--m-mono);
+  font-size: 11px;
+  color: var(--m-tx-2);
+}
+
+.omen-marketing .ev-list .d {
+  font-family: var(--m-mono);
+  font-size: 11.5px;
+  color: var(--m-tx-1);
+}
+
+.omen-marketing .ev-list li.ev-catalyst .txt {
+  color: var(--m-tx-0);
+}
+
+.omen-marketing .ev-list li.ev-catalyst .t {
+  color: var(--m-ac);
+}
+
+.omen-marketing .ev-list li.future {
+  opacity: 0.28;
+}
+
+.omen-marketing .unc {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.omen-marketing .unc-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--m-tx-1);
+}
+
+.omen-marketing .unc-row b {
+  color: var(--m-tx-0);
+  font-weight: 500;
+  font-family: var(--m-mono);
+  font-feature-settings: "tnum" 1;
+}
+
+.omen-marketing .unc p {
+  font-size: 12px;
+  color: var(--m-tx-2);
+  line-height: 1.5;
+}
+
+.omen-marketing .rewind {
+  padding: 12px 20px 14px;
+  border-top: 1px solid var(--m-border-0);
+  background: var(--m-bg-0);
+  grid-column: 1 / -1;
+}
+
+.omen-marketing .rewind label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--m-tx-1);
+  margin-bottom: 8px;
+}
+
+.omen-marketing .rewind label b {
+  font-family: var(--m-mono);
+  font-weight: 500;
+  color: var(--m-tx-0);
+}
+
+.omen-marketing .rewind input[type="range"] {
+  width: 100%;
+  height: 24px;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.omen-marketing .rewind input[type="range"]::-webkit-slider-runnable-track {
+  height: 3px;
+  background: var(--m-bg-3);
+  border-radius: 2px;
+}
+
+.omen-marketing .rewind input[type="range"]::-moz-range-track {
+  height: 3px;
+  background: var(--m-bg-3);
+  border-radius: 2px;
+}
+
+.omen-marketing .rewind input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--m-silver-0);
+  border: 2px solid var(--m-bg-0);
+  margin-top: -6.5px;
+  box-shadow: 0 0 0 1px var(--m-border-2);
+}
+
+.omen-marketing .rewind input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--m-silver-0);
+  border: 2px solid var(--m-bg-0);
+}
+
+.omen-marketing .rewind input[type="range"]:focus-visible {
+  outline: 1.5px solid var(--m-border-focus);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.omen-marketing .rewind .snapshot {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  font-size: 12px;
+}
+
+.omen-marketing .rewind .snapshot .k {
+  color: var(--m-tx-2);
+}
+
+.omen-marketing .rewind .snapshot ul {
+  list-style: none;
+  color: var(--m-tx-1);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+@container (max-width: 720px) {
+  .omen-marketing .event-card {
+    grid-template-columns: 1fr;
+  }
+
+  .omen-marketing .event-main {
+    border-right: none;
+    border-bottom: 1px solid var(--m-border-0);
+  }
+}
+
+/* preview legend */
+.omen-marketing .legend {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--m-sp-5);
+  margin-top: var(--m-sp-5);
+  padding-top: var(--m-sp-5);
+  border-top: 1px solid var(--m-border-0);
+}
+
+.omen-marketing .legend div {
+  font-size: 12.5px;
+  color: var(--m-tx-2);
+  line-height: 1.5;
+}
+
+.omen-marketing .legend b {
+  display: block;
+  color: var(--m-tx-0);
+  font-weight: 500;
+  margin-bottom: 3px;
+}
+
+/* ---------- walkthrough ---------- */
+.omen-marketing .steps {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
+  margin-top: var(--m-sp-2);
+}
+
+.omen-marketing .step {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 12px;
+  padding: 14px 12px;
+  border-radius: var(--m-r-3);
+  text-align: left;
+  width: 100%;
+  border: 1px solid transparent;
+  transition:
+    background var(--m-t-fast),
+    border-color var(--m-t-fast);
+}
+
+.omen-marketing .step:hover {
+  background: var(--m-bg-1);
+}
+
+.omen-marketing .step[aria-selected="true"] {
+  background: var(--m-bg-1);
+  border-color: var(--m-border-1);
+}
+
+.omen-marketing .step .n {
+  font-family: var(--m-mono);
+  font-size: 12px;
+  color: var(--m-tx-2);
+  padding-top: 3px;
+}
+
+.omen-marketing .step[aria-selected="true"] .n {
+  color: var(--m-ac);
+}
+
+.omen-marketing .step h3 {
+  font-size: 15px;
+  font-weight: 550;
+  letter-spacing: -0.01em;
+}
+
+.omen-marketing .step p {
+  font-size: 13px;
+  color: var(--m-tx-1);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.omen-marketing .walk-hint {
+  font-size: 12px;
+  color: var(--m-tx-2);
+  margin-top: var(--m-sp-4);
+  padding-left: 12px;
+}
+
+/* ---------- pulse / archive / ledger fragments ---------- */
+.omen-marketing .feature {
+  padding: var(--m-sp-8) 0;
+  border-top: 1px solid var(--m-border-0);
+}
+
+.omen-marketing .feature h2 {
+  font-size: clamp(24px, 2.6vw, 32px);
+  font-weight: 550;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.omen-marketing .feature .lead {
+  margin-top: var(--m-sp-4);
+}
+
+.omen-marketing .feature ul.points {
+  list-style: none;
+  margin-top: var(--m-sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--m-tx-1);
+}
+
+.omen-marketing .feature ul.points li {
+  padding-left: 14px;
+  position: relative;
+}
+
+.omen-marketing .feature ul.points li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--m-tx-2);
+}
+
+.omen-marketing .pulse-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.omen-marketing .pulse-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--m-sp-4);
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--m-border-0);
+}
+
+.omen-marketing .pulse-row:last-child {
+  border-bottom: none;
+}
+
+.omen-marketing .pulse-row .meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 11.5px;
+  color: var(--m-tx-2);
+  margin-bottom: 6px;
+}
+
+.omen-marketing .pulse-row .meta .t {
+  font-family: var(--m-mono);
+}
+
+.omen-marketing .pulse-row h4 {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+
+.omen-marketing .pulse-row .why {
+  font-size: 12px;
+  color: var(--m-tx-1);
+  margin-top: 6px;
+  line-height: 1.45;
+}
+
+.omen-marketing .pulse-row .nums {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+}
+
+.omen-marketing .pulse-row .nums .prob-md,
+.omen-marketing .pulse-row .nums .stamp {
+  white-space: nowrap;
+}
+
+.omen-marketing .pit {
+  padding: 16px 18px;
+}
+
+.omen-marketing .pit-time {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.omen-marketing .pit-time .stamp {
+  color: var(--m-tx-0);
+  font-size: 13px;
+}
+
+.omen-marketing .pit h5 {
+  font-size: 12px;
+  color: var(--m-tx-2);
+  font-weight: 450;
+  margin: 10px 0 6px;
+}
+
+.omen-marketing .pit ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--m-tx-1);
+}
+
+.omen-marketing .pit ul li {
+  padding: 8px 10px;
+  border: 1px solid var(--m-border-0);
+  border-radius: var(--m-r-2);
+  background: var(--m-bg-0);
+}
+
+.omen-marketing .pit ul li .stamp {
+  margin-right: 8px;
+}
+
+.omen-marketing .pit .kv {
+  margin-top: 12px;
+}
+
+.omen-marketing .cal {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.omen-marketing .cal .bar {
+  width: 64px;
+  height: 4px;
+}
+
+.omen-marketing .tbl .who {
+  font-weight: 500;
+}
+
+.omen-marketing .tbl .type {
+  font-size: 11px;
+}
+
+/* ---------- relations ---------- */
+.omen-marketing .rel-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--m-sp-6);
+  align-items: stretch;
+}
+
+.omen-marketing .flow {
+  padding: 18px 20px;
+}
+
+.omen-marketing .flow svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.omen-marketing .flow text {
+  font-family: var(--m-sans);
+  font-size: 12px;
+  fill: var(--m-tx-1);
+}
+
+.omen-marketing .flow text.h {
+  fill: var(--m-tx-0);
+  font-weight: 550;
+  font-size: 13px;
+}
+
+.omen-marketing .flow .node {
+  fill: var(--m-bg-0);
+  stroke: var(--m-border-1);
+}
+
+.omen-marketing .flow .edge {
+  stroke: var(--m-tx-2);
+  stroke-width: 1;
+  fill: none;
+  marker-end: url(#omen-flow-arrow);
+}
+
+.omen-marketing .flow .elbl {
+  font-family: var(--m-mono);
+  font-size: 10.5px;
+  fill: var(--m-tx-2);
+}
+
+.omen-marketing .missing {
+  padding: 16px 18px;
+}
+
+.omen-marketing .missing .head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--m-warn);
+  margin-bottom: 8px;
+}
+
+.omen-marketing .missing h4 {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.omen-marketing .missing p {
+  font-size: 12.5px;
+  color: var(--m-tx-1);
+  line-height: 1.5;
+  margin-top: 8px;
+}
+
+.omen-marketing .missing .tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+/* ---------- methodology ---------- */
+.omen-marketing .method {
+  display: grid;
+  grid-template-columns: 5fr 7fr;
+  gap: var(--m-sp-8);
+}
+
+.omen-marketing .method .section-head {
+  margin-bottom: var(--m-sp-5);
+}
+
+.omen-marketing .method dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--m-sp-5) var(--m-sp-6);
+}
+
+.omen-marketing .method dt {
+  font-size: 14px;
+  font-weight: 550;
+  letter-spacing: -0.005em;
+  margin-bottom: 5px;
+}
+
+.omen-marketing .method dd {
+  font-size: 13.5px;
+  color: var(--m-tx-1);
+  line-height: 1.55;
+}
+
+.omen-marketing .method .not {
+  margin-top: var(--m-sp-6);
+  padding: 16px 18px;
+  border: 1px solid var(--m-border-0);
+  border-radius: var(--m-r-3);
+  background: var(--m-bg-1);
+  grid-column: 1 / -1;
+}
+
+.omen-marketing .method .not h3 {
+  font-size: 14px;
+  font-weight: 550;
+  margin-bottom: 8px;
+}
+
+.omen-marketing .method .not ul {
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 24px;
+  font-size: 13px;
+  color: var(--m-tx-1);
+}
+
+.omen-marketing .method .not li {
+  padding-left: 14px;
+  position: relative;
+}
+
+.omen-marketing .method .not li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--m-dn);
+}
+
+/* ---------- FAQ ---------- */
+.omen-marketing .faq {
+  max-width: 760px;
+}
+
+.omen-marketing .faq details {
+  border-top: 1px solid var(--m-border-0);
+}
+
+.omen-marketing .faq details:last-child {
+  border-bottom: 1px solid var(--m-border-0);
+}
+
+.omen-marketing .faq summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--m-sp-4);
+  padding: 18px 4px;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  transition: color var(--m-t-fast);
+}
+
+.omen-marketing .faq summary::-webkit-details-marker {
+  display: none;
+}
+
+.omen-marketing .faq summary:hover {
+  color: var(--m-silver-0);
+}
+
+.omen-marketing .faq summary .plus {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  position: relative;
+}
+
+.omen-marketing .faq summary .plus::before,
+.omen-marketing .faq summary .plus::after {
+  content: "";
+  position: absolute;
+  background: var(--m-tx-2);
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  transition: transform var(--m-t-med) var(--m-ease);
+}
+
+.omen-marketing .faq summary .plus::before {
+  width: 12px;
+  height: 1.5px;
+}
+
+.omen-marketing .faq summary .plus::after {
+  width: 1.5px;
+  height: 12px;
+}
+
+.omen-marketing .faq details[open] summary .plus::after {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.omen-marketing .faq details p {
+  padding: 0 4px 20px;
+  font-size: 14.5px;
+  color: var(--m-tx-1);
+  line-height: 1.6;
+  max-width: 62ch;
+}
+
+/* ---------- final CTA ---------- */
+.omen-marketing .final {
+  padding: var(--m-sp-9) 0;
+  border-top: 1px solid var(--m-border-0);
+}
+
+.omen-marketing .final h2 {
+  font-size: clamp(30px, 4vw, 48px);
+  font-weight: 550;
+  letter-spacing: -0.025em;
+  line-height: 1.08;
+  max-width: 18ch;
+  color: var(--m-silver-0);
+}
+
+.omen-marketing .final p {
+  margin-top: var(--m-sp-4);
+  color: var(--m-tx-1);
+  font-size: 16px;
+  max-width: 48ch;
+  line-height: 1.55;
+}
+
+.omen-marketing .final .hero-actions {
+  margin-top: var(--m-sp-6);
+}
+
+/* ---------- spectrum stage (hero + footer atmosphere) ---------- */
+.omen-marketing .spectrum-footer {
+  background: var(--m-black);
+  color: var(--m-tx-0);
+  position: relative;
+  isolation: isolate;
+}
+
+.omen-marketing .spectrum-stage {
+  position: relative;
+  height: clamp(380px, 54vw, 640px);
+  background: var(--m-black);
+  overflow: hidden;
+}
+
+.omen-marketing .spectrum-field,
+.omen-marketing .spectrum-fallback,
+.omen-marketing .spectrum-stage canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.omen-marketing .spectrum-fallback {
+  background-size: cover;
+}
+
+.omen-marketing .glass-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  min-width: 34px;
+  padding: 0 8px;
+  border-radius: var(--m-r-2);
+  background: rgba(8, 8, 10, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e7e9ec;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  transition:
+    background var(--m-t-fast),
+    border-color var(--m-t-fast);
+}
+
+.omen-marketing .glass-btn:hover {
+  background: rgba(20, 20, 24, 0.78);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.omen-marketing .glass-btn:active {
+  background: rgba(30, 30, 34, 0.85);
+}
+
+.omen-marketing .glass-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.omen-marketing .glass-btn > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.omen-marketing .spectrum-motion {
+  position: absolute;
+  right: var(--m-gutter);
+  bottom: 22px;
+  z-index: 2;
+}
+
+.omen-marketing .motion-note {
+  position: absolute;
+  right: var(--m-gutter);
+  bottom: 62px;
+  z-index: 2;
+  font-size: 11px;
+  color: var(--m-tx-1);
+  background: rgba(8, 8, 10, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--m-r-2);
+  padding: 4px 8px;
+}
+
+/* footer content below the atmosphere */
+.omen-marketing .spectrum-body {
+  max-width: var(--m-max-w);
+  margin: 0 auto;
+  padding: 0 var(--m-gutter);
+}
+
+.omen-marketing .spectrum-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--m-sp-6);
+  padding: 26px 0 30px;
+  border-top: 1px solid var(--m-border-2);
+}
+
+.omen-marketing .footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.omen-marketing .footer-brand img {
+  height: 76px;
+  width: auto;
+  object-fit: contain;
+}
+
+.omen-marketing .footer-brand .wordmark {
+  font-size: 30px;
+  font-weight: 550;
+  letter-spacing: 0.26em;
+  line-height: 1;
+  color: var(--m-silver-0);
+  padding-left: 0.1em;
+}
+
+.omen-marketing .footer-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--m-sp-7);
+}
+
+.omen-marketing .footer-nav ul {
+  list-style: none;
+  display: grid;
+  gap: 7px;
+}
+
+.omen-marketing .footer-nav a {
+  font-size: 12px;
+  color: var(--m-tx-1);
+  transition: color var(--m-t-fast);
+}
+
+.omen-marketing .footer-nav a:hover {
+  color: var(--m-tx-0);
+}
+
+.omen-marketing .back-top {
+  width: 76px;
+  height: 76px;
+  border-radius: var(--m-r-2);
+  background: var(--m-bg-1);
+  border: 1px solid var(--m-border-1);
+  display: grid;
+  place-content: center;
+  gap: 5px;
+  font-size: 10.5px;
+  color: var(--m-tx-1);
+  text-align: center;
+  line-height: 1.1;
+  transition:
+    background var(--m-t-fast),
+    color var(--m-t-fast);
+}
+
+.omen-marketing .back-top:hover {
+  background: var(--m-bg-2);
+  color: var(--m-tx-0);
+}
+
+.omen-marketing .back-top svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  margin: 0 auto;
+}
+
+.omen-marketing .spectrum-legal {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--m-sp-4);
+  flex-wrap: wrap;
+  padding: 14px 0 18px;
+  border-top: 1px solid var(--m-border-1);
+  font-size: 11px;
+  color: var(--m-tx-2);
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 980px) {
+  .omen-marketing .cols,
+  .omen-marketing .cols.flip,
+  .omen-marketing .method {
+    grid-template-columns: 1fr;
+    gap: var(--m-sp-6);
+  }
+
+  .omen-marketing .cols.flip > :first-child {
+    order: 0;
+  }
+
+  .omen-marketing .rel-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .omen-marketing .legend {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .omen-marketing .event-card {
+    grid-template-columns: 1fr;
+  }
+
+  .omen-marketing .event-main {
+    border-right: none;
+    border-bottom: 1px solid var(--m-border-0);
+  }
+}
+
+@media (max-width: 720px) {
+  .omen-marketing .section {
+    padding: var(--m-sp-8) 0;
+  }
+
+  .omen-marketing .nav {
+    display: none;
+    position: absolute;
+    top: 56px;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    background: var(--m-bg-0);
+    border-bottom: 1px solid var(--m-border-1);
+    padding: 8px var(--m-gutter) 16px;
+  }
+
+  .omen-marketing .nav.open {
+    display: flex;
+  }
+
+  .omen-marketing .nav a:not(.btn) {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--m-border-0);
+    font-size: 15px;
+  }
+
+  .omen-marketing .nav .btn {
+    margin: 14px 0 0;
+    width: 100%;
+  }
+
+  .omen-marketing .nav-toggle {
+    display: inline-flex;
+  }
+
+  .omen-marketing .hero-stage {
+    height: clamp(220px, 60vw, 320px);
+  }
+
+  .omen-marketing .chart {
+    height: 150px;
+  }
+
+  .omen-marketing .legend {
+    grid-template-columns: 1fr;
+  }
+
+  .omen-marketing .method dl,
+  .omen-marketing .method .not ul {
+    grid-template-columns: 1fr;
+  }
+
+  .omen-marketing .pulse-row {
+    grid-template-columns: 1fr;
+  }
+
+  /* Deviation from the prototype: its single-row figures overflowed the panel at ≤390px.
+     Let the row wrap instead of clipping. */
+  .omen-marketing .pulse-row > div {
+    min-width: 0;
+  }
+
+  .omen-marketing .pulse-row .meta {
+    flex-wrap: wrap;
+  }
+
+  .omen-marketing .pulse-row .nums {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    align-items: baseline;
+  }
+
+  .omen-marketing .pulse-row .nums .stamp {
+    white-space: normal;
+  }
+
+  .omen-marketing .tbl th:nth-child(4),
+  .omen-marketing .tbl td:nth-child(4) {
+    display: none;
+  }
+
+  .omen-marketing .spectrum-stage {
+    height: clamp(300px, 90vw, 420px);
+  }
+
+  .omen-marketing .spectrum-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--m-sp-5);
+    padding: 22px 0;
+  }
+
+  .omen-marketing .footer-brand img {
+    height: 48px;
+  }
+
+  .omen-marketing .footer-brand .wordmark {
+    font-size: 22px;
+  }
+
+  .omen-marketing .footer-nav {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .omen-marketing .spectrum-legal {
+    flex-direction: column;
+    gap: 8px;
+  }
+}

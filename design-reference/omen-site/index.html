@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OMEN — Every probability, with its history</title>
+<meta name="description" content="OMEN records what the world expected, when it expected it, and why that changed. Point-in-time probabilities, evidence, and a public accuracy ledger.">
+<link rel="icon" href="assets/omen-symbol.png" type="image/png">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/site.css">
+<link rel="stylesheet" href="css/spectrum.css">
+</head>
+<body id="top">
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="OMEN home">
+      <img src="assets/omen-symbol.png" alt="" width="1024" height="1024">
+      <span class="wordmark">OMEN</span>
+    </a>
+    <button class="nav-toggle" aria-expanded="false" aria-controls="site-nav" aria-label="Menu">
+      <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <nav class="nav" id="site-nav" aria-label="Site">
+      <a href="#demo">Demo</a>
+      <a href="#pulse">Pulse</a>
+      <a href="#archive">Archive</a>
+      <a href="#ledger">Ledger</a>
+      <a href="#methodology">Methodology</a>
+      <a href="#faq">FAQ</a>
+      <button class="btn btn-primary btn-sm" data-open-access>Request access</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- ============ HERO ============ -->
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-stage spectrum-stage" id="hero-spectrum" role="img" aria-label="Decorative spectrum of luminous colour bands fading into black">
+      <canvas></canvas>
+      <div class="motion-note" id="hero-motion-note">Motion is off because your system prefers reduced motion.</div>
+      <button class="glass-btn spectrum-motion" id="hero-motion-toggle" aria-pressed="false" aria-controls="hero-spectrum">
+        <span class="when-playing"><svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg>Pause motion</span>
+        <span class="when-paused"><svg viewBox="0 0 24 24"><path d="M7 4v16l13-8z"/></svg>Play motion</span>
+      </button>
+    </div>
+    <div class="hero-body">
+      <div class="wrap">
+        <h1 id="hero-title">Every probability, with its history.</h1>
+        <p>OMEN records what the world expected, when it expected it, and why that changed. Watch a probability move, inspect the evidence behind the move, and rewind to see exactly what was known at any moment.</p>
+        <div class="hero-actions">
+          <button class="btn btn-primary" data-open-access>Request access</button>
+          <a class="btn btn-secondary" href="#demo">Explore the demo</a>
+        </div>
+        <p class="hero-note">The demo below uses illustrative data. Nothing on this page is a live feed or a performance claim.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PRODUCT PREVIEW ============ -->
+  <section class="section" id="demo" aria-labelledby="demo-title">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="demo-title">One event, read the way OMEN reads it</h2>
+        <p>A single market as it appears in the workspace: the probability now, how far it moved, when it was observed, what evidence arrived, and how much of the move is actually explained.</p>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><b>Event</b><span>Bank of Canada · Macro</span><span class="chip demo" style="margin-left:auto">Demo — illustrative data, not live</span></div>
+        <div id="preview-card"></div>
+      </div>
+      <div class="legend" aria-label="What the card shows">
+        <div><b>Probability</b>The current consensus, to one decimal, in tabular figures.</div>
+        <div><b>Movement</b>Change since the start of the window, with its size in standard deviations and duration.</div>
+        <div><b>Timestamp</b>Every number carries the exact moment it was observed.</div>
+        <div><b>Evidence</b>Signals and sources in the order they arrived, with the identified catalyst marked.</div>
+        <div><b>Uncertainty</b>OMEN's own estimate with a band, the explained share of the move, and identification confidence.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ WALKTHROUGH ============ -->
+  <section class="section" id="walkthrough" aria-labelledby="walk-title">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="walk-title">Observe a move, inspect the evidence, rewind</h2>
+        <p>The same card, used the way an analyst uses it. Pick a step; the card updates.</p>
+      </div>
+      <div class="cols">
+        <div>
+          <div class="steps" role="tablist" aria-label="Walkthrough steps" aria-orientation="vertical">
+            <button class="step" role="tab" data-step="1" aria-selected="true" aria-controls="walk-card"><span class="n">1</span><span><h3>Observe a move</h3><p>At 14:30 the probability of an October cut jumps from 61% to 74% in eighteen minutes. OMEN flags it as a 4.7σ move and highlights the window.</p></span></button>
+            <button class="step" role="tab" data-step="2" aria-selected="false" aria-controls="walk-card" tabindex="-1"><span class="n">2</span><span><h3>Inspect the evidence</h3><p>The evidence list shows what arrived and when: the CPI release, currency and yield reactions, related markets. The catalyst is marked, and the move is split into explained and unexplained parts.</p></span></button>
+            <button class="step" role="tab" data-step="3" aria-selected="false" aria-controls="walk-card" tabindex="-1"><span class="n">3</span><span><h3>Rewind</h3><p>Drag the timeline back. The probability, the evidence list and the headlines all revert to what was actually known at that minute — nothing from the future leaks in.</p></span></button>
+          </div>
+          <p class="walk-hint">Keyboard: arrow keys switch steps; the timeline slider responds to arrow keys and touch.</p>
+        </div>
+        <div class="panel" role="tabpanel" id="walk-card-panel">
+          <div class="panel-head"><b>Event</b><span>Bank of Canada · Macro</span><span class="chip demo" style="margin-left:auto">Demo — illustrative data, not live</span></div>
+          <div id="walk-card"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PULSE ============ -->
+  <section class="feature" id="pulse" aria-labelledby="pulse-title">
+    <div class="wrap cols">
+      <div>
+        <h2 id="pulse-title">Pulse</h2>
+        <p class="lead">What changed in the world's expectations today, ranked by how unusual the change was — not by how loud the headline was.</p>
+        <ul class="points">
+          <li>Every move is sized in standard deviations against that market's own history, so a two-point move in a quiet market can outrank a ten-point move in a noisy one.</li>
+          <li>Each move carries a primary catalyst, the share of the move it explains, and a confidence level for that identification.</li>
+          <li>Silence is a signal too: when a market historically reacts to a shock and doesn't, Pulse says so.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><b>Pulse</b><span>Sep 10 2026</span><span class="chip demo" style="margin-left:auto">Demo</span></div>
+        <div class="pulse-list" id="pulse-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ARCHIVE ============ -->
+  <section class="feature" id="archive" aria-labelledby="archive-title">
+    <div class="wrap cols flip">
+      <div>
+        <h2 id="archive-title">Archive</h2>
+        <p class="lead">Reconstruct the information environment at any moment: the probabilities as they stood, the headlines that existed, the evidence that had arrived — and nothing that came later.</p>
+        <ul class="points">
+          <li>Every observation is stored with the instant it was first seen, so "what did we know at 14:33?" has a precise answer.</li>
+          <li>Point-in-time views are built from those observations, never back-filled from later data.</li>
+          <li>Rewind any event in Pulse; the same view is available across every market OMEN follows.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><b>Archive</b><span>Bank of Canada cuts rates in October</span><span class="chip demo" style="margin-left:auto">Demo</span></div>
+        <div class="pit" id="archive-snapshot"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LEDGER ============ -->
+  <section class="feature" id="ledger" aria-labelledby="ledger-title">
+    <div class="wrap cols">
+      <div>
+        <h2 id="ledger-title">Ledger</h2>
+        <p class="lead">Who predicted what, when they predicted it, and how it turned out. A public record of calibration for institutions, models, aggregates and individuals.</p>
+        <ul class="points">
+          <li>Forecasts are scored only after resolution, against the probability that was recorded at the time — not a later revision.</li>
+          <li>Calibration and Brier score sit side by side, with coverage so a good score on ten forecasts is not mistaken for a good score on a thousand.</li>
+          <li>Every row opens the evidence that was available when the forecast was made.</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><b>Ledger</b><span>Canadian macro · last 12 months</span><span class="chip demo" style="margin-left:auto">Demo</span></div>
+        <table class="tbl" id="ledger-table">
+          <thead><tr><th>Forecaster</th><th>Calibration</th><th class="num">Brier</th><th class="num">Coverage</th><th class="num">Scored</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RELATIONS ============ -->
+  <section class="section" id="relations" aria-labelledby="rel-title">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="rel-title">How the three fit together</h2>
+        <p>Pulse notices, Archive remembers, Ledger keeps score. Relations between markets are measured from the archive, and a missing reaction is surfaced in Pulse.</p>
+      </div>
+      <div class="rel-grid">
+        <div class="panel flow" aria-label="Diagram: observations flow from Pulse into the Archive, which feeds Relations and the Ledger">
+          <svg viewBox="0 0 560 236" role="img">
+            <defs><marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8" fill="none" stroke="#5E6670" stroke-width="1.2"/></marker></defs>
+            <rect class="node" x="10" y="24" width="150" height="66" rx="8"/>
+            <text class="h" x="26" y="50">Pulse</text><text x="26" y="70">flags abnormal moves</text>
+            <rect class="node" x="205" y="24" width="150" height="66" rx="8"/>
+            <text class="h" x="221" y="50">Archive</text><text x="221" y="70">keeps every observation</text>
+            <rect class="node" x="400" y="24" width="150" height="66" rx="8"/>
+            <text class="h" x="416" y="50">Ledger</text><text x="416" y="70">scores on resolution</text>
+            <rect class="node" x="205" y="150" width="150" height="66" rx="8"/>
+            <text class="h" x="221" y="176">Relations</text><text x="221" y="196">measured co-movement</text>
+            <path class="edge" d="M160,57 L203,57"/>
+            <path class="edge" d="M355,57 L398,57"/>
+            <path class="edge" d="M280,90 L280,148"/><text class="elbl" x="288" y="122">history</text>
+            <path class="edge" d="M205,183 C120,183 85,150 85,92"/><text class="elbl" x="96" y="140">missing reaction</text>
+            <text class="elbl" x="14" y="228">Every arrow carries a timestamp; nothing is back-filled.</text>
+          </svg>
+        </div>
+        <div class="panel missing">
+          <div class="head"><span class="chip med"><span class="dot"></span>Expected reaction missing</span></div>
+          <h4>Canadian housing correction by Q2 2027</h4>
+          <p>Historically this market moves with Bank of Canada rate surprises in 78% of comparable shocks. No meaningful movement detected 26 minutes after today's repricing.</p>
+          <p class="quiet">Possible reasons OMEN lists rather than guesses:</p>
+          <div class="tags"><span class="chip">pricing lag</span><span class="chip">different interpretation</span><span class="chip">liquidity</span><span class="chip">relationship breakdown</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ METHODOLOGY ============ -->
+  <section class="section" id="methodology" aria-labelledby="method-title">
+    <div class="wrap method">
+      <div>
+        <div class="section-head" style="margin-bottom:var(--sp-5)">
+          <h2 id="method-title">Methodology</h2>
+          <p>OMEN's job is to make a claim and show how sure it is. These are the terms used throughout the product, and what they do and don't mean.</p>
+        </div>
+        <p class="lead">Attribution is statistical, not editorial. A catalyst is identified by timing, by the market's historical response to the same class of event, and by co-movement in related markets. The result is always a share of the move, never the whole of it.</p>
+      </div>
+      <dl>
+        <div><dt>Explained share</dt><dd>The fraction of a move that identified signals account for, based on how this market has responded to comparable events. The rest is labelled unexplained, not attributed to a guess.</dd></div>
+        <div><dt>Identification confidence</dt><dd>How sure OMEN is that the named catalyst is the trigger, separate from how much of the move it explains. A confident identification can still explain only part of a move.</dd></div>
+        <div><dt>Source tiers</dt><dd>Sources are ranked by track record and directness: primary releases and filings first, established reporting second, everything else below. Tier is shown, never hidden.</dd></div>
+        <div><dt>Historical analogues</dt><dd>Comparable past events, with their count, median response and median lag. Small samples are shown as small samples.</dd></div>
+        <div><dt>OMEN estimate</dt><dd>OMEN's own probability with a band. It sits beside the consensus, not in place of it, so the two can disagree in the open.</dd></div>
+        <div><dt>Point in time</dt><dd>Every figure is stored with the instant it was first observed. Rewound views are assembled from those records and never corrected with later information.</dd></div>
+        <div class="not">
+          <h3>What OMEN does not claim</h3>
+          <ul>
+            <li>That a catalyst caused a move — only that the timing and history are consistent with it.</li>
+            <li>That its estimate beats the market. The Ledger is where that gets tested, on resolved events.</li>
+            <li>That any figure on this page is live. The demo is illustrative and reproducible, not a feed.</li>
+            <li>Any guarantee about the immutability of records beyond what is documented for the product.</li>
+          </ul>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section class="section" id="faq" aria-labelledby="faq-title">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="faq-title">Questions</h2>
+      </div>
+      <div class="faq">
+        <details><summary>Who is OMEN for?<span class="plus" aria-hidden="true"></span></summary><p>Analysts, researchers, journalists and forecasters who need to know not just what a probability is, but what it was, when it changed, and what changed it.</p></details>
+        <details><summary>Where do the probabilities come from?<span class="plus" aria-hidden="true"></span></summary><p>From the markets and forecast sources OMEN follows. Each source's tier and reliability are shown next to the data it contributes. The demo on this page does not use live sources.</p></details>
+        <details><summary>What does "explained 69%" actually mean?<span class="plus" aria-hidden="true"></span></summary><p>Comparable past events in this market account, on average, for about that share of a move this size. The remaining 31% is left unexplained rather than assigned to the nearest headline.</p></details>
+        <details><summary>Can I trust a rewound view?<span class="plus" aria-hidden="true"></span></summary><p>A rewound view only contains observations that were recorded before the chosen moment. It is never rebuilt from later data. What it cannot contain is information OMEN had not yet observed at that time.</p></details>
+        <details><summary>Is there an API?<span class="plus" aria-hidden="true"></span></summary><p>Programmatic access is part of the product plan. Request access and say what you would build; that shapes what ships first.</p></details>
+        <details><summary>How do I get access?<span class="plus" aria-hidden="true"></span></summary><p>Access is by request while the product is in early use. Use the button above; we read every request.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FINAL CTA ============ -->
+  <section class="final" id="access-cta" aria-labelledby="final-title">
+    <div class="wrap">
+      <h2 id="final-title">See what the world expected, and why it changed its mind.</h2>
+      <p>Early access is open to a small number of teams. Tell us what you would use OMEN for and we'll be in touch.</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary" data-open-access>Request access</button>
+        <a class="btn btn-secondary" href="#demo">Explore the demo</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ============ FOOTER (reference-derived) ============ -->
+<footer class="spectrum-footer" aria-labelledby="footer-heading">
+  <h2 id="footer-heading" class="sr-only">OMEN footer</h2>
+  <div class="spectrum-stage" id="spectrum" role="img" aria-label="Decorative spectrum of luminous vertical colour bands fading into black">
+    <canvas></canvas>
+    <div class="spectrum-social" aria-label="Elsewhere">
+      <a class="glass-btn" href="#" aria-label="Social profile (placeholder)"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg></a>
+      <a class="glass-btn" href="#" aria-label="Community (placeholder)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-3.5 7.1"/></svg></a>
+      <a class="glass-btn" href="mailto:hello@example.invalid" aria-label="Email OMEN (placeholder)"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></a>
+    </div>
+    <div class="motion-note" id="motion-note">Motion is off because your system prefers reduced motion.</div>
+    <button class="glass-btn spectrum-motion" id="motion-toggle" aria-pressed="false" aria-controls="spectrum">
+      <span class="when-playing"><svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg>Pause motion</span>
+      <span class="when-paused"><svg viewBox="0 0 24 24"><path d="M7 4v16l13-8z"/></svg>Play motion</span>
+    </button>
+  </div>
+  <div class="spectrum-body">
+    <div class="spectrum-row">
+      <a class="footer-brand" href="#top" aria-label="OMEN home">
+        <img src="assets/omen-symbol.png" alt="" width="1024" height="1024">
+        <span class="wordmark">OMEN</span>
+      </a>
+      <div class="footer-nav">
+        <ul>
+          <li><a href="#pulse">Pulse</a></li>
+          <li><a href="#archive">Archive</a></li>
+          <li><a href="#ledger">Ledger</a></li>
+          <li><a href="#methodology">Methodology</a></li>
+        </ul>
+        <a class="back-top" href="#top"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>Back to top</a>
+      </div>
+    </div>
+    <div class="spectrum-legal">
+      <span>© 2026 OMEN. Demo data on this site is illustrative.</span>
+      <nav aria-label="Legal"><a href="#">Privacy</a><a href="#">Terms</a></nav>
+    </div>
+  </div>
+</footer>
+
+<!-- request access — demo dialog; wire the form to the real intake -->
+<dialog class="access" id="access" aria-labelledby="access-title">
+  <div class="access-body">
+    <h2 id="access-title">Request access</h2>
+    <p>Early access is limited. Leave a work email and a line about what you'd use OMEN for.</p>
+    <form id="access-form" novalidate>
+      <div class="field">
+        <label for="access-email">Work email</label>
+        <input id="access-email" type="email" name="email" autocomplete="email" inputmode="email" placeholder="you@company.com" required aria-describedby="access-email-err">
+        <span class="err" id="access-email-err">Enter a valid email address.</span>
+      </div>
+      <div class="field">
+        <label for="access-use">What would you use it for? <span class="quiet">(optional)</span></label>
+        <input id="access-use" type="text" name="use" placeholder="e.g. tracking rate expectations">
+      </div>
+      <p class="quiet" style="font-size:12px;margin-top:12px">Demo: this form does not send anything yet.</p>
+      <div class="access-actions">
+        <button type="button" class="btn btn-secondary" id="access-cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary">Send request</button>
+      </div>
+    </form>
+    <div class="access-done" role="status">Request noted. In the demo nothing is sent; in production this confirms the request was received.</div>
+    <div class="access-actions access-done-actions"><button type="button" class="btn btn-secondary" id="access-close">Close</button></div>
+  </div>
+</dialog>
+
+<script src="js/demo-data.js"></script>
+<script src="js/spectrum.js"></script>
+<script src="js/site.js"></script>
+</body>
+</html>

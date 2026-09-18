@@ -22,7 +22,7 @@ export function EventsScreen() {
     <section className="aion-screen">
       <ScreenHead
         title="Events"
-        description="The book of questions AION is tracking."
+        description="The book of questions OMEN is tracking."
       />
       <label className="aion-search-large">
         <input

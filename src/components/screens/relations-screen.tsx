@@ -44,7 +44,7 @@ export function RelationsScreen() {
             <Kv label="Observations" value="n = 84" />
             <Kv label="Regime differences" value="Weaker post-2024" />
             <p className="aion-note">
-              Observed relationship. AION does not label edges causal without identification.
+              Observed relationship. OMEN does not label edges causal without identification.
             </p>
           </div>
         </aside>

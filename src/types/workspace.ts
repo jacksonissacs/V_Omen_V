@@ -1,5 +1,5 @@
 export type AppRoute =
-  | "/"
+  | "/pulse"
   | "/events"
   | "/markets"
   | "/signals"

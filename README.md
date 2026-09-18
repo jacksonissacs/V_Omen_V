@@ -1,10 +1,12 @@
-# AION
+# OMEN
 
 Agentic event-intelligence and prediction operating system.
 
 Cursor × Bloomberg Terminal × Palantir × Linear.
 
-AION tracks important events and shows what changed, when it changed, the size and significance of the move, likely causes, supporting evidence, remaining uncertainty, related events and markets, historical analogues, and how previous expectations evolved.
+OMEN is the public brand; internal identifiers (`AionMark`, `.aion-app`, `--a-*` tokens, `AionEvent`) keep their historical AION names to avoid an unnecessary refactor.
+
+OMEN tracks important events and shows what changed, when it changed, the size and significance of the move, likely causes, supporting evidence, remaining uncertainty, related events and markets, historical analogues, and how previous expectations evolved.
 
 This repository is the **Phase 0 foundation**: a local Next.js application over a typed mock catalog. There are no payments, no production authentication, and no paid external APIs.
 
@@ -26,7 +28,8 @@ This repository is the **Phase 0 foundation**: a local Next.js application over 
 
 | Path | Surface |
 | --- | --- |
-| `/` | Intelligence / Pulse |
+| `/` | Public landing page (marketing route group, no `AppShell`) |
+| `/pulse` | Intelligence / Pulse — workspace home |
 | `/events` | Event book |
 | `/events/[id]` | Event intelligence |
 | `/markets` | Linked markets |
@@ -39,9 +42,25 @@ This repository is the **Phase 0 foundation**: a local Next.js application over 
 | `/alerts` | Threshold monitors |
 | `/settings` | Workspace preferences |
 
+## Landing page
+
+`/` is the public OMEN landing, built from the Fable design in `design-reference/omen-site`
+(see `design-reference/README.md` for decisions, deviations and open items).
+
+- Route group `src/app/(marketing)/` with its own header and footer; styles are scoped under
+  `.omen-marketing` in `src/app/(marketing)/marketing.css` (`--m-*` tokens, no global resets).
+- Components live in `src/components/marketing/`. Static sections are server components; the
+  spectrum canvas (`SpectrumStage`), the walkthrough and the mobile menu are client components.
+- The rainbow field is `src/lib/marketing/spectrum.ts`, a port of the prototype's Canvas 2D effect
+  (fixed seed, 7 s loop, 30 fps cap) with full lifecycle management and a static fallback.
+- Demo content is typed fixture data in `src/lib/marketing/demo-data.ts`; every card, chart and
+  evidence list derives from the same point-in-time cutoff.
+- Every primary CTA is **Explore the demo → `/pulse`**. There is no signup or access-request form.
+
 ## Workspace
 
-The application uses the AION reference visual language across routed pages:
+The workspace (`/pulse` and the routes below) is labelled as demo data and uses the OMEN reference
+visual language across routed pages:
 
 - **Pulse** — expectation moves, category filters, search, sort, watchlist
 - **Event intelligence** — what changed, when, significance, cause, evidence, uncertainty, markets, analogues, prior beliefs

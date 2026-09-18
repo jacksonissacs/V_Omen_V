@@ -20,7 +20,7 @@ export function CallModal() {
       <div className="aion-call-modal" role="dialog" aria-modal="true" aria-label="Make a call">
         <h2>{callEvent.question}</h2>
         <p className="aion-call-sub">
-          Blind mode — market consensus, the AION estimate and other forecasters
+          Blind mode — market consensus, the OMEN estimate and other forecasters
           are hidden until you lock.
         </p>
         <div className="aion-slider-value aion-mono">
@@ -58,7 +58,7 @@ export function CallModal() {
             <span className="aion-label">Locked. Now revealed:</span>
             <RevealRow label="You" value={`${probability}%`} />
             <RevealRow label="Market" value={`${callEvent.probability.toFixed(0)}%`} />
-            <RevealRow label="AION model" value={`${Math.round(callEvent.probability - 2.6)}%`} />
+            <RevealRow label="OMEN model" value={`${Math.round(callEvent.probability - 2.6)}%`} />
             <RevealRow label="Community" value={`${Math.round(callEvent.probability - 1)}%`} />
           </div>
         ) : null}

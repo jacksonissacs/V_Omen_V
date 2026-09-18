@@ -46,9 +46,9 @@ export function Sidebar() {
 
   return (
     <aside className="aion-sidebar" aria-label="Workspace navigation">
-      <Link className="aion-logo" href="/" aria-label="AION home">
+      <Link className="aion-logo" href="/pulse" aria-label="OMEN workspace home">
         <AionMark />
-        <span className="aion-logo-word">AION</span>
+        <span className="aion-logo-word">OMEN</span>
       </Link>
       {primaryNav.map((item) => (
         <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} />
@@ -91,9 +91,9 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   )
 }
 
-function isActive(pathname: string, href: string) {
-  if (href === "/") {
-    return pathname === "/"
+export function isActive(pathname: string, href: string) {
+  if (href === "/pulse") {
+    return pathname === "/pulse"
   }
   if (href === "/events") {
     return pathname === "/events" || pathname.startsWith("/events/")

@@ -1,10 +1,10 @@
-# AION product vision
+# OMEN product vision
 
-AION is an **agentic event-intelligence and prediction operating system**.
+OMEN is an **agentic event-intelligence and prediction operating system**.
 
 It sits at the intersection of four products operators already live in:
 
-| Reference | What AION takes from it |
+| Reference | What OMEN takes from it |
 | --- | --- |
 | **Cursor** | Agentic workflow: the system does the reading, linking, and first-pass reasoning so a human can decide. |
 | **Bloomberg Terminal** | Density, latency, and a keyboard-first surface for markets and events. |
@@ -27,13 +27,13 @@ That reconstruction is slow, inconsistent, and hard to revisit. When a probabili
 8. **Which historical analogues apply**
 9. **How previous expectations evolved**
 
-AION exists to make that reconstruction a first-class, shared object.
+OMEN exists to make that reconstruction a first-class, shared object.
 
 ## Who it is for
 
 The first user is a **decision-maker who already tracks a book of events**: a policy desk, a corporate strategy team, a multi-strategy research pod, a supply-chain war room. They do not need another news feed. They need a live model of *what matters, why the view moved, and how confident that view should be*.
 
-AION is not a consumer news app and not a prediction-market casino. Markets are one evidence class, not the product.
+OMEN is not a consumer news app and not a prediction-market casino. Markets are one evidence class, not the product.
 
 ## Product principles
 
@@ -60,7 +60,7 @@ The atomic object is an **intelligence event**:
 - historical analogues
 - an expectation path (how the implied view evolved)
 
-Around that object, AION presents three daily surfaces:
+Around that object, OMEN presents three daily surfaces:
 
 - **Feed** — what moved, in order, with size.
 - **Event** — the full reconstruction of one question.
@@ -68,7 +68,7 @@ Around that object, AION presents three daily surfaces:
 
 A command palette reaches any of the three without leaving the keyboard.
 
-## What AION is not (yet)
+## What OMEN is not (yet)
 
 - A brokerage, exchange, or wallet.
 - A production identity or billing system.
@@ -79,4 +79,4 @@ Those may appear later. They are not the founding product. The founding product 
 
 ## Success
 
-AION is working when a user can open an event after being away for a day and, in under a minute, answer: what moved, why we think it moved, how sure we are, what would change our mind, and what else in the book is now in play.
+OMEN is working when a user can open an event after being away for a day and, in under a minute, answer: what moved, why we think it moved, how sure we are, what would change our mind, and what else in the book is now in play.

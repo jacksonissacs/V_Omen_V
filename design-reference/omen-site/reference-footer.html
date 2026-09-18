@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OMEN — Spectrum footer (reference reconstruction)</title>
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/spectrum.css">
+<style>
+  /* review scaffold only: a short graphite page so the footer sits where it belongs */
+  .scaffold{min-height:34vh;display:flex;align-items:flex-end;padding:var(--sp-7) var(--gutter);max-width:var(--max-w);margin:0 auto;color:var(--tx-2);font-size:12px;line-height:1.6}
+  .scaffold b{color:var(--tx-1);font-weight:500}
+  .scaffold .mono{font-size:11px}
+  .scaffold kbd{font-family:var(--mono);font-size:10.5px;color:var(--tx-2);border:1px solid var(--border-0);border-radius:var(--r-1);padding:1px 5px;background:var(--bg-0)}
+</style>
+</head>
+<body>
+
+<div class="scaffold">
+  <p><b>Reference reconstruction — footer section.</b> Everything below the rule is the section under review; the graphite page above it stands in for the rest of the site.<br>
+  Motion loops every <span class="mono">7 s</span>. Pause with the button at the bottom-right of the atmosphere, or press <kbd>Space</kbd>/<kbd>Enter</kbd> while it is focused. Under <span class="mono">prefers-reduced-motion</span> the section renders one static frame and the button becomes an opt-in “Play motion”.</p>
+</div>
+
+<footer class="spectrum-footer" aria-labelledby="footer-heading">
+  <h2 id="footer-heading" class="sr-only">OMEN footer</h2>
+
+  <div class="spectrum-stage" id="spectrum" role="img" aria-label="Decorative spectrum of luminous vertical colour bands fading into black">
+    <canvas></canvas>
+    <!-- Social slots: the reference shows three square icon buttons here. Glyphs are neutral placeholders; swap in the approved platform icon set and real URLs. -->
+    <div class="spectrum-social" aria-label="Elsewhere">
+      <a class="glass-btn" href="#" aria-label="Social profile (placeholder)"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5"/></svg></a>
+      <a class="glass-btn" href="#" aria-label="Community (placeholder)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-3.5 7.1"/></svg></a>
+      <a class="glass-btn" href="mailto:hello@example.invalid" aria-label="Email OMEN (placeholder)"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></a>
+    </div>
+    <div class="motion-note" id="motion-note">Motion is off because your system prefers reduced motion.</div>
+    <button class="glass-btn spectrum-motion" id="motion-toggle" aria-pressed="false" aria-controls="spectrum">
+      <span class="when-playing"><svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg>Pause motion</span>
+      <span class="when-paused"><svg viewBox="0 0 24 24"><path d="M7 4v16l13-8z"/></svg>Play motion</span>
+    </button>
+  </div>
+
+  <div class="spectrum-body">
+    <div class="spectrum-row">
+      <a class="footer-brand" href="#" aria-label="OMEN home">
+        <img src="assets/omen-symbol.png" alt="" width="1024" height="1024">
+        <span class="wordmark">OMEN</span>
+      </a>
+      <div class="footer-nav">
+        <ul>
+          <li><a href="#">Pulse</a></li>
+          <li><a href="#">Archive</a></li>
+          <li><a href="#">Ledger</a></li>
+          <li><a href="#">Methodology</a></li>
+        </ul>
+        <a class="back-top" href="#top" id="back-top"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>Back to top</a>
+      </div>
+    </div>
+    <div class="spectrum-legal">
+      <span>© 2026 OMEN. Demo data on this site is illustrative.</span>
+      <nav aria-label="Legal"><a href="#">Privacy</a><a href="#">Terms</a></nav>
+    </div>
+  </div>
+</footer>
+
+<script src="js/spectrum.js"></script>
+<script>
+  (function(){
+    var stage = document.getElementById('spectrum');
+    var btn = document.getElementById('motion-toggle');
+    var note = document.getElementById('motion-note');
+    var fx = OmenSpectrum.mount(stage);
+    function sync(paused){ btn.setAttribute('aria-pressed', paused ? 'true' : 'false'); }
+    sync(fx.paused);
+    if (fx.reduced) note.classList.add('on');
+    btn.addEventListener('click', function(){ sync(fx.toggle()); note.classList.remove('on'); });
+    stage.addEventListener('spectrum:state', function(e){ sync(e.detail.paused); });
+    document.getElementById('back-top').addEventListener('click', function(e){
+      e.preventDefault(); window.scrollTo({ top: 0, behavior: fx.reduced ? 'auto' : 'smooth' });
+    });
+    window.__omenSpectrum = fx; // exposed for review tooling (renderAt(t))
+  })();
+</script>
+</body>
+</html>

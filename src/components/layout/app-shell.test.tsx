@@ -16,7 +16,8 @@ describe("AppShell", () => {
     )
 
     expect(screen.getByRole("heading", { name: "Pulse", level: 1 })).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: "Intelligence" })).toHaveAttribute("href", "/")
+    expect(screen.getByRole("link", { name: "OMEN workspace home" })).toHaveAttribute("href", "/pulse")
+    expect(screen.getByRole("link", { name: "Intelligence" })).toHaveAttribute("href", "/pulse")
     expect(screen.getByRole("link", { name: "Events" })).toHaveAttribute("href", "/events")
     expect(screen.getByRole("link", { name: "Markets" })).toHaveAttribute("href", "/markets")
     expect(screen.getByRole("link", { name: "Signals" })).toHaveAttribute("href", "/signals")
@@ -24,6 +25,7 @@ describe("AppShell", () => {
     expect(screen.getByRole("link", { name: "Watchlists" })).toHaveAttribute("href", "/watchlists")
     expect(screen.getByRole("link", { name: "Research" })).toHaveAttribute("href", "/research")
     expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings")
+    expect(screen.getByText("Demo data")).toBeInTheDocument()
   })
 
   it("filters the pulse by category and opens the command palette", async () => {
@@ -38,7 +40,7 @@ describe("AppShell", () => {
     expect(screen.getByText("Frontier model released before December 1")).toBeInTheDocument()
     expect(screen.queryByText("Bank of Canada cuts rates in October")).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole("button", { name: "Ask AION" }))
+    await user.click(screen.getByRole("button", { name: "Ask OMEN" }))
     expect(screen.getByRole("dialog", { name: "Command palette" })).toBeInTheDocument()
   })
 })

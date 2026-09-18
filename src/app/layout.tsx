@@ -18,11 +18,12 @@ const ibmPlexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "AION — Event intelligence",
-    template: "%s · AION",
+    default: "OMEN — Every probability, with its history",
+    template: "%s · OMEN",
   },
   description:
-    "Agentic event-intelligence and prediction operating system. What changed, why, and how sure we are.",
+    "OMEN records what the world expected, when it expected it, and why that changed. Point-in-time probabilities, evidence, and a public accuracy ledger.",
+  applicationName: "OMEN",
 }
 
 export default function RootLayout({

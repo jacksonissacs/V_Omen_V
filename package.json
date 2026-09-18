@@ -2,7 +2,7 @@
   "name": "aion",
   "version": "0.1.0",
   "private": true,
-  "description": "AION — agentic event-intelligence and prediction operating system.",
+  "description": "OMEN — agentic event-intelligence and prediction operating system.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

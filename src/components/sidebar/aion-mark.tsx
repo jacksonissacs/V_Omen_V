@@ -1,27 +1,20 @@
+import Image from "next/image"
+
+/**
+ * Workspace brand mark. Renders the supplied silver OMEN symbol unchanged
+ * (`public/brand/omen-symbol-64.png`, from the approved logo pack).
+ * The component keeps its historical name to avoid an internal rename.
+ */
 export function AionMark() {
   return (
-    <svg
+    <Image
       className="aion-logo-mark"
-      width="18"
-      height="18"
-      viewBox="0 0 18 18"
-      fill="none"
-      aria-hidden
-    >
-      <path
-        d="M2 15 9 2l7 13"
-        stroke="#E7E9EC"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M2 15c4-3.5 10-3.5 14 0"
-        stroke="#8194FF"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-        opacity=".9"
-      />
-    </svg>
+      src="/brand/omen-symbol-64.png"
+      alt=""
+      width={18}
+      height={18}
+      unoptimized
+      priority
+    />
   )
 }

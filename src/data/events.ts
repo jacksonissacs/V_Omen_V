@@ -61,7 +61,7 @@ export const events: AionEvent[] = [
     relatedMarkets: [
       { id: "mkt-cad", name: "USD/CAD", venue: "Spot", last: 1.372, unit: "CAD", changePct: -0.4 },
       { id: "mkt-can2y", name: "Canada 2Y", venue: "OTC", last: 2.91, unit: "%", changePct: 0.17 },
-      { id: "mkt-boc-oct", name: "BoC Oct cut", venue: "AION", last: 73.8, unit: "%", changePct: 12.6 },
+      { id: "mkt-boc-oct", name: "BoC Oct cut", venue: "OMEN", last: 73.8, unit: "%", changePct: 12.6 },
     ],
     signals: [
       { id: "sig-boc-1", label: "Canadian 2Y yield", value: "+17 bps", direction: "up" },
@@ -82,7 +82,7 @@ export const events: AionEvent[] = [
       { time: "14:30:00", text: "Statistics Canada CPI release", type: "source" },
       { time: "14:30:42", text: "CAD begins repricing", delta: "−0.4%", tone: "down" },
       { time: "14:31:08", text: "Canadian 2Y yields move", delta: "+17 bps", tone: "up" },
-      { time: "14:31:51", text: "AION detects abnormal movement" },
+      { time: "14:31:51", text: "OMEN detects abnormal movement" },
       { time: "14:32:07", text: "Probability rises", delta: "+4.2 pts", tone: "up" },
       { time: "14:34:16", text: "Related rate market reacts", delta: "+6 pts", tone: "up" },
       { time: "14:38:42", text: "Move reaches", delta: "+12.6 pts", tone: "up" },
@@ -215,7 +215,7 @@ export const events: AionEvent[] = [
       },
     ],
     relatedMarkets: [
-      { id: "mkt-housing-ca", name: "CA housing HPI", venue: "AION", last: 31.0, unit: "%", changePct: -0.2 },
+      { id: "mkt-housing-ca", name: "CA housing HPI", venue: "OMEN", last: 31.0, unit: "%", changePct: -0.2 },
     ],
     signals: [
       { id: "sig-hou-1", label: "Rate-housing beta today", value: "0.04", direction: "flat" },

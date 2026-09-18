@@ -1,7 +1,7 @@
 import type { LedgerCard, NavItem, WatchlistItem } from "@/types/workspace"
 
 export const primaryNav: NavItem[] = [
-  { href: "/", label: "Intelligence", icon: "pulse" },
+  { href: "/pulse", label: "Intelligence", icon: "pulse" },
   { href: "/events", label: "Events", icon: "events" },
   { href: "/markets", label: "Markets", icon: "markets" },
   { href: "/signals", label: "Signals", icon: "signals" },
@@ -22,7 +22,7 @@ export const footerNav: NavItem[] = [
 ]
 
 export const routeHeadings: Record<string, string> = {
-  "/": "Pulse",
+  "/pulse": "Pulse",
   "/events": "Events",
   "/markets": "Markets",
   "/signals": "Signals",
@@ -48,7 +48,7 @@ export const ledgerCards: LedgerCard[] = [
     weakest: "Labor revisions",
   },
   {
-    name: "AION consensus",
+    name: "OMEN consensus",
     verified: "Verified aggregate",
     calibration: "84%",
     forecasts: "12,407",
@@ -78,7 +78,7 @@ export const ledgerCards: LedgerCard[] = [
 
 export const modelRankings = [
   ["Market consensus", "83%", "0.121", "96%", "+2.1", "+1.4", "+1.9"],
-  ["AION ensemble", "82%", "0.125", "94%", "+2.0", "+2.3", "+1.4"],
+  ["OMEN ensemble", "82%", "0.125", "94%", "+2.0", "+2.3", "+1.4"],
   ["Frontier model aggregate", "79%", "0.134", "93%", "+1.2", "−0.3", "+0.8"],
   ["Human forecaster benchmark", "76%", "0.147", "71%", "+0.5", "+0.7", "+0.4"],
 ] as const

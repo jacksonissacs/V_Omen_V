@@ -43,7 +43,7 @@ export function ArchiveScreen() {
       {pointInTime ? (
         <div className="aion-point-frame">
           <p style={{ color: "var(--a-tx-2)", fontSize: 12, margin: "0 0 16px" }}>
-            Viewing AION as it existed at{" "}
+            Viewing OMEN as it existed at{" "}
             <span className="aion-mono" style={{ color: "var(--a-accent)" }}>
               Aug 17 2026 · 10:35:00 EDT
             </span>

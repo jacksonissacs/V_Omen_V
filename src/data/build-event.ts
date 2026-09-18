@@ -104,7 +104,7 @@ function defaultTimeline(draft: EventDraft): TimelineItem[] {
     },
     {
       time: incrementTime(draft.catalystTime, 71),
-      text: "AION detects abnormal movement",
+      text: "OMEN detects abnormal movement",
     },
     {
       time: incrementTime(draft.catalystTime, 127),

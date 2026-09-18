@@ -27,7 +27,7 @@ export function IntelligencePanel({
   if (tab === "Attribution") {
     return (
       <div className="aion-inspector-body">
-        <div className="aion-inspector-title">AION attribution</div>
+        <div className="aion-inspector-title">OMEN attribution</div>
         <Kv label="Likely cause" value={event.likelyCause} />
         <Kv label="Coverage of move" value={`${event.explained}%`} />
         <Kv label="Identification" value={event.confidence} />
@@ -66,7 +66,7 @@ export function IntelligencePanel({
     <div className="aion-inspector-body">
       <div className="aion-inspector-title">{source?.name ?? event.catalyst}</div>
       <Kv label="Published" value={event.catalystTime} />
-      <Kv label="First observed by AION" value={event.displayTime} />
+      <Kv label="First observed by OMEN" value={event.displayTime} />
       <Kv label="Source reliability" value={`Tier ${event.sourceTier}`} />
       <Kv label="Historical relevance" value={event.confidence} />
       <div className="aion-inspector-section">Entities</div>

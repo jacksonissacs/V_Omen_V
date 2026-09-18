@@ -375,6 +375,16 @@
   background: var(--a-warn);
 }
 
+.aion-demo-chip {
+  flex: none;
+  border-color: rgba(201, 169, 106, 0.35);
+  color: var(--a-warn);
+}
+
+.aion-demo-chip .aion-chip-dot {
+  background: var(--a-warn);
+}
+
 .aion-pulse-card h2 {
   margin: 0 0 10px;
   color: var(--a-tx-0);
@@ -1533,6 +1543,10 @@ a.aion-button {
   .aion-ask {
     min-width: 0;
     flex: 1;
+  }
+
+  .aion-demo-chip {
+    display: none;
   }
 
   .aion-card-body,

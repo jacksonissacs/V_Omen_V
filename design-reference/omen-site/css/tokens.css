@@ -1,0 +1,46 @@
+/* OMEN public site — design tokens
+   Base tokens are lifted verbatim from the workspace prototype (omen.html)
+   so the landing page and the product share one vocabulary. */
+@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:swap;src:url('../assets/fonts/inter-latin-wght-normal.woff2') format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:swap;src:url('../assets/fonts/ibm-plex-mono-latin-400-normal.woff2') format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:swap;src:url('../assets/fonts/ibm-plex-mono-latin-500-normal.woff2') format('woff2')}
+
+:root{
+  /* surfaces (from prototype) */
+  --bg-0:#0C0E11;  --bg-1:#111418;  --bg-2:#161A1F;  --bg-3:#1C2127;
+  --black:#000000;                       /* atmospheric sections only */
+  --border-0:rgba(255,255,255,.055);
+  --border-1:rgba(255,255,255,.09);
+  --border-2:rgba(255,255,255,.14);
+  --border-focus:rgba(129,148,255,.55);
+  /* text (from prototype) */
+  --tx-0:#E7E9EC;  --tx-1:#9BA3AD;  --tx-2:#5E6670;
+  /* accent — icy indigo, functional UI only (from prototype) */
+  --ac:#8194FF;  --ac-dim:rgba(129,148,255,.13);  --ac-line:rgba(129,148,255,.35);
+  /* semantic movement (from prototype) */
+  --up:#6FAE8F;  --up-dim:rgba(111,174,143,.12);
+  --dn:#C08383;  --dn-dim:rgba(192,131,131,.12);
+  --warn:#C9A96A;
+  /* brand silver — matches the supplied symbol's tonal range */
+  --silver-0:#F2F1EC;  --silver-1:#B9B6AE;  --silver-2:#6E6C66;
+  /* type */
+  --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono','SF Mono',ui-monospace,monospace;
+  /* radii & spacing (from prototype) */
+  --r-1:3px; --r-2:6px; --r-3:9px; --r-4:14px;
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:24px; --sp-6:32px; --sp-7:48px; --sp-8:72px; --sp-9:112px;
+  /* motion */
+  --t-fast:120ms; --t-med:200ms; --t-slow:360ms; --ease:cubic-bezier(.3,.7,.4,1);
+  /* layout */
+  --max-w:1180px; --gutter:clamp(20px,4vw,48px);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{font-size:15px;-webkit-text-size-adjust:100%}
+body{background:var(--bg-0);color:var(--tx-0);font-family:var(--sans);font-weight:450;letter-spacing:.005em;-webkit-font-smoothing:antialiased;line-height:1.5}
+::selection{background:rgba(129,148,255,.28)}
+.mono,.num{font-family:var(--mono);font-feature-settings:'tnum' 1;letter-spacing:-.01em}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+a{color:inherit;text-decoration:none}
+button:focus-visible,a:focus-visible,[tabindex]:focus-visible,input:focus-visible,summary:focus-visible{outline:1.5px solid var(--border-focus);outline-offset:2px;border-radius:var(--r-1)}
+img{display:block;max-width:100%}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
