@@ -1,11 +1,13 @@
 import path from "node:path"
-import { defineConfig } from "vitest/config"
+import { configDefaults, defineConfig } from "vitest/config"
 
 export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+    // PostgreSQL integration tests need a disposable server; run them with `npm run test:db`.
+    exclude: [...configDefaults.exclude, "src/**/*.db.test.ts"],
   },
   resolve: {
     alias: {

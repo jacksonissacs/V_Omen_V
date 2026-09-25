@@ -31,11 +31,11 @@ export function testEvent(overrides: Partial<EventDraft> & Pick<EventDraft, "id"
 /** A repository over caller-supplied events, so tests prove screens read the port, not fixtures. */
 export function fakeRepository(
   events: AionEvent[],
-  options: { followed?: string[]; anomalyId?: string } = {},
+  options: { followed?: string[]; anomalyId?: string; storage?: IntelligenceRepository["storage"] } = {},
 ): IntelligenceRepository {
   const byId = new Map(events.map((event) => [event.id, event]))
   return {
-    storage: "demo",
+    storage: options.storage ?? "demo",
     listEvents: async () => events.slice(),
     getEvent: async (id) => byId.get(id),
     getRelatedEvents: async (id) =>
@@ -50,12 +50,15 @@ export function fakeRepository(
   }
 }
 
-export function failingRepository(message = "store offline"): IntelligenceRepository {
+export function failingRepository(
+  message = "store offline",
+  storage: IntelligenceRepository["storage"] = "demo",
+): IntelligenceRepository {
   const fail = async (): Promise<never> => {
     throw new Error(message)
   }
   return {
-    storage: "demo",
+    storage,
     listEvents: fail,
     getEvent: fail,
     getRelatedEvents: fail,
