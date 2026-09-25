@@ -23,7 +23,7 @@ Workspace routes render per request (`await connection()` in the workspace layou
 Storage says where records are kept. Provenance says where they came from. Every event, observation, evidence item and Move Log revision carries `provenance`, which is either `demo` or `sourced`.
 
 - Illustrative records stay `demo` after they're written to PostgreSQL. The committed fixtures are all `demo`.
-- The top bar shows provenance ("Demo data", "Sourced data", "Demo + sourced data", or "Data unavailable"). In database mode it also shows a separate "PostgreSQL" storage chip.
+- On the core routes (Pulse, Events, event detail, Watchlists), the top bar shows provenance ("Demo data", "Sourced data", "Demo + sourced data", or "Data unavailable"). In database mode it also shows a separate "PostgreSQL" storage chip. Legacy demo-only screens always show "Demo data", because they never read the store.
 - `/api/events` returns `storage` and `provenance` as separate fields. Each event also carries its own `provenance`.
 - `sourced` means entered from a cited source. It does **not** mean live. Nothing in V0 is a live feed.
 

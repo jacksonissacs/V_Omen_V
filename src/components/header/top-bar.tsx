@@ -12,6 +12,7 @@ export function TopBar() {
   const eventMatch = pathname.match(/^\/events\/([^/]+)$/)
   const event = eventMatch ? findEventSummary(eventMatch[1]) : undefined
   const heading = event ? event.title : (routeHeadings[pathname] ?? "OMEN")
+  const readsStore = CORE_ROUTE.test(pathname)
 
   return (
     <header className="aion-topbar">
@@ -26,8 +27,8 @@ export function TopBar() {
         ) : null}
         <b>{heading}</b>
       </div>
-      <DataChip />
-      {storage === "database" ? (
+      {readsStore ? <DataChip /> : <LegacyDemoChip />}
+      {readsStore && storage === "database" ? (
         <span className="aion-chip" title="Records are read from the configured PostgreSQL database.">
           PostgreSQL
         </span>
@@ -45,6 +46,9 @@ export function TopBar() {
     </header>
   )
 }
+
+/** Routes whose data comes from the repository. Every other workspace screen is static demo content. */
+const CORE_ROUTE = /^\/(pulse|events|watchlists)(\/|$)/
 
 const PROVENANCE_CHIP = {
   demo: {
@@ -77,6 +81,18 @@ function DataChip() {
     <span className={`aion-chip${provenance === "demo" ? " aion-demo-chip" : ""}`} title={chip.title}>
       <span className="aion-chip-dot" aria-hidden />
       {chip.label}
+    </span>
+  )
+}
+
+function LegacyDemoChip() {
+  return (
+    <span
+      className="aion-chip aion-demo-chip"
+      title="This screen shows illustrative demo content. It does not read the configured store."
+    >
+      <span className="aion-chip-dot" aria-hidden />
+      Demo data
     </span>
   )
 }

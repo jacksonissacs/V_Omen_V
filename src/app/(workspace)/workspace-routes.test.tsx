@@ -304,6 +304,7 @@ describe("Workspace shell", () => {
 
 describe("Workspace data labels", () => {
   it("labels in-process demo records as demo data without a storage chip", async () => {
+    mockPathname.mockReturnValue("/pulse")
     useRepository(fakeRepository(book))
     await renderRoute(Promise.resolve(<div>child</div>))
     expect(screen.getByText("Demo data")).toBeInTheDocument()
@@ -311,6 +312,7 @@ describe("Workspace data labels", () => {
   })
 
   it("keeps demo records labelled demo when they are stored in PostgreSQL", async () => {
+    mockPathname.mockReturnValue("/events")
     useRepository(fakeRepository(book, { storage: "database" }))
     await renderRoute(Promise.resolve(<div>child</div>))
     expect(screen.getByText("Demo data")).toBeInTheDocument()
@@ -320,6 +322,7 @@ describe("Workspace data labels", () => {
 
   it("labels sourced and mixed books without calling them live", async () => {
     const sourced = { ...alpha, provenance: "sourced" as const }
+    mockPathname.mockReturnValue("/watchlists")
     useRepository(fakeRepository([sourced], { storage: "database" }))
     const first = await renderRoute(Promise.resolve(<div>child</div>))
     expect(screen.getByText("Sourced data")).toBeInTheDocument()
@@ -333,11 +336,21 @@ describe("Workspace data labels", () => {
 
   it("shows data unavailable, not demo data, when database storage fails", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {})
+    mockPathname.mockReturnValue("/pulse")
     useRepository(failingRepository("connection refused", "database"))
     await renderRoute(Promise.resolve(<div>child</div>))
     expect(screen.getByText("Data unavailable")).toBeInTheDocument()
     expect(screen.queryByText("Demo data")).not.toBeInTheDocument()
     expect(screen.getByText("PostgreSQL")).toBeInTheDocument()
+  })
+
+  it("labels legacy demo-only screens as demo data even when the store holds sourced records", async () => {
+    mockPathname.mockReturnValue("/markets")
+    useRepository(fakeRepository([{ ...alpha, provenance: "sourced" }], { storage: "database" }))
+    await renderRoute(Promise.resolve(<div>child</div>))
+    expect(screen.getByText("Demo data")).toBeInTheDocument()
+    expect(screen.queryByText("Sourced data")).not.toBeInTheDocument()
+    expect(screen.queryByText("PostgreSQL")).not.toBeInTheDocument()
   })
 })
 
