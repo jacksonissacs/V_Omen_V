@@ -7,6 +7,10 @@ export const DOMAINS = [
 
 export type Domain = (typeof DOMAINS)[number]
 
+export function isDomain(value: string | undefined | null): value is Domain {
+  return (DOMAINS as readonly string[]).includes(value ?? "")
+}
+
 export type EventStatus = "watch" | "active" | "resolved"
 export type Significance = "critical" | "high" | "medium" | "low"
 export type EvidenceStance = "supports" | "contradicts" | "contextual"

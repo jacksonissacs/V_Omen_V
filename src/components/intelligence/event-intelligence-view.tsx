@@ -43,6 +43,11 @@ export function EventIntelligenceView({
         </div>
         <h1>{event.title}</h1>
         <p className="aion-event-question">{event.question}</p>
+        {event.resolutionCriteria ? (
+          <p className="aion-note" style={{ marginBottom: 14 }}>
+            <span className="aion-label">Resolution criteria</span> {event.resolutionCriteria}
+          </p>
+        ) : null}
         <div className="aion-event-figures">
           <EventFigure label="Current probability" value={formatProbability(event.probability)} />
           <EventFigure
@@ -95,6 +100,7 @@ export function EventIntelligenceView({
             />
             <QaCard label="What likely caused it?" value={event.likelyCause} />
           </div>
+          {event.moveLog ? <MoveLogNote moveLog={event.moveLog} /> : null}
 
           <div className="aion-panel">
             <div className="aion-chart-bar">
@@ -268,6 +274,21 @@ function Attribute({
       <span className="aion-label">{label}</span>
       <span className={`aion-attribution-value ${mono ? "aion-mono" : ""}`}>{value}</span>
     </div>
+  )
+}
+
+function MoveLogNote({ moveLog }: { moveLog: NonNullable<AionEvent["moveLog"]> }) {
+  return (
+    <p className="aion-note" data-testid="move-log-note">
+      Move log {moveLog.id} · version {moveLog.version} · published {formatDateTime(moveLog.publishedAt)} by{" "}
+      {moveLog.author}
+      {moveLog.version > 1 ? (
+        <>
+          {" "}
+          · first published {formatDateTime(moveLog.firstPublishedAt)} · correction: {moveLog.correctionNote}
+        </>
+      ) : null}
+    </p>
   )
 }
 

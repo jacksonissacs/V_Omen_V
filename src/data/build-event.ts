@@ -13,6 +13,7 @@ import type {
 
 export interface EventDraft {
   id: string
+  provenance?: AionEvent["provenance"]
   title: string
   category: EventCategory
   probability: number
@@ -37,6 +38,8 @@ export interface EventDraft {
   region: string
   tags: string[]
   resolvesAt?: string
+  deadline?: string
+  resolutionCriteria?: string
   entities: string[]
   evidence: EventSource[]
   relatedMarkets?: RelatedMarket[]
@@ -46,6 +49,7 @@ export interface EventDraft {
   timeline?: TimelineItem[]
   expectationHistory: ExpectationPoint[]
   anomaly?: EventAnomaly
+  moveLog?: AionEvent["moveLog"]
 }
 
 export function buildEvent(draft: EventDraft): AionEvent {
@@ -53,6 +57,7 @@ export function buildEvent(draft: EventDraft): AionEvent {
   const evidence = draft.evidence
   return {
     id: draft.id,
+    provenance: draft.provenance ?? "demo",
     title: draft.title,
     category: draft.category,
     probability: draft.probability,
@@ -86,8 +91,11 @@ export function buildEvent(draft: EventDraft): AionEvent {
     region: draft.region,
     tags: draft.tags,
     resolvesAt: draft.resolvesAt,
+    deadline: draft.deadline,
+    resolutionCriteria: draft.resolutionCriteria,
     entities: draft.entities,
     anomaly: draft.anomaly,
+    moveLog: draft.moveLog,
   }
 }
 

@@ -5,9 +5,18 @@ export async function GET(
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params
-  const event = await getRepository().getEvent(id)
-  if (!event) {
-    return Response.json({ error: "Event not found" }, { status: 404 })
+  const repository = getRepository()
+  try {
+    const event = await repository.getEvent(id)
+    if (!event) {
+      return Response.json({ storage: repository.storage, error: "Event not found" }, { status: 404 })
+    }
+    return Response.json({ storage: repository.storage, provenance: event.provenance, event })
+  } catch (error) {
+    console.error("Event unavailable", error)
+    return Response.json(
+      { storage: repository.storage, error: "Event storage is unavailable" },
+      { status: 503 },
+    )
   }
-  return Response.json({ event })
 }

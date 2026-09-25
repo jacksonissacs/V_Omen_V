@@ -7,8 +7,10 @@ import { CATEGORY_DOMAIN } from "@/lib/domain/categories"
 describe("MockIntelligenceRepository", () => {
   const repository = new MockIntelligenceRepository()
 
-  it("labels itself as demo data", () => {
-    expect(repository.provenance).toBe("demo")
+  it("stores in-process demo records and labels every event as demo provenance", async () => {
+    expect(repository.storage).toBe("demo")
+    const events = await repository.listEvents()
+    expect(events.every((event) => event.provenance === "demo")).toBe(true)
   })
 
   it("returns the full book sorted by absolute probability move", async () => {

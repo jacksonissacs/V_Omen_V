@@ -90,11 +90,15 @@ Open [http://localhost:3000](http://localhost:3000).
 ### Other commands
 
 ```bash
-npm test          # Vitest, single run
+npm test          # Vitest, single run (no database needed)
 npm run test:watch
 npm run lint
+npm run typecheck # tsc --noEmit (run after a build so .next/types exist)
 npm run build
 npm start         # production server after build
+
+npm run test:db   # PostgreSQL integration tests (needs OMEN_TEST_DATABASE_ADMIN_URL)
+npm run db:migrate | db:status | db:upsert | db:show   # nonproduction database command
 ```
 
 ### Internal API
@@ -105,21 +109,25 @@ npm start         # production server after build
 
 Domains: `technology`, `finance`, `geopolitics`, `supply_chain`.
 
+### Storage
+
+`OMEN_STORAGE_MODE=demo` (the default) serves the in-process demo book. `OMEN_STORAGE_MODE=database` reads PostgreSQL from `DATABASE_URL` and fails visibly rather than falling back. Records keep their own provenance: illustrative records stored in PostgreSQL are still labelled demo data. Copy `.env.example` to `.env.local` and follow [docs/database.md](docs/database.md) for local setup, the schema, and the write command.
+
 ## Architecture in brief
 
 UI components live under `src/components/{layout,sidebar,header,events,markets,intelligence,common,screens}`. Event types are in `src/types`. The seeded catalog is `src/data/events.ts`.
 
-The core workspace (Pulse, Events, event detail, Watchlists, ⌘K event search) reads through the async, server-only `IntelligenceRepository` port in `src/lib/data/repository.ts`. Server components load the data and pass it to client screens as props; the mock adapter over the seeded catalog is the only implementation. Legacy demo-only screens that still read fixtures directly are listed in [docs/architecture.md](docs/architecture.md#legacy-demo-only-screens).
+The core workspace (Pulse, Events, event detail, Watchlists, ⌘K event search) reads through the async, server-only `IntelligenceRepository` port in `src/lib/data/repository.ts`. Server components load the data and pass it to client screens as props. The adapter is either the mock over the seeded catalog or PostgreSQL, selected by `OMEN_STORAGE_MODE`. Legacy demo-only screens that still read fixtures directly are listed in [docs/architecture.md](docs/architecture.md#legacy-demo-only-screens).
 
 ## What is intentionally missing
 
 - Payments and entitlements
 - Production authentication / SSO
 - Paid market-data or model APIs
-- A write path or multi-user workspaces
+- A public write path or multi-user workspaces (the only write path is the nonproduction `npm run db:upsert` command)
 
 See the [roadmap](docs/roadmap.md) for the order those appear.
 
 ## Tests
 
-Tests cover scoring, the catalog helpers, the mock repository, command search, the application shell, event cards, the event intelligence view, the repository-backed workspace routes (Pulse, Events, event detail, Watchlists, ⌘K) including their loading, unavailable, and empty states, and a guard that keeps the repository and seeded fixtures out of client modules.
+Tests cover scoring, the catalog helpers, the mock repository, command search, the application shell, event cards, the event intelligence view, the repository-backed workspace routes (Pulse, Events, event detail, Watchlists, ⌘K) including their loading, unavailable, and empty states, a guard that keeps the repository, database code and seeded fixtures out of client modules, storage configuration, bundle validation, and the `/api/events` routes. `npm run test:db` adds PostgreSQL integration tests against disposable databases.
