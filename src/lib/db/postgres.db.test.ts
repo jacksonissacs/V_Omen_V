@@ -503,6 +503,48 @@ describe("PostgreSQL repository reads and writes", () => {
     const history = await readMoveLogHistory(pool, "evt-boc-cut")
     expect(history.map((revision) => revision.explainedPct)).toEqual([69, 64])
   })
+
+  it("keeps each source and probability type in its own series and takes the headline change from one series", async () => {
+    await withClient(database.url, (client) =>
+      writeEventBundle(
+        client,
+        parseEventBundle({
+          eventId: "evt-sourced-sample",
+          observations: [
+            {
+              sourceKind: "provider",
+              sourceName: "Sample exchange",
+              probabilityType: "market_implied",
+              probabilityPct: 55,
+              observedAt: "2026-09-08T00:00:00Z",
+              capturedAt: "2026-09-08T00:02:00Z",
+              provenance: "sourced",
+            },
+            {
+              sourceKind: "provider",
+              sourceName: "Sample exchange",
+              probabilityType: "market_implied",
+              probabilityPct: 52.25,
+              observedAt: "2026-09-09T00:00:00Z",
+              capturedAt: "2026-09-09T00:02:00Z",
+              provenance: "sourced",
+            },
+          ],
+        }),
+      ),
+    )
+    const event = await repository.getEvent("evt-sourced-sample")
+    expect(event?.probabilitySeries.map((series) => [series.sourceName, series.probabilityType, series.observations.length])).toEqual([
+      ["Sample exchange", "market_implied", 2],
+      ["test analyst", "forecaster_estimate", 1],
+    ])
+    // The analyst's later 40% is a different series, so it is neither the headline nor part of the change.
+    expect(event).toMatchObject({ probability: 52.25, previousProbability: 55, change: -2.8, timestamp: "2026-09-09T00:00:00.000Z" })
+    expect(event?.expectationHistory.map((point) => point.probability)).toEqual([55, 52.25])
+    expect(event?.probabilitySeries[0]?.observations.at(-1)?.capturedAt).toBe("2026-09-09T00:02:00.000Z")
+    expect(event?.evidence[0]?.capturedAt).toBe("2026-09-09T00:01:00.000Z")
+    expect(event?.forecasts).toEqual([])
+  })
 })
 
 const execFileAsync = promisify(execFile)

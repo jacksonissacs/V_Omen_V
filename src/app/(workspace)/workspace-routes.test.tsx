@@ -243,7 +243,7 @@ describe("Event detail route", () => {
     expect(note).toHaveTextContent("correction: Coverage revised from 69% to 64%.")
     expect(note).toHaveTextContent("first published")
 
-    await user.click(screen.getByRole("button", { name: "Evidence" }))
+    await user.click(screen.getByRole("tab", { name: "Evidence" }))
     expect(screen.getByText("Not stated by source")).toBeInTheDocument()
     expect(screen.getByText("First observed by OMEN")).toBeInTheDocument()
   })

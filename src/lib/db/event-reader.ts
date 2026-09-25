@@ -1,11 +1,14 @@
 import type { ClientBase, Pool } from "pg"
 
 import { buildEvent } from "../../data/build-event"
+import { groupIntoSeries } from "../domain/probability-history"
 import type {
   AionEvent,
   EventCategory,
   EventSource,
   MoveLogSummary,
+  ObservationSourceKind,
+  ProbabilityType,
   Provenance,
   Significance,
   TimelineItem,
@@ -35,9 +38,9 @@ interface EventRow {
 
 interface ObservationRow {
   event_id: string
-  source_kind: string
+  source_kind: ObservationSourceKind
   source_name: string
-  probability_type: string
+  probability_type: ProbabilityType
   probability_pct: number
   observed_at: Date
   captured_at: Date
@@ -52,6 +55,7 @@ interface EvidenceRow {
   source_url: string | null
   source_published_at: Date | null
   first_observed_at: Date
+  captured_at: Date
   summary: string
   stance: EventSource["stance"]
   reliability: number
@@ -172,11 +176,24 @@ function assemble(
 ): AionEvent | undefined {
   if (observations.length === 0) return undefined
   const display = row.display ?? {}
-  const current = observations[observations.length - 1]
-  const previous = observations[observations.length - 2] ?? current
+  const probabilitySeries = groupIntoSeries(
+    observations.map((item) => ({
+      sourceKind: item.source_kind,
+      sourceName: item.source_name,
+      probabilityType: item.probability_type,
+      provenance: item.provenance,
+      observedAt: item.observed_at.toISOString(),
+      capturedAt: item.captured_at.toISOString(),
+      probability: item.probability_pct,
+      ...(item.note ? { note: item.note } : {}),
+    })),
+  )
+  const headline = probabilitySeries[0].observations
+  const current = headline[headline.length - 1]
+  const previous = headline[headline.length - 2] ?? current
   const moveLog = latestMoveLog(revisions)
   const latest = moveLog?.latest
-  const observedAt = current.observed_at
+  const observedAt = new Date(current.observedAt)
 
   const summary: MoveLogSummary | undefined =
     latest && moveLog
@@ -196,6 +213,7 @@ function assemble(
     name: item.source_name,
     publishedAt: item.source_published_at ? item.source_published_at.toISOString() : null,
     firstObservedAt: item.first_observed_at.toISOString(),
+    capturedAt: item.captured_at.toISOString(),
     summary: item.summary,
     stance: item.stance,
     reliability: item.reliability,
@@ -207,8 +225,8 @@ function assemble(
     provenance: row.provenance,
     title: row.title,
     category: row.category,
-    probability: current.probability_pct,
-    previousProbability: previous.probability_pct,
+    probability: current.probability,
+    previousProbability: previous.probability,
     confidence: display.confidence,
     timestamp: observedAt.toISOString(),
     displayTime: display.displayTime ?? `${utcClock(observedAt, false)} UTC`,
@@ -238,11 +256,12 @@ function assemble(
     signals: (display.signals ?? []) as AionEvent["signals"],
     analogues: (display.analogues ?? []) as AionEvent["analogues"],
     timeline: (display.timeline as AionEvent["timeline"] | undefined) ?? recordedTimeline(evidence, revisions),
-    expectationHistory: observations.map((item) => ({
-      at: item.observed_at.toISOString(),
-      probability: item.probability_pct,
+    expectationHistory: headline.map((item) => ({
+      at: item.observedAt,
+      probability: item.probability,
       ...(item.note ? { note: item.note } : {}),
     })),
+    probabilitySeries,
     anomaly: display.anomaly,
     moveLog: summary,
   })
@@ -287,7 +306,7 @@ export async function readEvents(db: Queryable, ids?: string[]): Promise<StoredE
     [filter],
   )
   const evidenceRows = await db.query<EvidenceRow>(
-    `SELECT id, event_id, source_name, source_url, source_published_at, first_observed_at,
+    `SELECT id, event_id, source_name, source_url, source_published_at, first_observed_at, captured_at,
             summary, stance, reliability::float8 AS reliability, provenance
        FROM evidence
       WHERE $1::text[] IS NULL OR event_id = ANY ($1::text[])

@@ -140,7 +140,21 @@ These screens are outside the V0 core boundary and were **not migrated** to the 
 | `/relations` | Content inline in `relations-screen.tsx` (does not use `getGraph()`) |
 | `/alerts`, `/api-access`, `/team`, `/settings` | Static rows in the page or screen component |
 
-Also demo-only inside migrated screens: the ⌘K "Ask", "Rewind" and "Create" commands (fixed copy and links), and the illustrative figures derived in the UI rather than stored (event detail "OMEN estimate" and "Identification confidence", the Make a call reveal values and its "cryptographically recorded" timestamp). These need to be sourced or removed under the build contract in a later task.
+`/archive` is labelled as a demo on screen: its date, time and replay controls do not query stored records.
+
+Also demo-only inside migrated screens: the ⌘K "Ask", "Rewind" and "Create" commands (fixed copy and links), and the Pulse card figures that are not computed from records (σ, "Data quality", the explained/unexplained bar). These need to be sourced or removed under the build contract in a later task. The Make a call modal is no longer reachable from any screen.
+
+## Event detail
+
+`/events/:id` shows only what is recorded:
+
+- The chart and point table are built from the event's `probabilitySeries`. Time-range buttons filter observations to a window ending at the latest recorded observation (not the wall clock), and the part of a window before the first observation is marked as having no history. Points are never interpolated.
+- Changes compare two observations of the same series, in percentage points, and name both timestamps.
+- Each series is labelled Illustrative, Market-implied or Authored forecast (see [database.md](database.md)).
+- An OMEN forecast appears only when a stored forecast has an author or model, an issue time, a method and an evidence cutoff. None are stored yet.
+- "Why did this move?" is split into Observed (recorded values and sources with their times), Interpretation (move log text, marked unpublished or illustrative when it is) and Still unknown.
+- The change timeline is built from recorded observation, evidence and move log times, not from `display.timeline`.
+- Volume, Spread and Related chart modes, attribution and confidence percentages, analogue similarity scores and related-market/signal tiles are not shown: no dataset backs them.
 
 ## Frontend composition
 

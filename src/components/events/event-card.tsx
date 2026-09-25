@@ -12,7 +12,7 @@ import { useWorkspace } from "@/components/layout/workspace-provider"
 import type { AionEvent } from "@/types/event"
 
 export function EventCard({ event }: { event: AionEvent }) {
-  const { openCall, isWatched, toggleWatch } = useWorkspace()
+  const { isWatched, toggleWatch } = useWorkspace()
   const href = `/events/${event.id}`
   const stop = (callback: () => void) => (mouseEvent: MouseEvent) => {
     mouseEvent.stopPropagation()
@@ -71,14 +71,9 @@ export function EventCard({ event }: { event: AionEvent }) {
         <Link className="aion-button" data-quiet="true" href={href} onClick={(event) => event.stopPropagation()}>
           Open event
         </Link>
-        <button
-          type="button"
-          className="aion-button"
-          data-quiet="true"
-          onClick={stop(() => openCall(event))}
-        >
-          Make a call
-        </button>
+        <Link className="aion-button" data-quiet="true" href={href} onClick={(event) => event.stopPropagation()}>
+          View evidence
+        </Link>
         <button
           type="button"
           className="aion-button"
@@ -88,9 +83,6 @@ export function EventCard({ event }: { event: AionEvent }) {
         >
           {isWatched(event.id) ? "Following" : "Follow"}
         </button>
-        <Link className="aion-button" data-quiet="true" href={href} onClick={(event) => event.stopPropagation()}>
-          View evidence
-        </Link>
       </div>
     </article>
   )

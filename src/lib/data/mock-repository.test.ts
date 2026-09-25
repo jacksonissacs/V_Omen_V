@@ -41,6 +41,19 @@ describe("MockIntelligenceRepository", () => {
     expect(event?.likelyCause).toBeTruthy()
   })
 
+  it("derives every headline probability and change from the event's own recorded series", async () => {
+    for (const event of await repository.listEvents()) {
+      const [headline, ...others] = event.probabilitySeries
+      expect(others, event.id).toEqual([])
+      expect(headline?.provenance, event.id).toBe("demo")
+      const points = headline!.observations
+      expect(points.at(-1)?.probability, event.id).toBe(event.probability)
+      expect(points.at(-1)?.observedAt, event.id).toBe(event.timestamp)
+      expect(points.at(-2)?.probability, event.id).toBe(event.previousProbability)
+      expect(event.forecasts, event.id).toEqual([])
+    }
+  })
+
   it("returns undefined for an unknown event", async () => {
     expect(await repository.getEvent("evt-does-not-exist")).toBeUndefined()
   })

@@ -535,6 +535,7 @@ export const events: AionEvent[] = [
     signals: [{ id: "sig-tw-1", label: "Strait AIS density", value: "−11%", direction: "down" }],
     expectationHistory: [
       { at: "2026-08-01T12:00:00.000Z", probability: 12 },
+      { at: "2026-09-02T21:15:00.000Z", probability: 16 },
       { at: "2026-09-03T02:15:00.000Z", probability: 22 },
     ],
   }),
@@ -576,6 +577,7 @@ export const events: AionEvent[] = [
     signals: [{ id: "sig-rs-1", label: "FBX C3", value: "+9.2%", direction: "up" }],
     expectationHistory: [
       { at: "2026-08-01T12:00:00.000Z", probability: 31 },
+      { at: "2026-09-01T10:50:00.000Z", probability: 40 },
       { at: "2026-09-01T19:50:00.000Z", probability: 52 },
     ],
   }),
@@ -615,6 +617,7 @@ export const events: AionEvent[] = [
     signals: [{ id: "sig-eu-1", label: "Labs marked insufficient", value: "2", direction: "up" }],
     expectationHistory: [
       { at: "2026-05-01T12:00:00.000Z", probability: 36 },
+      { at: "2026-08-27T09:00:00.000Z", probability: 52 },
       { at: "2026-08-28T09:00:00.000Z", probability: 58 },
     ],
   }),
@@ -699,6 +702,7 @@ export const events: AionEvent[] = [
     signals: [{ id: "sig-cre-1", label: "CMBX BBB", value: "−1.8%", direction: "down" }],
     expectationHistory: [
       { at: "2026-06-01T12:00:00.000Z", probability: 33 },
+      { at: "2026-09-04T15:55:00.000Z", probability: 42 },
       { at: "2026-09-04T18:55:00.000Z", probability: 47 },
     ],
   }),
@@ -740,6 +744,7 @@ export const events: AionEvent[] = [
     signals: [{ id: "sig-asml-1", label: "ASML", value: "−1.4%", direction: "down" }],
     expectationHistory: [
       { at: "2026-06-01T12:00:00.000Z", probability: 28 },
+      { at: "2026-09-03T06:05:00.000Z", probability: 43 },
       { at: "2026-09-03T17:05:00.000Z", probability: 55 },
     ],
   }),
@@ -782,6 +787,7 @@ export const events: AionEvent[] = [
     signals: [{ id: "sig-ho-1", label: "Brent 1M", value: "+1.6%", direction: "up" }],
     expectationHistory: [
       { at: "2026-07-01T12:00:00.000Z", probability: 17 },
+      { at: "2026-09-01T14:40:00.000Z", probability: 21 },
       { at: "2026-09-02T06:40:00.000Z", probability: 29 },
     ],
   }),
@@ -823,6 +829,7 @@ export const events: AionEvent[] = [
     signals: [{ id: "sig-sora-1", label: "MSFT", value: "+0.6%", direction: "up" }],
     expectationHistory: [
       { at: "2026-07-01T12:00:00.000Z", probability: 29 },
+      { at: "2026-09-03T07:20:00.000Z", probability: 36 },
       { at: "2026-09-03T11:20:00.000Z", probability: 41 },
     ],
   }),
@@ -861,6 +868,7 @@ export const events: AionEvent[] = [
     signals: [{ id: "sig-ant-1", label: "Secondary ask", value: "+4%", direction: "up" }],
     expectationHistory: [
       { at: "2026-06-01T12:00:00.000Z", probability: 44 },
+      { at: "2026-09-02T13:16:00.000Z", probability: 58 },
       { at: "2026-09-02T15:40:00.000Z", probability: 64 },
     ],
   }),
@@ -902,6 +910,7 @@ export const events: AionEvent[] = [
     signals: [{ id: "sig-btc-1", label: "BTC", value: "−2.1%", direction: "down" }],
     expectationHistory: [
       { at: "2026-08-01T12:00:00.000Z", probability: 38 },
+      { at: "2026-09-04T11:10:00.000Z", probability: 49 },
       { at: "2026-09-04T14:10:00.000Z", probability: 57 },
     ],
   }),
@@ -943,6 +952,7 @@ export const events: AionEvent[] = [
     signals: [{ id: "sig-eth-1", label: "ETH", value: "+1.8%", direction: "up" }],
     expectationHistory: [
       { at: "2026-07-01T12:00:00.000Z", probability: 54 },
+      { at: "2026-09-01T10:00:00.000Z", probability: 66 },
       { at: "2026-09-01T16:00:00.000Z", probability: 72 },
     ],
   }),
@@ -984,6 +994,7 @@ export const events: AionEvent[] = [
     signals: [{ id: "sig-opec-1", label: "Brent 1M", value: "+1.6%", direction: "up" }],
     expectationHistory: [
       { at: "2026-07-01T12:00:00.000Z", probability: 29 },
+      { at: "2026-09-01T09:30:00.000Z", probability: 41 },
       { at: "2026-09-02T09:30:00.000Z", probability: 48 },
     ],
   }),
@@ -1026,6 +1037,7 @@ export const events: AionEvent[] = [
     signals: [{ id: "sig-smr-1", label: "SMR", value: "+3.1%", direction: "up" }],
     expectationHistory: [
       { at: "2026-06-01T12:00:00.000Z", probability: 22 },
+      { at: "2026-08-29T18:00:00.000Z", probability: 29 },
       { at: "2026-08-31T18:00:00.000Z", probability: 33 },
     ],
   }),
@@ -1067,6 +1079,7 @@ export const events: AionEvent[] = [
     signals: [{ id: "sig-cr-1", label: "CRSP", value: "+4.8%", direction: "up" }],
     expectationHistory: [
       { at: "2026-06-01T12:00:00.000Z", probability: 31 },
+      { at: "2026-09-03T08:00:00.000Z", probability: 39 },
       { at: "2026-09-03T13:00:00.000Z", probability: 46 },
     ],
   }),
@@ -1108,6 +1121,7 @@ export const events: AionEvent[] = [
     signals: [{ id: "sig-fu-1", label: "Fusion names", value: "+2.2%", direction: "up" }],
     expectationHistory: [
       { at: "2026-05-01T12:00:00.000Z", probability: 18 },
+      { at: "2026-08-29T08:15:00.000Z", probability: 24 },
       { at: "2026-08-30T20:15:00.000Z", probability: 28 },
     ],
   }),
@@ -1151,6 +1165,7 @@ export const events: AionEvent[] = [
     signals: [{ id: "sig-ap-1", label: "AAPL", value: "+0.8%", direction: "up" }],
     expectationHistory: [
       { at: "2026-07-01T12:00:00.000Z", probability: 35 },
+      { at: "2026-09-04T03:05:00.000Z", probability: 47 },
       { at: "2026-09-04T10:05:00.000Z", probability: 53 },
     ],
   }),
@@ -1189,6 +1204,7 @@ export const events: AionEvent[] = [
     signals: [{ id: "sig-chip-1", label: "US packaging names", value: "+1.4%", direction: "up" }],
     expectationHistory: [
       { at: "2026-06-01T12:00:00.000Z", probability: 48 },
+      { at: "2026-09-02T08:00:00.000Z", probability: 62 },
       { at: "2026-09-02T12:00:00.000Z", probability: 69 },
     ],
   }),
@@ -1231,6 +1247,7 @@ export const events: AionEvent[] = [
     signals: [{ id: "sig-ecb-1", label: "Bund 10Y", value: "−6 bps", direction: "down" }],
     expectationHistory: [
       { at: "2026-07-01T12:00:00.000Z", probability: 31 },
+      { at: "2026-09-03T06:30:00.000Z", probability: 46 },
       { at: "2026-09-03T08:00:00.000Z", probability: 54 },
     ],
   }),
@@ -1272,6 +1289,7 @@ export const events: AionEvent[] = [
     signals: [{ id: "sig-inr-1", label: "USDINR", value: "+0.4%", direction: "up" }],
     expectationHistory: [
       { at: "2026-07-01T12:00:00.000Z", probability: 19 },
+      { at: "2026-09-03T22:30:00.000Z", probability: 28 },
       { at: "2026-09-04T06:30:00.000Z", probability: 35 },
     ],
   }),
@@ -1312,6 +1330,7 @@ export const events: AionEvent[] = [
     signals: [{ id: "sig-ds-1", label: "Open-weight download mirrors", value: "warm", direction: "up" }],
     expectationHistory: [
       { at: "2026-07-01T12:00:00.000Z", probability: 21 },
+      { at: "2026-09-02T19:20:00.000Z", probability: 32 },
       { at: "2026-09-03T04:20:00.000Z", probability: 38 },
     ],
   }),
@@ -1353,6 +1372,7 @@ export const events: AionEvent[] = [
     signals: [{ id: "sig-sl-1", label: "TMUS", value: "−0.7%", direction: "down" }],
     expectationHistory: [
       { at: "2026-06-01T12:00:00.000Z", probability: 31 },
+      { at: "2026-08-31T18:30:00.000Z", probability: 40 },
       { at: "2026-09-01T18:30:00.000Z", probability: 45 },
     ],
   }),
@@ -1394,6 +1414,7 @@ export const events: AionEvent[] = [
     signals: [{ id: "sig-sec-1", label: "Crypto ETP complex", value: "+1.1%", direction: "up" }],
     expectationHistory: [
       { at: "2026-06-01T12:00:00.000Z", probability: 28 },
+      { at: "2026-09-02T13:10:00.000Z", probability: 44 },
       { at: "2026-09-02T19:10:00.000Z", probability: 51 },
     ],
   }),
@@ -1435,6 +1456,7 @@ export const events: AionEvent[] = [
     signals: [{ id: "sig-li-1", label: "ALB", value: "−2.8%", direction: "down" }],
     expectationHistory: [
       { at: "2026-07-01T12:00:00.000Z", probability: 29 },
+      { at: "2026-08-31T15:40:00.000Z", probability: 37 },
       { at: "2026-09-01T03:40:00.000Z", probability: 43 },
     ],
   }),
@@ -1476,6 +1498,7 @@ export const events: AionEvent[] = [
     signals: [{ id: "sig-who-1", label: "Airline names", value: "−0.6%", direction: "down" }],
     expectationHistory: [
       { at: "2026-07-01T12:00:00.000Z", probability: 9 },
+      { at: "2026-09-01T21:50:00.000Z", probability: 14 },
       { at: "2026-09-02T07:50:00.000Z", probability: 18 },
     ],
   }),
