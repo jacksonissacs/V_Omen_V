@@ -106,7 +106,7 @@ A future persistent adapter should implement the same interface. Do not leak SQL
 
 | State | Where |
 | --- | --- |
-| Loading | `src/app/(workspace)/loading.tsx` — shown while a workspace page's server data loads |
+| Loading | `loading.tsx` in `pulse/`, `watchlists/` and `events/(book)/` — shown while the page's server data loads. Event detail deliberately has none: a Suspense boundary above `events/[id]` starts streaming before `notFound()` and turns the 404 into a 200 |
 | Unavailable (page) | `src/app/(workspace)/error.tsx` — a repository error in a page renders "Workspace data unavailable" with **Try again** (`retry`) |
 | Unavailable (shell) | If the layout's reads fail, the shell still renders; ⌘K shows "Event search is unavailable" and navigation still works |
 | Empty | Pulse and Events show "No events in the book yet"; filters with no matches show "No matching events"; Watchlists shows "Nothing followed"; event detail shows "No linked events" |
@@ -149,7 +149,7 @@ Also demo-only inside migrated screens: the ⌘K "Ask", "Rewind" and "Create" co
 └── SiteFooter (SpectrumStage)
 
 (workspace) layout (server: loads shell data) → AppShell (client)
-├── loading.tsx / error.tsx (route-level loading and unavailable states)
+├── error.tsx (unavailable state) · loading.tsx on /pulse, /events, /watchlists
 ├── Sidebar (routed product areas; logo → /pulse)
 ├── TopBar (crumbs + "Demo data" chip + Ask OMEN)
 ├── CommandPalette + CallModal
