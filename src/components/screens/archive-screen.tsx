@@ -15,8 +15,16 @@ export function ArchiveScreen() {
     <section className="aion-screen">
       <ScreenHead
         title="Archive"
-        description="Reconstruct the information environment at any moment."
+        description="Demo of planned point-in-time reconstruction."
       />
+      <p className="aion-note aion-demo-note" role="note" data-testid="archive-demo-notice">
+        <span className="aion-chip aion-demo-chip">
+          <span className="aion-chip-dot" />
+          Demo
+        </span>{" "}
+        Historical reconstruction is not available yet. The date, time and replay controls below do not query stored
+        records; every figure on this screen is a fixed illustration.
+      </p>
       <div className="aion-rewind">
         <Field label="Rewind to — date">
           <input type="date" defaultValue="2026-08-17" />
@@ -37,37 +45,37 @@ export function ArchiveScreen() {
           data-primary="true"
           onClick={() => setPointInTime((value) => !value)}
         >
-          {pointInTime ? "Exit point-in-time mode" : "Enter point-in-time mode"}
+          {pointInTime ? "Exit demo" : "Show point-in-time demo"}
         </button>
       </div>
       {pointInTime ? (
         <div className="aion-point-frame">
           <p style={{ color: "var(--a-tx-2)", fontSize: 12, margin: "0 0 16px" }}>
-            Viewing OMEN as it existed at{" "}
+            Illustration of OMEN as it might have looked at{" "}
             <span className="aion-mono" style={{ color: "var(--a-accent)" }}>
               Aug 17 2026 · 10:35:00 EDT
             </span>
-            . Everything below reflects only information available then.
+            . Figures are illustrative, not reconstructed from stored history.
           </p>
           <div className="aion-replay-state">
             <div className="aion-panel">
-              <h2>Market probabilities then</h2>
+              <h2>Illustrative probabilities</h2>
               <Kv label="BoC October rate cut" value="58.4%" />
               <Kv label="Frontier model before Dec 1" value="41.0%" />
               <Kv label="US CPI above 3.0% (Aug)" value="37.2%" />
               <Kv label="AI regulation before January" value="59.1%" />
             </div>
             <div className="aion-panel" style={{ marginTop: 0 }}>
-              <h2>Known at this moment</h2>
+              <h2>Illustrative record counts</h2>
               <Kv label="News items observed" value="1,204" />
               <Kv label="Forecasts on record" value="312" />
               <Kv label="Model outputs available" value="7" />
               <Kv label="Not yet known" value="July CPI · BoC decision" />
             </div>
           </div>
-          <h2 style={{ fontSize: 12.5, margin: "0 0 2px" }}>Replay</h2>
+          <h2 style={{ fontSize: 12.5, margin: "0 0 2px" }}>Replay (demo)</h2>
           <p style={{ color: "var(--a-tx-2)", fontSize: 11.5, margin: 0 }}>
-            Drag through time and watch probabilities, news and forecasts arrive.
+            Drag to step through a scripted illustration. The slider does not read stored history.
           </p>
           <input
             className="aion-scrub"
@@ -76,20 +84,20 @@ export function ArchiveScreen() {
             max="100"
             value={position}
             onChange={(event) => setPosition(Number(event.target.value))}
-            aria-label="Replay position"
+            aria-label="Illustrative replay position (demo)"
           />
           <p style={{ color: "var(--a-tx-1)", fontSize: 12.5 }}>
-            At <span className="aion-mono">14:{Math.round(position / 3 + 29)}</span> — probability{" "}
-            <span className="aion-mono">{probability}%</span> · repricing underway · attribution
-            not yet published
+            Illustration at <span className="aion-mono">14:{Math.round(position / 3 + 29)}</span> — probability{" "}
+            <span className="aion-mono">{probability}%</span> (scripted, not recorded) · attribution not yet
+            published
           </p>
         </div>
       ) : (
         <div className="aion-panel">
           <h2>Point-in-time analysis</h2>
           <p className="aion-note" style={{ border: 0, margin: 0, padding: 0 }}>
-            Choose a historical moment to restore only the evidence, forecasts,
-            and relationships available at that time.
+            Planned: choose a historical moment to restore only the evidence, forecasts, and relationships
+            available at that time. Until then this screen shows a scripted demo.
           </p>
         </div>
       )}
