@@ -35,7 +35,7 @@ export function fakeRepository(
 ): IntelligenceRepository {
   const byId = new Map(events.map((event) => [event.id, event]))
   return {
-    provenance: "demo",
+    storage: "demo",
     listEvents: async () => events.slice(),
     getEvent: async (id) => byId.get(id),
     getRelatedEvents: async (id) =>
@@ -55,7 +55,7 @@ export function failingRepository(message = "store offline"): IntelligenceReposi
     throw new Error(message)
   }
   return {
-    provenance: "demo",
+    storage: "demo",
     listEvents: fail,
     getEvent: fail,
     getRelatedEvents: fail,

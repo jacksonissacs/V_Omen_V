@@ -8,7 +8,7 @@ import { routeHeadings } from "@/data/workspace"
 
 export function TopBar() {
   const pathname = usePathname()
-  const { setPaletteOpen, findEventSummary } = useWorkspace()
+  const { setPaletteOpen, findEventSummary, storage } = useWorkspace()
   const eventMatch = pathname.match(/^\/events\/([^/]+)$/)
   const event = eventMatch ? findEventSummary(eventMatch[1]) : undefined
   const heading = event ? event.title : (routeHeadings[pathname] ?? "OMEN")
@@ -26,10 +26,12 @@ export function TopBar() {
         ) : null}
         <b>{heading}</b>
       </div>
-      <span className="aion-chip aion-demo-chip" title="Every figure in this workspace is illustrative fixture data, not a live feed.">
-        <span className="aion-chip-dot" aria-hidden />
-        Demo data
-      </span>
+      <DataChip />
+      {storage === "database" ? (
+        <span className="aion-chip" title="Records are read from the configured PostgreSQL database.">
+          PostgreSQL
+        </span>
+      ) : null}
       <button
         type="button"
         className="aion-ask"
@@ -41,5 +43,40 @@ export function TopBar() {
         <span className="aion-kbd">⌘K</span>
       </button>
     </header>
+  )
+}
+
+const PROVENANCE_CHIP = {
+  demo: {
+    label: "Demo data",
+    title: "Every figure in this workspace is illustrative demo data, not a live feed — including records stored in PostgreSQL.",
+  },
+  sourced: {
+    label: "Sourced data",
+    title: "Records were entered from cited sources. They are not a live feed.",
+  },
+  mixed: {
+    label: "Demo + sourced data",
+    title: "The book mixes illustrative demo records with records entered from cited sources. Neither is a live feed.",
+  },
+  none: { label: "No data", title: "The configured store holds no events." },
+} as const
+
+function DataChip() {
+  const { shellDataAvailable, provenance } = useWorkspace()
+  if (!shellDataAvailable) {
+    return (
+      <span className="aion-chip" title="The configured store could not be read. No substitute data is shown.">
+        <span className="aion-chip-dot" aria-hidden />
+        Data unavailable
+      </span>
+    )
+  }
+  const chip = PROVENANCE_CHIP[provenance]
+  return (
+    <span className={`aion-chip${provenance === "demo" ? " aion-demo-chip" : ""}`} title={chip.title}>
+      <span className="aion-chip-dot" aria-hidden />
+      {chip.label}
+    </span>
   )
 }

@@ -19,10 +19,15 @@ export type EvidenceStance = "supports" | "contradicts" | "contextual"
 export type SourceTier = 1 | 2
 export type SignalDirection = "up" | "down" | "flat"
 
+export type Provenance = "demo" | "sourced"
+
 export interface EventSource {
   id: string
   name: string
-  publishedAt: string
+  /** When the source says it was published; `null` when the source carries no date. */
+  publishedAt: string | null
+  /** When OMEN first observed the source. Absent on legacy fixture records. */
+  firstObservedAt?: string
   summary: string
   stance: EvidenceStance
   reliability: number
@@ -74,8 +79,21 @@ export interface EventAnomaly {
   interpretations: string[]
 }
 
+/** The latest published revision of the event's most recent move log. */
+export interface MoveLogSummary {
+  id: string
+  version: number
+  publishedAt: string
+  firstPublishedAt: string
+  author: string
+  correctionNote?: string
+  evidenceIds: string[]
+}
+
 export interface AionEvent {
   id: string
+  /** Where the record came from. Independent of the storage mode: demo records stay demo in PostgreSQL. */
+  provenance: Provenance
   title: string
   category: EventCategory
   probability: number
@@ -109,8 +127,11 @@ export interface AionEvent {
   region: string
   tags: string[]
   resolvesAt?: string
+  deadline?: string
+  resolutionCriteria?: string
   entities: string[]
   anomaly?: EventAnomaly
+  moveLog?: MoveLogSummary
 }
 
 export type EventSort = "change" | "probability" | "time" | "sigma" | "unexplained"
