@@ -1,4 +1,4 @@
-export default function WorkspaceLoading() {
+export function LoadingState() {
   return (
     <section className="aion-screen" aria-busy="true">
       <div className="aion-panel" role="status">

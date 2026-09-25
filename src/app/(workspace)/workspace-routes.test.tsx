@@ -1,3 +1,6 @@
+import { existsSync } from "node:fs"
+import path from "node:path"
+
 import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type { ReactElement, ReactNode } from "react"
@@ -6,11 +9,13 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { mockPathname, mockPush, NotFoundError } from "@/test/next-navigation"
 
 import WorkspaceError from "@/app/(workspace)/error"
+import EventsLoading from "@/app/(workspace)/events/(book)/loading"
+import EventsPage from "@/app/(workspace)/events/(book)/page"
 import EventIntelligencePage, { generateMetadata } from "@/app/(workspace)/events/[id]/page"
-import EventsPage from "@/app/(workspace)/events/page"
 import WorkspaceLayout from "@/app/(workspace)/layout"
-import WorkspaceLoading from "@/app/(workspace)/loading"
+import PulseLoading from "@/app/(workspace)/pulse/loading"
 import PulsePage from "@/app/(workspace)/pulse/page"
+import WatchlistsLoading from "@/app/(workspace)/watchlists/loading"
 import WatchlistsPage from "@/app/(workspace)/watchlists/page"
 import { __resetRepositoryForTests, type IntelligenceRepository } from "@/lib/data/repository"
 import { failingRepository, fakeRepository, testEvent } from "@/test/fake-repository"
@@ -269,8 +274,20 @@ describe("Route states", () => {
     expect(retry).toHaveBeenCalledOnce()
   })
 
-  it("renders a loading state", () => {
-    render(<WorkspaceLoading />)
+  it.each([
+    ["pulse", PulseLoading],
+    ["events", EventsLoading],
+    ["watchlists", WatchlistsLoading],
+  ])("renders a loading state for %s", (_route, Loading) => {
+    const { unmount } = render(<Loading />)
     expect(screen.getByRole("status")).toHaveTextContent("Loading the book…")
+    unmount()
+  })
+
+  it("keeps loading boundaries off the event detail path so notFound returns a 404", () => {
+    const workspace = path.resolve(__dirname)
+    for (const dir of [".", "events", "events/[id]"]) {
+      expect(existsSync(path.join(workspace, dir, "loading.tsx"))).toBe(false)
+    }
   })
 })
