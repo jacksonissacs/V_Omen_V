@@ -64,12 +64,11 @@ The workspace (`/pulse` and the routes below) is labelled as demo data and uses 
 visual language across routed pages:
 
 - **Pulse** — expectation moves, category filters, search, sort, watchlist
-- **Event intelligence** — what changed, when, significance, cause, evidence, uncertainty, markets, analogues, prior beliefs
+- **Event intelligence** — recorded probability history with range filtering, observed changes, evidence with publication and capture times, and separate Observed / Interpretation / Still unknown sections
 - **Events / Markets / Signals** — reusable rows, cards, and signal tiles
 - **Agents** — institution and model records
 - **Watchlists** — local follow/unfollow
-- **Archive / Relations / Research** — reference screens, now addressable by URL
-- **Make a call** — blind prediction entry and immutable reveal
+- **Archive / Relations / Research** — reference screens, now addressable by URL (Archive is a labelled demo)
 - `⌘K` / `Ctrl+K` — search and navigate
 
 The seeded book contains 32 events across AI, technology, economics, geopolitics, companies, regulation, financial markets, energy, crypto, and science.
