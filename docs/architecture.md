@@ -27,8 +27,9 @@ No payments, production authentication, or expensive external APIs are in this r
                              │ IntelligenceRepository
 ┌────────────────────────────┴─────────────────────────────┐
 │  Adapters                                                │
-│  MockIntelligenceRepository  (now)                       │
-│  later: Postgres · object store · ingest workers         │
+│  MockIntelligenceRepository  (OMEN_STORAGE_MODE=demo)    │
+│  PostgresIntelligenceRepository  (…=database)            │
+│  later: object store · ingest workers                    │
 └────────────────────────────▲─────────────────────────────┘
                              │
 ┌────────────────────────────┴─────────────────────────────┐
@@ -67,7 +68,7 @@ Significance on an event is curated in the catalog for the MVP. Scoring helpers 
 
 | Member | Used by |
 | --- | --- |
-| `provenance` | `"demo"` or `"sourced"`. The mock reports `"demo"`. |
+| `storage` | `"demo"`, `"database"`, or `"misconfigured"`. It says where records are stored, not where they came from; provenance is on each event (`AionEvent.provenance`). |
 | `listEvents(filter?)` | Pulse, Events, Watchlists, workspace layout (catalog order); `GET /api/events` (largest move first) |
 | `getEvent(id)` | Event detail page and metadata; `GET /api/events/:id` |
 | `getRelatedEvents(id)` | Event detail "Connected events" |
@@ -81,14 +82,14 @@ Significance on an event is curated in the catalog for the MVP. Scoring helpers 
 
 `MockIntelligenceRepository` (`src/lib/data/mock-repository.ts`, also `server-only`) implements the port against the seeded book in `src/data/events.ts` and `src/lib/data/mock-catalog.ts`. It stays the adapter for development and tests.
 
-A future persistent adapter should implement the same interface. Do not leak SQL, HTTP, or vendor SDKs into components.
+`PostgresIntelligenceRepository` (`src/lib/data/postgres-repository.ts`, `server-only`) implements the same port over PostgreSQL. `getRepository()` picks the adapter from `OMEN_STORAGE_MODE`. An invalid configuration returns an adapter whose every read rejects, so database mode never falls back to demo data. Schema, write command and setup are in [database.md](database.md). Do not leak SQL, HTTP, or vendor SDKs into components.
 
 ## Server data boundary
 
 ```
 (workspace)/layout.tsx  (server)  listEvents + listFollowedEventIds
-  └─ AppShell (client)            data = { eventIndex: EventSummary[], followedEventIds, available }
-      ├─ TopBar                   event crumb from eventIndex
+  └─ AppShell (client)            data = { eventIndex: EventSummary[], followedEventIds, available, storage, provenance }
+      ├─ TopBar                   event crumb from eventIndex; provenance chip; PostgreSQL chip in database mode
       ├─ CommandPalette           ⌘K event search over eventIndex
       └─ page.tsx (server)        loads its own data, renders a client screen with props
           ├─ /pulse               listEvents + getFeaturedAnomaly → PulseScreen
@@ -100,7 +101,7 @@ A future persistent adapter should implement the same interface. Do not leak SQL
 - `EventSummary` (`src/lib/events.ts`) is the serializable slice the shell needs: id, title, category, and a precomputed search string. The full event objects do not ship to every route.
 - Filtering, sorting, and search helpers (`filterEvents`, `sortEvents`, `summaryMatchesQuery`, `watchlistRows` in `src/lib/watchlist.ts`) are pure and take explicit data.
 - The follow list is client state seeded from `listFollowedEventIds()`. Follow/unfollow is not persisted (there is no write path).
-- `src/test/data-boundary.test.ts` fails if a client module imports `@/lib/data/*`, or if a client module other than the listed legacy screens imports `@/data/events`.
+- `src/test/data-boundary.test.ts` fails if a client module imports `@/lib/data/*`, `@/lib/db/*` or `pg`, mentions `DATABASE_URL`, or if a client module other than the listed legacy screens imports `@/data/events`. It also fails if any source file exposes a database URL through a `NEXT_PUBLIC_` variable.
 
 ### Loading, unavailable, and empty states
 
@@ -112,7 +113,7 @@ A future persistent adapter should implement the same interface. Do not leak SQL
 | Empty | Pulse and Events show "No events in the book yet"; filters with no matches show "No matching events"; Watchlists shows "Nothing followed"; event detail shows "No linked events" |
 | Not found | `/events/[id]` calls `notFound()` and renders `events/[id]/not-found.tsx` |
 
-The mock adapter is in-process and deterministic, so the core pages still prerender at build time (`○` in the build output). A persistent adapter will need those routes to render per request or use explicit caching.
+The workspace layout calls `await connection()`, so every workspace route renders per request (`ƒ` in the build output). The storage mode is read at request time, a build never contacts the database, and a static page can never serve demo data after the mode switches to database.
 
 ## HTTP boundary
 
@@ -120,6 +121,8 @@ Internal JSON routes exist so the UI is not the only consumer:
 
 - `GET /api/events`
 - `GET /api/events/:id`
+
+Both return `storage` and, on success, `provenance` alongside the data. A storage failure returns `503` with no data, and an unknown id returns `404`.
 
 The App Router pages read the repository in-process in server components (no extra HTTP hop). The routes are the contract for later clients and for tests that want HTTP semantics.
 
@@ -137,7 +140,21 @@ These screens are outside the V0 core boundary and were **not migrated** to the 
 | `/relations` | Content inline in `relations-screen.tsx` (does not use `getGraph()`) |
 | `/alerts`, `/api-access`, `/team`, `/settings` | Static rows in the page or screen component |
 
-Also demo-only inside migrated screens: the ⌘K "Ask", "Rewind" and "Create" commands (fixed copy and links), and the illustrative figures derived in the UI rather than stored (event detail "OMEN estimate" and "Identification confidence", the Make a call reveal values and its "cryptographically recorded" timestamp). These need to be sourced or removed under the build contract in a later task.
+`/archive` is labelled as a demo on screen: its date, time and replay controls do not query stored records.
+
+Also demo-only inside migrated screens: the ⌘K "Ask", "Rewind" and "Create" commands (fixed copy and links), and the Pulse card figures that are not computed from records (σ, "Data quality", the explained/unexplained bar). These need to be sourced or removed under the build contract in a later task. The Make a call modal is no longer reachable from any screen.
+
+## Event detail
+
+`/events/:id` shows only what is recorded:
+
+- The chart and point table are built from the event's `probabilitySeries`. Time-range buttons filter observations to a window ending at the latest recorded observation (not the wall clock), and the part of a window before the first observation is marked as having no history. Points are never interpolated.
+- Changes compare two observations of the same series, in percentage points, and name both timestamps.
+- Each series is labelled Illustrative, Market-implied or Authored forecast (see [database.md](database.md)).
+- An OMEN forecast appears only when a stored forecast has an author or model, an issue time, a method and an evidence cutoff. None are stored yet.
+- "Why did this move?" is split into Observed (recorded values and sources with their times), Interpretation (move log text, marked unpublished or illustrative when it is) and Still unknown.
+- The change timeline is built from recorded observation, evidence and move log times, not from `display.timeline`.
+- Volume, Spread and Related chart modes, attribution and confidence percentages, analogue similarity scores and related-market/signal tiles are not shown: no dataset backs them.
 
 ## Frontend composition
 
@@ -196,7 +213,7 @@ in `design-reference/README.md`.
 
 ## Extending the system
 
-1. **Persistence** — implement `IntelligenceRepository` on Postgres + object storage for evidence blobs.
+1. **Persistence** — PostgreSQL storage for events, observations, evidence and Move Log revisions exists ([database.md](database.md)). Object storage for evidence blobs is still to come.
 2. **Ingest** — workers write normalized `EvidenceItem`s; a scoring job proposes probability revisions.
 3. **Agents** — same repository port, plus a job table (`proposed_change`, `rationale`, `human_decision`).
 4. **Live markets** — a `MarketAdapter` behind the existing `RelatedMarket` shape. The UI should not change.

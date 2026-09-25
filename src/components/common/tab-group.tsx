@@ -16,6 +16,7 @@ export function TabGroup({
           type="button"
           className="aion-tab"
           data-active={value === item}
+          aria-pressed={value === item}
           key={item}
           onClick={() => onChange(item)}
         >

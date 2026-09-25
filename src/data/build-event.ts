@@ -1,3 +1,4 @@
+import { orderSeries, seriesId } from "@/lib/domain/probability-history"
 import { probabilityDelta } from "@/lib/domain/scoring"
 import type {
   AionEvent,
@@ -7,12 +8,18 @@ import type {
   EventSource,
   ExpectationPoint,
   HistoricalAnalogue,
+  ProbabilitySeries,
   RelatedMarket,
+  StoredForecast,
   TimelineItem,
 } from "@/types/event"
 
+/** Names the in-process demo book as the source of its illustrative series. */
+export const DEMO_SERIES_SOURCE = "OMEN demo book"
+
 export interface EventDraft {
   id: string
+  provenance?: AionEvent["provenance"]
   title: string
   category: EventCategory
   probability: number
@@ -37,6 +44,8 @@ export interface EventDraft {
   region: string
   tags: string[]
   resolvesAt?: string
+  deadline?: string
+  resolutionCriteria?: string
   entities: string[]
   evidence: EventSource[]
   relatedMarkets?: RelatedMarket[]
@@ -45,7 +54,11 @@ export interface EventDraft {
   analogues?: HistoricalAnalogue[]
   timeline?: TimelineItem[]
   expectationHistory: ExpectationPoint[]
+  /** Defaults to one illustrative series built from `expectationHistory`. */
+  probabilitySeries?: ProbabilitySeries[]
+  forecasts?: StoredForecast[]
   anomaly?: EventAnomaly
+  moveLog?: AionEvent["moveLog"]
 }
 
 export function buildEvent(draft: EventDraft): AionEvent {
@@ -53,6 +66,7 @@ export function buildEvent(draft: EventDraft): AionEvent {
   const evidence = draft.evidence
   return {
     id: draft.id,
+    provenance: draft.provenance ?? "demo",
     title: draft.title,
     category: draft.category,
     probability: draft.probability,
@@ -83,12 +97,38 @@ export function buildEvent(draft: EventDraft): AionEvent {
     analogues: draft.analogues ?? [],
     timeline: draft.timeline ?? defaultTimeline(draft),
     expectationHistory: draft.expectationHistory,
+    probabilitySeries: draft.probabilitySeries ?? [demoSeries(draft)],
+    forecasts: draft.forecasts ?? [],
     region: draft.region,
     tags: draft.tags,
     resolvesAt: draft.resolvesAt,
+    deadline: draft.deadline,
+    resolutionCriteria: draft.resolutionCriteria,
     entities: draft.entities,
     anomaly: draft.anomaly,
+    moveLog: draft.moveLog,
   }
+}
+
+function demoSeries(draft: EventDraft): ProbabilitySeries {
+  const identity = {
+    sourceKind: "provider" as const,
+    sourceName: DEMO_SERIES_SOURCE,
+    probabilityType: "market_implied" as const,
+    provenance: draft.provenance ?? "demo",
+  }
+  return orderSeries([
+    {
+      id: seriesId(identity),
+      ...identity,
+      observations: draft.expectationHistory.map((point) => ({
+        observedAt: point.at,
+        capturedAt: null,
+        probability: point.probability,
+        ...(point.note ? { note: point.note } : {}),
+      })),
+    },
+  ])[0]
 }
 
 function defaultTimeline(draft: EventDraft): TimelineItem[] {

@@ -207,6 +207,47 @@ describe("Event detail route", () => {
     expect(within(document.querySelector(".aion-crumb")!).getByText("Beta model launch")).toBeInTheDocument()
   })
 
+  it("shows resolution criteria, the corrected move log and when evidence was published versus first observed", async () => {
+    const stored = testEvent({
+      id: "evt-stored",
+      title: "Stored rate decision",
+      resolutionCriteria: "Resolves YES if the central bank cuts at the scheduled decision.",
+      evidence: [
+        {
+          id: "ev-undated",
+          name: "Undated desk note",
+          publishedAt: null,
+          firstObservedAt: "2026-09-05T12:40:00.000Z",
+          summary: "No publication date on the source.",
+          stance: "contradicts",
+          reliability: 0.55,
+        },
+      ],
+      moveLog: {
+        id: "ml-stored",
+        version: 2,
+        publishedAt: "2026-09-05T13:10:00.000Z",
+        firstPublishedAt: "2026-09-04T18:45:00.000Z",
+        author: "Demo desk",
+        correctionNote: "Coverage revised from 69% to 64%.",
+        evidenceIds: ["ev-undated"],
+      },
+    })
+    useRepository(fakeRepository([stored], { storage: "database" }))
+    mockPathname.mockReturnValue("/events/evt-stored")
+    const { user } = await renderRoute(EventIntelligencePage(params("evt-stored")))
+
+    expect(screen.getByText(/Resolves YES if the central bank cuts/)).toBeInTheDocument()
+    const note = screen.getByTestId("move-log-note")
+    expect(note).toHaveTextContent("version 2")
+    expect(note).toHaveTextContent("correction: Coverage revised from 69% to 64%.")
+    expect(note).toHaveTextContent("first published")
+
+    await user.click(screen.getByRole("tab", { name: "Evidence" }))
+    expect(screen.getByText("Not stated by source")).toBeInTheDocument()
+    expect(screen.getByText("First observed by OMEN")).toBeInTheDocument()
+  })
+
   it("calls notFound for an unknown id and titles metadata accordingly", async () => {
     useRepository(fakeRepository(book))
     await expect(EventIntelligencePage(params("evt-nope"))).rejects.toBeInstanceOf(NotFoundError)
@@ -258,6 +299,58 @@ describe("Workspace shell", () => {
     await user.click(screen.getByRole("button", { name: "Ask OMEN" }))
     expect(screen.getByText("Event search is unavailable right now. Navigation still works.")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Events" })).toBeInTheDocument()
+  })
+})
+
+describe("Workspace data labels", () => {
+  it("labels in-process demo records as demo data without a storage chip", async () => {
+    mockPathname.mockReturnValue("/pulse")
+    useRepository(fakeRepository(book))
+    await renderRoute(Promise.resolve(<div>child</div>))
+    expect(screen.getByText("Demo data")).toBeInTheDocument()
+    expect(screen.queryByText("PostgreSQL")).not.toBeInTheDocument()
+  })
+
+  it("keeps demo records labelled demo when they are stored in PostgreSQL", async () => {
+    mockPathname.mockReturnValue("/events")
+    useRepository(fakeRepository(book, { storage: "database" }))
+    await renderRoute(Promise.resolve(<div>child</div>))
+    expect(screen.getByText("Demo data")).toBeInTheDocument()
+    expect(screen.getByText("PostgreSQL")).toBeInTheDocument()
+    expect(screen.queryByText("Sourced data")).not.toBeInTheDocument()
+  })
+
+  it("labels sourced and mixed books without calling them live", async () => {
+    const sourced = { ...alpha, provenance: "sourced" as const }
+    mockPathname.mockReturnValue("/watchlists")
+    useRepository(fakeRepository([sourced], { storage: "database" }))
+    const first = await renderRoute(Promise.resolve(<div>child</div>))
+    expect(screen.getByText("Sourced data")).toBeInTheDocument()
+    expect(screen.queryByText(/live/i)).not.toBeInTheDocument()
+    first.unmount()
+
+    useRepository(fakeRepository([sourced, beta], { storage: "database" }))
+    await renderRoute(Promise.resolve(<div>child</div>))
+    expect(screen.getByText("Demo + sourced data")).toBeInTheDocument()
+  })
+
+  it("shows data unavailable, not demo data, when database storage fails", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {})
+    mockPathname.mockReturnValue("/pulse")
+    useRepository(failingRepository("connection refused", "database"))
+    await renderRoute(Promise.resolve(<div>child</div>))
+    expect(screen.getByText("Data unavailable")).toBeInTheDocument()
+    expect(screen.queryByText("Demo data")).not.toBeInTheDocument()
+    expect(screen.getByText("PostgreSQL")).toBeInTheDocument()
+  })
+
+  it("labels legacy demo-only screens as demo data even when the store holds sourced records", async () => {
+    mockPathname.mockReturnValue("/markets")
+    useRepository(fakeRepository([{ ...alpha, provenance: "sourced" }], { storage: "database" }))
+    await renderRoute(Promise.resolve(<div>child</div>))
+    expect(screen.getByText("Demo data")).toBeInTheDocument()
+    expect(screen.queryByText("Sourced data")).not.toBeInTheDocument()
+    expect(screen.queryByText("PostgreSQL")).not.toBeInTheDocument()
   })
 })
 

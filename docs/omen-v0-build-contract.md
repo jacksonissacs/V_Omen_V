@@ -21,7 +21,7 @@ Work that does not advance this loop waits until after V0.
 
 ## Data honesty
 
-- Clearly distinguish **demo data** from **sourced observations**, in the UI and in the code. The repository reports its `provenance` (`demo` or `sourced`); demo data must never be presented as sourced.
+- Clearly distinguish **demo data** from **sourced observations**, in the UI and in the code. Every stored record carries its own `provenance` (`demo` or `sourced`), separately from the repository's `storage` mode (`demo` or `database`). Demo records stay demo when they are stored in PostgreSQL, and demo data must never be presented as sourced.
 - Do not fabricate forecasts, attribution percentages, performance or accuracy claims, or live-status indicators. If a number is illustrative, label it as illustrative. If it is not available, show that it is not available.
 - No "live", "real-time", or streaming indicators unless the data is actually live.
 
@@ -31,6 +31,7 @@ Work that does not advance this loop waits until after V0.
 - Data is loaded in server components or route handlers and passed to client components as serializable props.
 - Client components must not import the repository, its adapters, or seeded fixtures (`@/data/events`). `src/test/data-boundary.test.ts` enforces this.
 - The mock adapter stays available for development and tests.
+- `OMEN_STORAGE_MODE` selects demo or PostgreSQL storage. Database mode must fail visibly and never fall back to demo data. `DATABASE_URL` stays server-side and must never be exposed through a `NEXT_PUBLIC_` variable. See [database.md](database.md).
 
 ## Every task delivers
 

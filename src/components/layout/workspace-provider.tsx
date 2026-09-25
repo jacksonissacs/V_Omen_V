@@ -11,7 +11,10 @@ import {
 } from "react"
 
 import type { EventSummary } from "@/lib/events"
-import type { AionEvent } from "@/types/event"
+import type { AionEvent, Provenance } from "@/types/event"
+
+export type ShellStorage = "demo" | "database" | "misconfigured"
+export type ShellProvenance = Provenance | "mixed" | "none"
 
 /** Serializable data the server layout loads once for the whole workspace shell. */
 export interface WorkspaceShellData {
@@ -19,17 +22,25 @@ export interface WorkspaceShellData {
   followedEventIds: string[]
   /** False when the repository could not be read; the shell renders but search is disabled. */
   available: boolean
+  /** Where records are stored. Never implies where they came from. */
+  storage: ShellStorage
+  /** Where the loaded records came from, summarised across the book. */
+  provenance: ShellProvenance
 }
 
 const EMPTY_SHELL_DATA: WorkspaceShellData = {
   eventIndex: [],
   followedEventIds: [],
   available: true,
+  storage: "demo",
+  provenance: "demo",
 }
 
 interface WorkspaceContextValue {
   eventIndex: EventSummary[]
   shellDataAvailable: boolean
+  storage: ShellStorage
+  provenance: ShellProvenance
   findEventSummary: (id: string) => EventSummary | undefined
   collapsed: boolean
   toggleCollapsed: () => void
@@ -52,7 +63,7 @@ export function WorkspaceProvider({
   children: ReactNode
   data?: WorkspaceShellData
 }) {
-  const { eventIndex, followedEventIds, available: shellDataAvailable } = data
+  const { eventIndex, followedEventIds, available: shellDataAvailable, storage, provenance } = data
   const [collapsed, setCollapsed] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [callEvent, setCallEvent] = useState<AionEvent | null>(null)
@@ -106,6 +117,8 @@ export function WorkspaceProvider({
     () => ({
       eventIndex,
       shellDataAvailable,
+      storage,
+      provenance,
       findEventSummary,
       collapsed,
       toggleCollapsed,
@@ -121,6 +134,8 @@ export function WorkspaceProvider({
     [
       eventIndex,
       shellDataAvailable,
+      storage,
+      provenance,
       findEventSummary,
       collapsed,
       toggleCollapsed,

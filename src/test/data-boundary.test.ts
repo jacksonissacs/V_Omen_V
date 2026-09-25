@@ -13,7 +13,11 @@ const LEGACY_FIXTURE_READERS = [
   "components/screens/signals-screen.tsx",
 ]
 
-const SERVER_ONLY_MODULES = ["lib/data/repository.ts", "lib/data/mock-repository.ts"]
+const SERVER_ONLY_MODULES = [
+  "lib/data/repository.ts",
+  "lib/data/mock-repository.ts",
+  "lib/data/postgres-repository.ts",
+]
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -47,6 +51,28 @@ describe("server data boundary", () => {
       imports(source).some((specifier) => specifier.startsWith("@/lib/data/")),
     )
     expect(offenders.map(({ file }) => file)).toEqual([])
+  })
+
+  it("keeps the database driver, storage config and credentials out of client modules", () => {
+    const offenders = clientModules.filter(
+      ({ source }) =>
+        imports(source).some((specifier) => specifier === "pg" || specifier.startsWith("@/lib/db/")) ||
+        source.includes("DATABASE_URL"),
+    )
+    expect(offenders.map(({ file }) => file)).toEqual([])
+  })
+
+  it("never exposes the database URL through a public environment variable", () => {
+    const repoRoot = path.resolve(SRC, "..")
+    const files = [
+      ...sourceFiles(SRC),
+      path.join(repoRoot, ".env.example"),
+      path.join(repoRoot, "next.config.ts"),
+    ]
+    const offenders = files.filter((file) =>
+      /NEXT_PUBLIC_[A-Z_]*(DATABASE|POSTGRES|PG)/.test(readFileSync(file, "utf8")),
+    )
+    expect(offenders).toEqual([])
   })
 
   it("keeps seeded event fixtures out of core workspace client modules", () => {
