@@ -752,7 +752,7 @@
 
 .aion-chronology li {
   display: grid;
-  grid-template-columns: 130px minmax(0, 1fr);
+  grid-template-columns: 160px minmax(0, 1fr);
   gap: 12px;
   color: var(--a-tx-1);
 }
@@ -1624,7 +1624,7 @@ a.aion-button {
 @media (max-width: 1080px) {
   .aion-event-layout,
   .aion-relations-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .aion-inspector {
