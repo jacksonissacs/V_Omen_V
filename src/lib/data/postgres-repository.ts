@@ -30,12 +30,14 @@ export class PostgresIntelligenceRepository implements IntelligenceRepository {
 
   private async verifySchema(client: PoolClient): Promise<void> {
     if (this.schemaVerified) return
-    const { rows } = await client.query<{ version: number | null }>(
-      `SELECT CASE WHEN to_regclass($1) IS NULL THEN NULL
-                   ELSE (SELECT max(version) FROM ${MIGRATIONS_TABLE}) END AS version`,
+    const exists = await client.query<{ present: boolean }>(
+      "SELECT to_regclass($1) IS NOT NULL AS present",
       [`public.${MIGRATIONS_TABLE}`],
     )
-    const version = rows[0]?.version ?? null
+    const version = exists.rows[0]?.present
+      ? ((await client.query<{ version: number | null }>(`SELECT max(version) AS version FROM ${MIGRATIONS_TABLE}`))
+          .rows[0]?.version ?? null)
+      : null
     if (version !== EXPECTED_SCHEMA_VERSION) {
       throw new RepositoryUnavailableError(
         version === null

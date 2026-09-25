@@ -107,4 +107,8 @@ export function __resetRepositoryForTests(
   next?: IntelligenceRepository,
 ): void {
   instance = next
+  if (pool) {
+    void pool.end().catch(() => undefined)
+    pool = undefined
+  }
 }
