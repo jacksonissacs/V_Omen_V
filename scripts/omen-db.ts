@@ -88,7 +88,8 @@ async function runStatus(client: Client) {
     `SELECT (SELECT count(*) FROM events)::text AS events,
             (SELECT count(*) FROM probability_observations)::text AS observations,
             (SELECT count(*) FROM evidence)::text AS evidence,
-            (SELECT count(*) FROM move_log_revisions)::text AS move_log_revisions`,
+            (SELECT count(*) FROM move_log_revisions)::text AS move_log_revisions,
+            (SELECT count(*) FROM event_revisions)::text AS event_revisions`,
   )
   console.log(`  rows: ${Object.entries(counts.rows[0]).map(([key, value]) => `${key}=${value}`).join(" ")}`)
 }
@@ -106,6 +107,9 @@ async function runUpsert(client: Client, file: string | undefined) {
   const summary = await writeEventBundle(client, bundle)
   console.log(`Target: ${identity.environment} (${identity.label})`)
   console.log(`Event ${summary.eventId}: ${summary.event}`)
+  console.log(
+    `  eventRevisions: ${summary.eventRevisions.appended} appended, ${summary.eventRevisions.unchanged} already recorded`,
+  )
   for (const key of ["observations", "evidence", "moveLogRevisions"] as const) {
     console.log(`  ${key}: ${summary[key].appended} appended, ${summary[key].unchanged} already recorded`)
   }
