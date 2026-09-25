@@ -10,19 +10,23 @@ import { SourceBadge } from "@/components/events/source-badge"
 import { IntelligencePanel } from "@/components/intelligence/intelligence-panel"
 import { useWorkspace } from "@/components/layout/workspace-provider"
 import { MarketImpact } from "@/components/markets/market-impact"
-import { getRelatedEvents } from "@/data/events"
 import { formatDateTime } from "@/lib/format"
 import { formatProbability, formatSignedPp } from "@/lib/domain/scoring"
 import type { AionEvent } from "@/types/event"
 
-export function EventIntelligenceView({ event }: { event: AionEvent }) {
+export function EventIntelligenceView({
+  event,
+  related,
+}: {
+  event: AionEvent
+  related: AionEvent[]
+}) {
   const { openCall, isWatched, toggleWatch } = useWorkspace()
   const [chartTab, setChartTab] = useState("Probability")
   const [range, setRange] = useState("1D")
   const [inspectorTab, setInspectorTab] = useState<"Source" | "Evidence" | "Attribution" | "Analogues">(
     "Source",
   )
-  const related = getRelatedEvents(event)
   const previousBelief = event.expectationHistory[0]
   const priorPoint = event.expectationHistory[event.expectationHistory.length - 2]
 

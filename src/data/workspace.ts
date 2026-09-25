@@ -1,4 +1,4 @@
-import type { LedgerCard, NavItem, WatchlistItem } from "@/types/workspace"
+import type { LedgerCard, NavItem } from "@/types/workspace"
 
 export const primaryNav: NavItem[] = [
   { href: "/pulse", label: "Intelligence", icon: "pulse" },
@@ -90,36 +90,3 @@ export const forecastHistory = [
   ["EU AI enforcement action", "62%", "58%", "Open", "—", "Aug 21"],
   ["Chip export rules expanded", "55%", "61%", "NO", "−9", "May 02"],
 ] as const
-
-export const defaultWatchlistIds = [
-  "evt-boc-cut",
-  "evt-frontier-release",
-  "evt-fed-cut",
-  "evt-housing-ca",
-] as const
-
-export function watchlistRows(
-  items: {
-    id: string
-    title: string
-    category: string
-    probability: number
-    change: number
-    likelyCause: string
-    resolvesAt?: string
-  }[],
-): WatchlistItem[] {
-  return items.map((item) => ({
-    id: item.id,
-    eventId: item.id,
-    name: item.title,
-    subtitle: `${item.category} · open event`,
-    state: `${item.probability.toFixed(1)}%`,
-    move:
-      item.change === 0
-        ? "No move"
-        : `${item.change > 0 ? "+" : ""}${item.change.toFixed(1)} pts`,
-    catalyst: item.likelyCause,
-    nextEvent: item.resolvesAt ?? "—",
-  }))
-}

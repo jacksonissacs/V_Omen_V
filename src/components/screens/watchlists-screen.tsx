@@ -5,15 +5,15 @@ import { useMemo } from "react"
 
 import { ScreenHead } from "@/components/common/screen-head"
 import { useWorkspace } from "@/components/layout/workspace-provider"
-import { events } from "@/data/events"
-import { watchlistRows } from "@/data/workspace"
+import { watchlistRows } from "@/lib/watchlist"
+import type { AionEvent } from "@/types/event"
 
-export function WatchlistsScreen() {
+export function WatchlistsScreen({ events }: { events: AionEvent[] }) {
   const router = useRouter()
   const { watchlist, toggleWatch } = useWorkspace()
   const rows = useMemo(
     () => watchlistRows(events.filter((event) => watchlist.has(event.id))),
-    [watchlist],
+    [events, watchlist],
   )
 
   return (
@@ -30,7 +30,7 @@ export function WatchlistsScreen() {
         <span>Next event</span>
       </div>
       {rows.length === 0 ? (
-        <div className="aion-panel">
+        <div className="aion-panel" role="status">
           <h2>Nothing followed</h2>
           <p className="aion-note">Open an event and follow it to pin it here.</p>
         </div>

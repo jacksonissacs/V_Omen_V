@@ -5,12 +5,22 @@ import type { ReactNode } from "react"
 import { CallModal } from "@/components/common/call-modal"
 import { CommandPalette } from "@/components/common/command-palette"
 import { TopBar } from "@/components/header/top-bar"
-import { WorkspaceProvider, useWorkspace } from "@/components/layout/workspace-provider"
+import {
+  WorkspaceProvider,
+  useWorkspace,
+  type WorkspaceShellData,
+} from "@/components/layout/workspace-provider"
 import { Sidebar } from "@/components/sidebar/sidebar"
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({
+  children,
+  data,
+}: {
+  children: ReactNode
+  data?: WorkspaceShellData
+}) {
   return (
-    <WorkspaceProvider>
+    <WorkspaceProvider data={data}>
       <AppShellFrame>{children}</AppShellFrame>
     </WorkspaceProvider>
   )

@@ -1,5 +1,13 @@
-import { events } from "@/data/events"
-import { feed, graphEdges, graphNodes } from "@/lib/data/mock-catalog"
+import "server-only"
+
+import { events, getEvent, getRelatedEvents } from "@/data/events"
+import {
+  defaultFollowedEventIds,
+  featuredAnomalyEventId,
+  feed,
+  graphEdges,
+  graphNodes,
+} from "@/lib/data/mock-catalog"
 import type { IntelligenceRepository } from "@/lib/data/repository"
 import { domainCategories } from "@/lib/domain/categories"
 import { probabilityDelta } from "@/lib/domain/scoring"
@@ -31,31 +39,45 @@ function matchesFilter(event: AionEvent, filter?: EventFilter): boolean {
   return true
 }
 
+/** In-process adapter over the seeded demo book. Development and tests only. */
 export class MockIntelligenceRepository implements IntelligenceRepository {
-  listEvents(filter?: EventFilter): AionEvent[] {
-    return events
-      .filter((event) => matchesFilter(event, filter))
-      .slice()
-      .sort((a, b) => {
-        const aMove = Math.abs(probabilityDelta(a.probability, a.previousProbability))
-        const bMove = Math.abs(probabilityDelta(b.probability, b.previousProbability))
-        return bMove - aMove || b.timestamp.localeCompare(a.timestamp)
-      })
+  readonly provenance = "demo" as const
+
+  async listEvents(filter?: EventFilter): Promise<AionEvent[]> {
+    const matching = events.filter((event) => matchesFilter(event, filter))
+    if (filter?.order === "catalog") return matching
+    return matching.sort((a, b) => {
+      const aMove = Math.abs(probabilityDelta(a.probability, a.previousProbability))
+      const bMove = Math.abs(probabilityDelta(b.probability, b.previousProbability))
+      return bMove - aMove || b.timestamp.localeCompare(a.timestamp)
+    })
   }
 
-  getEvent(id: string): AionEvent | undefined {
-    return events.find((event) => event.id === id)
+  async getEvent(id: string): Promise<AionEvent | undefined> {
+    return getEvent(id)
   }
 
-  listFeed(filter?: EventFilter) {
-    const allowed = new Set(this.listEvents(filter).map((event) => event.id))
+  async getRelatedEvents(id: string): Promise<AionEvent[]> {
+    const event = getEvent(id)
+    return event ? getRelatedEvents(event) : []
+  }
+
+  async getFeaturedAnomaly(): Promise<AionEvent | undefined> {
+    return getEvent(featuredAnomalyEventId)
+  }
+
+  async listFollowedEventIds(): Promise<string[]> {
+    return [...defaultFollowedEventIds]
+  }
+
+  async listFeed(filter?: EventFilter) {
+    const allowed = new Set((await this.listEvents(filter)).map((event) => event.id))
     return feed
       .filter((item) => allowed.has(item.eventId))
-      .slice()
       .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
   }
 
-  getGraph(): RelationshipGraph {
+  async getGraph(): Promise<RelationshipGraph> {
     const known = new Set(events.map((event) => event.id))
     return {
       nodes: graphNodes,
@@ -65,7 +87,7 @@ export class MockIntelligenceRepository implements IntelligenceRepository {
     }
   }
 
-  search(query: string): SearchHit[] {
+  async search(query: string): Promise<SearchHit[]> {
     return searchCatalog(query, events)
   }
 }

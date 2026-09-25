@@ -26,6 +26,29 @@ export function matchesQuery(event: AionEvent, query: string): boolean {
   return eventQueryHaystack(event).includes(q)
 }
 
+/** The serializable slice of an event the workspace shell needs for crumbs and ⌘K search. */
+export interface EventSummary {
+  id: string
+  title: string
+  category: EventCategory
+  searchText: string
+}
+
+export function toEventSummary(event: AionEvent): EventSummary {
+  return {
+    id: event.id,
+    title: event.title,
+    category: event.category,
+    searchText: eventQueryHaystack(event),
+  }
+}
+
+export function summaryMatchesQuery(summary: EventSummary, query: string): boolean {
+  const q = query.trim().toLowerCase()
+  if (!q) return true
+  return summary.searchText.includes(q)
+}
+
 export function filterEvents(
   events: AionEvent[],
   options: {

@@ -129,6 +129,8 @@ export interface RelationshipGraph {
 export interface EventFilter {
   domain?: Domain | "all"
   query?: string
+  /** `move` (default): largest absolute move first. `catalog`: curated book order. */
+  order?: "move" | "catalog"
 }
 
 export interface SearchHit {

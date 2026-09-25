@@ -4,6 +4,15 @@ import type { GraphEdge, GraphNode, IntelligenceItem } from "@/lib/domain/types"
 
 export { events }
 
+export const defaultFollowedEventIds: readonly string[] = [
+  "evt-boc-cut",
+  "evt-frontier-release",
+  "evt-fed-cut",
+  "evt-housing-ca",
+]
+
+export const featuredAnomalyEventId = "evt-housing-ca"
+
 export const feed: IntelligenceItem[] = events
   .slice()
   .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
