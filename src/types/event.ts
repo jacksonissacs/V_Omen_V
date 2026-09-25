@@ -28,6 +28,8 @@ export interface EventSource {
   publishedAt: string | null
   /** When OMEN first observed the source. Absent on legacy fixture records. */
   firstObservedAt?: string
+  /** When OMEN stored the record. Absent on legacy fixture records. */
+  capturedAt?: string
   summary: string
   stance: EvidenceStance
   reliability: number
@@ -71,6 +73,47 @@ export interface ExpectationPoint {
   at: string
   probability: number
   note?: string
+}
+
+export type ObservationSourceKind = "provider" | "author"
+export type ProbabilityType = "market_implied" | "forecaster_estimate" | "model_estimate"
+
+export interface ProbabilityObservation {
+  /** When the probability applied. */
+  observedAt: string
+  /** When OMEN recorded it; `null` on fixture records that carry no capture time. */
+  capturedAt: string | null
+  /** Percentage points, 0–100. */
+  probability: number
+  note?: string
+}
+
+/**
+ * One comparable probability series: every observation shares the source,
+ * probability type and provenance, so differences between them are changes.
+ */
+export interface ProbabilitySeries {
+  id: string
+  sourceKind: ObservationSourceKind
+  sourceName: string
+  probabilityType: ProbabilityType
+  provenance: Provenance
+  /** Oldest first. */
+  observations: ProbabilityObservation[]
+}
+
+/** An OMEN forecast recorded separately from any observed probability. */
+export interface StoredForecast {
+  id: string
+  author: string
+  model?: string
+  /** Percentage points, 0–100. */
+  probability: number
+  issuedAt: string
+  method: string
+  /** The latest evidence the forecast was allowed to use. */
+  evidenceCutoff: string
+  provenance: Provenance
 }
 
 export interface EventAnomaly {
@@ -123,7 +166,11 @@ export interface AionEvent {
   explained: number
   analogues: HistoricalAnalogue[]
   timeline: TimelineItem[]
+  /** The headline series' points, oldest first. */
   expectationHistory: ExpectationPoint[]
+  /** Every recorded probability series. The first is the headline series. */
+  probabilitySeries: ProbabilitySeries[]
+  forecasts: StoredForecast[]
   region: string
   tags: string[]
   resolvesAt?: string
