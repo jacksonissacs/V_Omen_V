@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 import "@/test/next-navigation"
 
@@ -249,6 +249,22 @@ describe("EventIntelligenceView", () => {
     await user.click(screen.getByRole("button", { name: "Inspect evidence" }))
     expect(screen.getByRole("tab", { name: "Evidence" })).toHaveAttribute("aria-selected", "true")
     expect(screen.getAllByTestId("evidence-item")).toHaveLength(event.evidence.length)
+    expect(screen.getByRole("complementary", { name: "Evidence inspector" })).toHaveFocus()
+  })
+
+  it("scrolls to and focuses the evidence inspector when scrolling is supported", async () => {
+    const { event } = await loadEvent("evt-boc-cut")
+    const { user } = renderView(event)
+    const inspector = screen.getByRole("complementary", { name: "Evidence inspector" })
+    const scrollIntoView = vi.fn()
+    Object.defineProperty(inspector, "scrollIntoView", { value: scrollIntoView, configurable: true })
+
+    await user.click(screen.getByRole("tab", { name: "Record" }))
+    await user.click(screen.getByRole("button", { name: "Inspect evidence" }))
+
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" })
+    expect(inspector).toHaveFocus()
+    expect(screen.getByRole("tab", { name: "Evidence" })).toHaveAttribute("aria-selected", "true")
   })
 
   it("shows evidence publication, first-observed and capture times", () => {

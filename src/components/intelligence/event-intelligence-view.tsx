@@ -49,7 +49,7 @@ export function EventIntelligenceView({
 
   const inspectEvidence = () => {
     setInspectorTab("Evidence")
-    inspectorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+    inspectorRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" })
     inspectorRef.current?.focus({ preventScroll: true })
   }
 
