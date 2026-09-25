@@ -44,7 +44,7 @@ export function EventIntelligenceView({
         <h1>{event.title}</h1>
         <p className="aion-event-question">{event.question}</p>
         {event.resolutionCriteria ? (
-          <p className="aion-note">
+          <p className="aion-note" style={{ marginBottom: 14 }}>
             <span className="aion-label">Resolution criteria</span> {event.resolutionCriteria}
           </p>
         ) : null}
