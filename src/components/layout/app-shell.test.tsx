@@ -6,14 +6,25 @@ import "@/test/next-navigation"
 
 import { AppShell } from "@/components/layout/app-shell"
 import { PulseScreen } from "@/components/screens/pulse-screen"
+import { MockIntelligenceRepository } from "@/lib/data/mock-repository"
+
+const repository = new MockIntelligenceRepository()
+
+async function renderPulse() {
+  const [events, anomaly] = await Promise.all([
+    repository.listEvents({ order: "catalog" }),
+    repository.getFeaturedAnomaly(),
+  ])
+  return render(
+    <AppShell>
+      <PulseScreen events={events} anomaly={anomaly} />
+    </AppShell>,
+  )
+}
 
 describe("AppShell", () => {
-  it("renders routed navigation for the major product areas", () => {
-    render(
-      <AppShell>
-        <PulseScreen />
-      </AppShell>,
-    )
+  it("renders routed navigation for the major product areas", async () => {
+    await renderPulse()
 
     expect(screen.getByRole("heading", { name: "Pulse", level: 1 })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "OMEN workspace home" })).toHaveAttribute("href", "/pulse")
@@ -30,11 +41,7 @@ describe("AppShell", () => {
 
   it("filters the pulse by category and opens the command palette", async () => {
     const user = userEvent.setup()
-    render(
-      <AppShell>
-        <PulseScreen />
-      </AppShell>,
-    )
+    await renderPulse()
 
     await user.click(screen.getByRole("button", { name: "AI" }))
     expect(screen.getByText("Frontier model released before December 1")).toBeInTheDocument()

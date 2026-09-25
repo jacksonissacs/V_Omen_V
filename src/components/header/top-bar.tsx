@@ -4,14 +4,13 @@ import { Search } from "lucide-react"
 import { usePathname } from "next/navigation"
 
 import { useWorkspace } from "@/components/layout/workspace-provider"
-import { getEvent } from "@/data/events"
 import { routeHeadings } from "@/data/workspace"
 
 export function TopBar() {
   const pathname = usePathname()
-  const { setPaletteOpen } = useWorkspace()
+  const { setPaletteOpen, findEventSummary } = useWorkspace()
   const eventMatch = pathname.match(/^\/events\/([^/]+)$/)
-  const event = eventMatch ? getEvent(eventMatch[1]) : undefined
+  const event = eventMatch ? findEventSummary(eventMatch[1]) : undefined
   const heading = event ? event.title : (routeHeadings[pathname] ?? "OMEN")
 
   return (

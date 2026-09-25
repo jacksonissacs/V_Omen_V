@@ -5,10 +5,9 @@ import { useMemo, useState } from "react"
 
 import { ScreenHead } from "@/components/common/screen-head"
 import { EventCard } from "@/components/events/event-card"
-import { events } from "@/data/events"
 import { filterEvents, sortEvents } from "@/lib/events"
 import { useWorkspace } from "@/components/layout/workspace-provider"
-import { EVENT_CATEGORIES, type EventCategory, type EventSort } from "@/types/event"
+import { EVENT_CATEGORIES, type AionEvent, type EventCategory, type EventSort } from "@/types/event"
 
 const SORTS: { label: string; value: EventSort | "watchlist" }[] = [
   { label: "Largest move", value: "change" },
@@ -17,7 +16,13 @@ const SORTS: { label: string; value: EventSort | "watchlist" }[] = [
   { label: "My watchlist", value: "watchlist" },
 ]
 
-export function PulseScreen() {
+export function PulseScreen({
+  events,
+  anomaly,
+}: {
+  events: AionEvent[]
+  anomaly?: AionEvent
+}) {
   const { watchlist } = useWorkspace()
   const [category, setCategory] = useState<EventCategory | "All">("All")
   const [sort, setSort] = useState<(typeof SORTS)[number]["value"]>("change")
@@ -31,9 +36,19 @@ export function PulseScreen() {
       watchlistOnly: sort === "watchlist",
     })
     return sortEvents(filtered, sort === "watchlist" ? "change" : sort).slice(0, 12)
-  }, [category, query, sort, watchlist])
+  }, [events, category, query, sort, watchlist])
 
-  const anomaly = events.find((event) => event.id === "evt-housing-ca")
+  if (events.length === 0) {
+    return (
+      <section className="aion-screen">
+        <ScreenHead title="Pulse" description="What changed in the world's expectations." />
+        <div className="aion-panel" role="status">
+          <h2>No events in the book yet</h2>
+          <p className="aion-note">Expectation moves appear here once events are recorded.</p>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className="aion-screen">
@@ -76,7 +91,7 @@ export function PulseScreen() {
       </div>
       <div className="aion-pulse-stream">
         {visible.length === 0 ? (
-          <div className="aion-panel">
+          <div className="aion-panel" role="status">
             <h2>No matching events</h2>
             <p className="aion-note">Clear filters or search a different catalyst.</p>
           </div>

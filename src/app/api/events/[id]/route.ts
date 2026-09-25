@@ -5,7 +5,7 @@ export async function GET(
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params
-  const event = getRepository().getEvent(id)
+  const event = await getRepository().getEvent(id)
   if (!event) {
     return Response.json({ error: "Event not found" }, { status: 404 })
   }

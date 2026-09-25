@@ -6,17 +6,24 @@ import "@/test/next-navigation"
 
 import { EventIntelligenceView } from "@/components/intelligence/event-intelligence-view"
 import { AppShell } from "@/components/layout/app-shell"
-import { getEvent } from "@/data/events"
+import { MockIntelligenceRepository } from "@/lib/data/mock-repository"
+
+const repository = new MockIntelligenceRepository()
+
+async function loadEvent(id: string) {
+  const event = await repository.getEvent(id)
+  if (!event) throw new Error("fixture missing")
+  return { event, related: await repository.getRelatedEvents(id) }
+}
 
 describe("EventIntelligenceView", () => {
   it("answers the core intelligence questions for a seeded event", async () => {
     const user = userEvent.setup()
-    const event = getEvent("evt-boc-cut")
-    if (!event) throw new Error("fixture missing")
+    const { event, related } = await loadEvent("evt-boc-cut")
 
     render(
       <AppShell>
-        <EventIntelligenceView event={event} />
+        <EventIntelligenceView event={event} related={related} />
       </AppShell>,
     )
 
@@ -37,17 +44,40 @@ describe("EventIntelligenceView", () => {
 
   it("toggles the watchlist from the intelligence view", async () => {
     const user = userEvent.setup()
-    const event = getEvent("evt-gpu-export")
-    if (!event) throw new Error("fixture missing")
+    const { event, related } = await loadEvent("evt-gpu-export")
 
     render(
       <AppShell>
-        <EventIntelligenceView event={event} />
+        <EventIntelligenceView event={event} related={related} />
       </AppShell>,
     )
 
     const follow = screen.getByRole("button", { name: "Follow" })
     await user.click(follow)
     expect(screen.getByRole("button", { name: "Following" })).toBeInTheDocument()
+  })
+
+  it("links only the related events it is given", async () => {
+    const { event, related } = await loadEvent("evt-boc-cut")
+
+    const { unmount } = render(
+      <AppShell>
+        <EventIntelligenceView event={event} related={related} />
+      </AppShell>,
+    )
+    for (const item of related) {
+      expect(screen.getByRole("link", { name: new RegExp(item.title) })).toHaveAttribute(
+        "href",
+        `/events/${item.id}`,
+      )
+    }
+    unmount()
+
+    render(
+      <AppShell>
+        <EventIntelligenceView event={event} related={[]} />
+      </AppShell>,
+    )
+    expect(screen.getByText("No linked events in the current book.")).toBeInTheDocument()
   })
 })

@@ -1,6 +1,5 @@
 "use client"
 
-import { useRouter } from "next/navigation"
 import {
   createContext,
   useCallback,
@@ -11,11 +10,27 @@ import {
   type ReactNode,
 } from "react"
 
-import { events, getEvent } from "@/data/events"
-import { defaultWatchlistIds } from "@/data/workspace"
+import type { EventSummary } from "@/lib/events"
 import type { AionEvent } from "@/types/event"
 
+/** Serializable data the server layout loads once for the whole workspace shell. */
+export interface WorkspaceShellData {
+  eventIndex: EventSummary[]
+  followedEventIds: string[]
+  /** False when the repository could not be read; the shell renders but search is disabled. */
+  available: boolean
+}
+
+const EMPTY_SHELL_DATA: WorkspaceShellData = {
+  eventIndex: [],
+  followedEventIds: [],
+  available: true,
+}
+
 interface WorkspaceContextValue {
+  eventIndex: EventSummary[]
+  shellDataAvailable: boolean
+  findEventSummary: (id: string) => EventSummary | undefined
   collapsed: boolean
   toggleCollapsed: () => void
   paletteOpen: boolean
@@ -30,13 +45,25 @@ interface WorkspaceContextValue {
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null)
 
-export function WorkspaceProvider({ children }: { children: ReactNode }) {
+export function WorkspaceProvider({
+  children,
+  data = EMPTY_SHELL_DATA,
+}: {
+  children: ReactNode
+  data?: WorkspaceShellData
+}) {
+  const { eventIndex, followedEventIds, available: shellDataAvailable } = data
   const [collapsed, setCollapsed] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [callEvent, setCallEvent] = useState<AionEvent | null>(null)
   const [watchlist, setWatchlist] = useState<Set<string>>(
-    () => new Set(defaultWatchlistIds),
+    () => new Set(followedEventIds),
   )
+  const summaryById = useMemo(
+    () => new Map(eventIndex.map((summary) => [summary.id, summary])),
+    [eventIndex],
+  )
+  const findEventSummary = useCallback((id: string) => summaryById.get(id), [summaryById])
   const toggleCollapsed = useCallback(() => {
     setCollapsed((value) => !value)
   }, [])
@@ -77,6 +104,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
+      eventIndex,
+      shellDataAvailable,
+      findEventSummary,
       collapsed,
       toggleCollapsed,
       paletteOpen,
@@ -89,6 +119,9 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       toggleWatch,
     }),
     [
+      eventIndex,
+      shellDataAvailable,
+      findEventSummary,
       collapsed,
       toggleCollapsed,
       paletteOpen,
@@ -114,13 +147,4 @@ export function useWorkspace() {
 
 export function useOptionalWorkspace() {
   return useContext(WorkspaceContext)
-}
-
-export function useEventFromBook(id?: string | null) {
-  const router = useRouter()
-  return {
-    event: id ? getEvent(id) : events[0],
-    open: (eventId: string) => router.push(`/events/${eventId}`),
-    catalog: events,
-  }
 }

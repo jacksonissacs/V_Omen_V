@@ -13,11 +13,10 @@ import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import { useWorkspace } from "@/components/layout/workspace-provider"
-import { events } from "@/data/events"
-import { matchesQuery } from "@/lib/events"
+import { summaryMatchesQuery } from "@/lib/events"
 
 export function CommandPalette() {
-  const { setPaletteOpen } = useWorkspace()
+  const { setPaletteOpen, eventIndex, shellDataAvailable } = useWorkspace()
   const router = useRouter()
   const [query, setQuery] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
@@ -43,8 +42,8 @@ export function CommandPalette() {
       { section: "Navigate", label: "Your record", href: "/research", icon: Braces },
       { section: "Create", label: "Alert if BoC October cut exceeds 70%", href: "/alerts", icon: AlarmClock },
     ]
-    const eventHits = events
-      .filter((event) => matchesQuery(event, query))
+    const eventHits = eventIndex
+      .filter((event) => summaryMatchesQuery(event, query))
       .slice(0, 8)
       .map((event) => ({
         section: "Events",
@@ -56,7 +55,7 @@ export function CommandPalette() {
       item.label.toLowerCase().includes(query.toLowerCase()),
     )
     return query.trim() ? [...eventHits, ...filteredCommands] : [...filteredCommands, ...eventHits.slice(0, 4)]
-  }, [query])
+  }, [eventIndex, query])
 
   const sections = [...new Set(items.map((item) => item.section))]
 
@@ -98,6 +97,11 @@ export function CommandPalette() {
                 })}
             </div>
           ))}
+          {!shellDataAvailable ? (
+            <div className="aion-palette-section" role="status">
+              Event search is unavailable right now. Navigation still works.
+            </div>
+          ) : null}
           {items.length === 0 ? (
             <div className="aion-palette-section">No matching intelligence.</div>
           ) : null}
