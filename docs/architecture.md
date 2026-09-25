@@ -38,7 +38,7 @@ No payments, production authentication, or expensive external APIs are in this r
 └──────────────────────────────────────────────────────────┘
 ```
 
-The UI never imports the mock catalog directly. It talks to `getRepository()`, which is the only place that knows which adapter is live.
+The core workspace does not import the mock catalog. Server components and route handlers call `getRepository()`, which is the only place that knows which adapter is live, and pass plain data to client components. A few legacy demo-only screens still read fixtures directly; they are listed under [Legacy demo-only screens](#legacy-demo-only-screens).
 
 ## Runtime
 
@@ -46,7 +46,7 @@ The UI never imports the mock catalog directly. It talks to `getRepository()`, w
 | --- | --- | --- |
 | App | Next.js App Router, TypeScript | One process for UI, routing, and internal APIs. |
 | Styling | Tailwind CSS + shadcn/ui | Fast, consistent primitives; dark monochrome theme. |
-| State | Server data + light client state | Feed/detail are derived from the repository. Palette, mobile nav, and filters are client. |
+| State | Server data + light client state | Core screens receive repository data as props from server components. Filters, sort, search input, palette, and the follow list are client state. |
 | Tests | Vitest + Testing Library | Domain logic and UI contracts, no browser farm required. |
 | Data | Typed in-process catalog | Realistic, reviewable fixtures. Zero egress. |
 
@@ -63,19 +63,56 @@ Significance on an event is curated in the catalog for the MVP. Scoring helpers 
 
 ## Repository port
 
-`src/lib/data/repository.ts` defines `IntelligenceRepository`:
+`src/lib/data/repository.ts` defines `IntelligenceRepository`. Every method is async so a persistent adapter can replace the mock without changing callers. The module imports `server-only`: importing it from a client component fails the build.
 
-| Method | Use |
+| Member | Used by |
 | --- | --- |
-| `listEvents(filter?)` | Dashboard and API |
-| `getEvent(id)` | Event detail and API |
-| `listFeed(filter?)` | Intelligence feed |
-| `getGraph()` | Relationship graph placeholder |
-| `search(query)` | Command palette |
+| `provenance` | `"demo"` or `"sourced"`. The mock reports `"demo"`. |
+| `listEvents(filter?)` | Pulse, Events, Watchlists, workspace layout (catalog order); `GET /api/events` (largest move first) |
+| `getEvent(id)` | Event detail page and metadata; `GET /api/events/:id` |
+| `getRelatedEvents(id)` | Event detail "Connected events" |
+| `getFeaturedAnomaly()` | Pulse "Expected reaction missing" card |
+| `listFollowedEventIds()` | Initial follow list (workspace layout) |
+| `listFeed(filter?)` | Not used by a screen yet |
+| `getGraph()` | Not used by a screen yet (`/relations` is still static) |
+| `search(query)` | Not used by a screen yet (⌘K uses the event index below) |
 
-`MockIntelligenceRepository` implements the port against `src/lib/data/mock-catalog.ts`.
+`EventFilter.order` selects `"move"` (default: largest absolute move first) or `"catalog"` (curated book order). Screens request catalog order and apply their own client-side sort, so tie-breaking matches the pre-repository behavior.
 
-A future `PostgresIntelligenceRepository` should implement the same interface. Do not leak SQL, HTTP, or vendor SDKs into components.
+`MockIntelligenceRepository` (`src/lib/data/mock-repository.ts`, also `server-only`) implements the port against the seeded book in `src/data/events.ts` and `src/lib/data/mock-catalog.ts`. It stays the adapter for development and tests.
+
+A future persistent adapter should implement the same interface. Do not leak SQL, HTTP, or vendor SDKs into components.
+
+## Server data boundary
+
+```
+(workspace)/layout.tsx  (server)  listEvents + listFollowedEventIds
+  └─ AppShell (client)            data = { eventIndex: EventSummary[], followedEventIds, available }
+      ├─ TopBar                   event crumb from eventIndex
+      ├─ CommandPalette           ⌘K event search over eventIndex
+      └─ page.tsx (server)        loads its own data, renders a client screen with props
+          ├─ /pulse               listEvents + getFeaturedAnomaly → PulseScreen
+          ├─ /events              listEvents → EventsScreen
+          ├─ /events/[id]         getEvent + getRelatedEvents → EventIntelligenceView (notFound on miss)
+          └─ /watchlists          listEvents → WatchlistsScreen
+```
+
+- `EventSummary` (`src/lib/events.ts`) is the serializable slice the shell needs: id, title, category, and a precomputed search string. The full event objects do not ship to every route.
+- Filtering, sorting, and search helpers (`filterEvents`, `sortEvents`, `summaryMatchesQuery`, `watchlistRows` in `src/lib/watchlist.ts`) are pure and take explicit data.
+- The follow list is client state seeded from `listFollowedEventIds()`. Follow/unfollow is not persisted (there is no write path).
+- `src/test/data-boundary.test.ts` fails if a client module imports `@/lib/data/*`, or if a client module other than the listed legacy screens imports `@/data/events`.
+
+### Loading, unavailable, and empty states
+
+| State | Where |
+| --- | --- |
+| Loading | `src/app/(workspace)/loading.tsx` — shown while a workspace page's server data loads |
+| Unavailable (page) | `src/app/(workspace)/error.tsx` — a repository error in a page renders "Workspace data unavailable" with **Try again** (`retry`) |
+| Unavailable (shell) | If the layout's reads fail, the shell still renders; ⌘K shows "Event search is unavailable" and navigation still works |
+| Empty | Pulse and Events show "No events in the book yet"; filters with no matches show "No matching events"; Watchlists shows "Nothing followed"; event detail shows "No linked events" |
+| Not found | `/events/[id]` calls `notFound()` and renders `events/[id]/not-found.tsx` |
+
+The mock adapter is in-process and deterministic, so the core pages still prerender at build time (`○` in the build output). A persistent adapter will need those routes to render per request or use explicit caching.
 
 ## HTTP boundary
 
@@ -84,7 +121,23 @@ Internal JSON routes exist so the UI is not the only consumer:
 - `GET /api/events`
 - `GET /api/events/:id`
 
-The App Router pages currently read the repository in-process (no extra hop, no loading waterfall). The routes are the contract for later clients and for tests that want HTTP semantics.
+The App Router pages read the repository in-process in server components (no extra HTTP hop). The routes are the contract for later clients and for tests that want HTTP semantics.
+
+## Legacy demo-only screens
+
+These screens are outside the V0 core boundary and were **not migrated** to the repository. They are demo content only:
+
+| Route | Data source today |
+| --- | --- |
+| `/markets` | Client component imports `@/data/events` directly |
+| `/signals` | Client component imports `@/data/events` directly |
+| `/agents` | Hard-coded ledger and ranking fixtures in `src/data/workspace.ts` |
+| `/research` | Hard-coded forecast history in `src/data/workspace.ts` |
+| `/archive` | Content inline in `archive-screen.tsx` |
+| `/relations` | Content inline in `relations-screen.tsx` (does not use `getGraph()`) |
+| `/alerts`, `/api-access`, `/team`, `/settings` | Static rows in the page or screen component |
+
+Also demo-only inside migrated screens: the ⌘K "Ask", "Rewind" and "Create" commands (fixed copy and links), and the illustrative figures derived in the UI rather than stored (event detail "OMEN estimate" and "Identification confidence", the Make a call reveal values and its "cryptographically recorded" timestamp). These need to be sourced or removed under the build contract in a later task.
 
 ## Frontend composition
 
@@ -95,7 +148,8 @@ The App Router pages currently read the repository in-process (no extra hop, no 
 │                                 → Relations → Methodology → FAQ → Final CTA
 └── SiteFooter (SpectrumStage)
 
-(workspace) AppShell
+(workspace) layout (server: loads shell data) → AppShell (client)
+├── loading.tsx / error.tsx (route-level loading and unavailable states)
 ├── Sidebar (routed product areas; logo → /pulse)
 ├── TopBar (crumbs + "Demo data" chip + Ask OMEN)
 ├── CommandPalette + CallModal

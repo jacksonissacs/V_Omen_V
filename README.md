@@ -15,6 +15,7 @@ This repository is the **Phase 0 foundation**: a local Next.js application over 
 - [Product vision](docs/product-vision.md)
 - [Architecture](docs/architecture.md)
 - [Roadmap](docs/roadmap.md)
+- [V0 build contract](docs/omen-v0-build-contract.md)
 
 ## Stack
 
@@ -108,7 +109,7 @@ Domains: `technology`, `finance`, `geopolitics`, `supply_chain`.
 
 UI components live under `src/components/{layout,sidebar,header,events,markets,intelligence,common,screens}`. Event types are in `src/types`. The seeded catalog is `src/data/events.ts`.
 
-The `IntelligenceRepository` port in `src/lib/data/repository.ts` remains the swap point for a later store. This revision does not add a fake backend.
+The core workspace (Pulse, Events, event detail, Watchlists, ⌘K event search) reads through the async, server-only `IntelligenceRepository` port in `src/lib/data/repository.ts`. Server components load the data and pass it to client screens as props; the mock adapter over the seeded catalog is the only implementation. Legacy demo-only screens that still read fixtures directly are listed in [docs/architecture.md](docs/architecture.md#legacy-demo-only-screens).
 
 ## What is intentionally missing
 
@@ -121,4 +122,4 @@ See the [roadmap](docs/roadmap.md) for the order those appear.
 
 ## Tests
 
-Tests cover scoring, the catalog helpers, the mock repository, command search, the application shell, event cards, and the event intelligence view.
+Tests cover scoring, the catalog helpers, the mock repository, command search, the application shell, event cards, the event intelligence view, the repository-backed workspace routes (Pulse, Events, event detail, Watchlists, ⌘K) including their loading, unavailable, and empty states, and a guard that keeps the repository and seeded fixtures out of client modules.
