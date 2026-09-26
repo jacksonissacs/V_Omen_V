@@ -74,22 +74,35 @@ The first audit recorded these gaps against `main` @ `9c1aace` and/or open PR #6
 
 ## MVP blockers
 
-Updated after PR #6 merge. A reviewer can run the honest workspace locally, but several gaps remain before calling V0 complete.
+### 2026-09-25 list — disposition on `main` @ `d044ead` (2026-09-26)
 
-1. **Task 04A not on `main`.** Event metadata versioning and trustworthy `record_available_at` are only on PR #8.
-2. **Historical reconstruction is still a script.** Fourth V0 loop item has no stored as-of read in the UI.
-3. **No hosted Next.js deployment.** GitHub Pages publishes the README only.
-4. **No ingest.** Catalog remains fixtures / CLI upserts.
-5. **No durable Following.** Acceptable for single-operator demo; not for a persisted watchlist product claim.
-6. **Disposable PostgreSQL verification** must be recorded wherever `test:db` cannot run (this pod blocked; CI on GitHub is the reference when green).
+The first audit listed eight MVP blockers against `main` @ `9c1aace` and open PR #6. Rechecked; do not treat stale rows as still blocking.
 
-**Resolved since 2026-09-25 audit:** Tasks 02–03 on `main`; `npm ci` / `typecheck` / `test:db` scripts; Application CI workflow; unit suite exit 0; `docs/database.md` on `main`.
+| # | Blocker (2026-09-25) | Disposition |
+| --- | --- | --- |
+| 1 | Tasks 02–03 not on `main` | **Resolved.** PR [#6](https://github.com/jacksonissacs/V_Omen_V/pull/6) merged → `d044ead`. Postgres path, honest event detail, Move Logs, `docs/database.md`. |
+| 2 | PR #6 not check-clean (`npm test` exit 1; `test:db` not green in CI) | **Resolved on merge path.** `fix: guard event-detail inspect scroll so unit tests exit 0` (`70ece6c`); Application CI runs unit tests + `test:db` with Postgres; PR #6 checks **application pass**. Local pods without `OMEN_TEST_DATABASE_ADMIN_URL` remain **BLOCKED** for `test:db`. |
+| 3 | `main` cannot `npm ci` | **Resolved** on `d044ead` (lockfile landed with PR #6). |
+| 4 | No application CI (Pages README only) | **Resolved.** `.github/workflows/application-ci.yml` on `main`. Pages still README-only — that is deployment, not app CI. |
+| 5 | Historical reconstruction still a script | **Partially resolved (labeling only).** Honest Archive demo labeling is on **`main`**. Stored as-of reconstruction UI is **still absent**. |
+| 6 | Mutable event fields have no revision history | **Still open on `main` @ `d044ead`.** Upserts overwrite `events` semantic fields. **Task 04A (PR [#8](https://github.com/jacksonissacs/V_Omen_V/pull/8))** implements `event_revisions`; not merged. |
+| 7 | No ingest | **Still open.** CLI upsert only; fixtures/catalog unchanged. |
+| 8 | Following in-memory only | **Still open** (acceptable for single-operator demo). |
+
+### Current MVP blockers (after PR #6)
+
+1. **Task 04A not on `main`** — event metadata revisions + trustworthy `record_available_at` (PR #8).
+2. **Historical reconstruction** — no stored as-of read in the workspace UI.
+3. **No hosted Next.js deployment** — GitHub Pages is the README, not `/pulse`.
+4. **No ingest.**
+5. **No durable Following.**
+6. **Local `test:db`** — use disposable Postgres locally or trust Application CI when this environment has no admin URL.
 
 Do not start auth, billing, or production database work without explicit owner approval.
 
 ## Additional paid-beta blockers
 
-Unchanged in intent from the prior audit — after the MVP loop, with owner approval where noted:
+Same intent as the 2026-09-25 audit. Auth, per-user Following, hosted/production Postgres, public write APIs, and billing **require explicit owner approval**. Also still missing: sourced ingest, a **real Next.js deploy** (not Pages README), and monitoring. Paid market-data or LLM APIs are **not** required to open a beta (`docs/roadmap.md`).
 
 | Blocker | Notes |
 | --- | --- |
@@ -97,12 +110,29 @@ Unchanged in intent from the prior audit — after the MVP loop, with owner appr
 | Persistent per-user Following | Identity + write path |
 | Hosted PostgreSQL / production writes | Explicit approval; CLI already refuses production |
 | Public write API | Explicit approval |
-| Sourced ingest | Depends on landed persistence (now on `main`) |
+| Sourced ingest | Persistence is on `main`; ingest pipeline still absent |
 | Billing / entitlements | Explicit approval |
 | Next.js hosting (not Pages README) | No Vercel/Docker deploy config in repo |
 | Monitoring | Absent |
 
-## Next three engineering tasks
+## Next task to execute
+
+### Completed (do not redo)
+
+| Prior instruction | Status |
+| --- | --- |
+| Make PR #6 landable and land it | **Done** — merged `d044ead`. Do **not** rebuild schema or event-detail work. |
+| `fix: guard event-detail inspect scroll so unit tests exit 0` | **Done** — `70ece6c`. |
+| Run `npm run test:db` on disposable PostgreSQL | **Done in Application CI** on GitHub (Postgres service). Re-run locally when `OMEN_TEST_DATABASE_ADMIN_URL` is set. |
+| Add GitHub Actions (lint / typecheck / test / build / `test:db`) | **Done** — `.github/workflows/application-ci.yml` on `main`. |
+
+### Execute now (dependency order)
+
+1. **Land PR #8 (Task 04A)** — trustworthy temporal storage / `event_revisions`. Review and merge; do not reimplement.
+2. **Reconstruct a past moment from stored observations** — server as-of read + replace scripted workspace Archive (or event-level rewind). Depends on Task 1 for `record_available_at` semantics.
+3. **Staging Next.js deploy** — optional for internal demo; document URL and storage mode; not GitHub Pages.
+
+## Next three engineering tasks (detail)
 
 Dependency order after PR #6 merge. One PR per task where possible.
 
