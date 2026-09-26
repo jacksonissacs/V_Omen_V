@@ -501,6 +501,9 @@ describe("browser workspace", () => {
     expect(historical).toContain(CURRENT_TITLE)
     expect(historical).not.toContain(LATER_TITLE)
     expect(urlSelectsCheckpoint(page.url(), earlyCheckpoint)).toBe(true)
+    const archivePage = await bodyText(page)
+    expect(archivePage).toContain("Historical checkpoint view")
+    expect(archivePage).not.toContain("Historical view unavailable")
 
     const shared = page.url()
     await page.goto("about:blank")
@@ -511,7 +514,10 @@ describe("browser workspace", () => {
       { timeout: 20_000 },
     )
     expect(await reconstructionText()).toContain(CURRENT_TITLE)
-    expect(await bodyText(page)).not.toContain(DEMO_TITLE)
+    const reloaded = await bodyText(page)
+    expect(reloaded).not.toContain(DEMO_TITLE)
+    expect(reloaded).toContain("Historical checkpoint view")
+    expect(reloaded).not.toContain("Historical view unavailable")
     await saveScreenshot(page, "03b_archive_checkpoint")
   })
 
@@ -550,11 +556,21 @@ describe("browser workspace", () => {
     await page.waitForFunction(() => !document.querySelector("[role='dialog']"), { timeout: 20_000 })
 
     await openArchive("evt-test-temporal", earlyCheckpoint)
+    await page.waitForSelector('[aria-label="Recorded checkpoints"]', { timeout: 20_000 })
     await page.focus('[aria-label="Recorded checkpoints"]')
     await page.keyboard.press("ArrowDown")
     await page.keyboard.press("Enter")
-    await waitForWorkspaceReady(page)
-    expect(await bodyText(page)).toContain(earlyCheckpoint)
+    await page.waitForFunction(
+      (id) =>
+        document.body.innerText.includes(`id ${id}`) &&
+        document.body.innerText.includes("Historical checkpoint view"),
+      { timeout: 20_000 },
+      earlyCheckpoint,
+    )
+    const selected = await bodyText(page)
+    expect(selected).toContain(`id ${earlyCheckpoint}`)
+    expect(selected).toContain("Historical checkpoint view")
+    expect(selected).not.toContain("Historical view unavailable")
   })
 
   it("shows the unknown-event page instead of current book text", async () => {

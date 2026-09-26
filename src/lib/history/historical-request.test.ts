@@ -13,6 +13,17 @@ describe("requestedHistoricalView", () => {
     expect(requestedHistoricalView({ checkpoint: "  " })).toBeUndefined()
   })
 
+  it("lets Archive replay a checkpoint query and still refuse arbitrary time", () => {
+    expect(
+      requestedHistoricalView(new URLSearchParams("event=evt-1&checkpoint=12"), { route: "archive" }),
+    ).toBeUndefined()
+    expect(
+      requestedHistoricalView(new URLSearchParams("checkpoint=12&at=2026-09-01T00:00:00.000Z"), {
+        route: "archive",
+      }),
+    ).toEqual({ kind: "at", value: "2026-09-01T00:00:00.000Z" })
+  })
+
   it("detects checkpoint, at, and cutoff without treating later keys as current-state filters", () => {
     expect(requestedHistoricalView({ checkpoint: "ck-1", title: "ignore" })).toEqual({
       kind: "checkpoint",
