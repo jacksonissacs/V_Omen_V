@@ -77,6 +77,7 @@ describe("assemble", () => {
       version: 1,
       publishedAt: "2026-09-02T01:00:00.000Z",
       recordedAt: "2026-09-02T01:00:00.000Z",
+      recordAvailableAt: "2026-09-02T01:00:01.000Z",
       author: "Desk",
       whatChanged: "The market moved.",
       likelyCause: "A release",
