@@ -57,7 +57,7 @@ Three different times appear on history rows. Do not treat source or capture tim
 | --- | --- |
 | Source time (`observed_at`, `source_published_at`, move log `published_at`) | What the source or publication claims about when something happened or was published. Callers may supply these; they do not establish OMEN knowledge. |
 | Capture time (`captured_at`, evidence `first_observed_at`, move log `recorded_at`, event revision `recorded_at`) | When OMEN observed or recorded the claim in the write path. Bundles may supply `capturedAt` on observations and evidence; the database still enforces ordering against source times. |
-| **`record_available_at`** | When the stored row became available for point-in-time reconstruction. Set only by the database at insert (`clock_timestamp()`). Never caller-supplied. A reconstruction at instant *T* may include a row only when `record_available_at <= T`. |
+| **`record_available_at`** | When the stored row became available for point-in-time reconstruction. Set only by the database at insert (`transaction_timestamp()`, shared across rows inserted in the same transaction). Never caller-supplied. A reconstruction at instant *T* may include a row only when `record_available_at <= T`. |
 
 Additional rules:
 
@@ -73,7 +73,7 @@ Additional rules:
 
 Migration `0002_trustworthy_temporal_storage.sql` does **not** backfill `event_revisions` from existing `events` rows. Semantic event history before the first revision recorded after migration is **unavailable** for reconstruction. The migration stores `omen_history_coverage.semantic_event_fields_from` as the baseline instant from which append-only event metadata history is trustworthy.
 
-Existing probability observations, evidence items and move log revisions keep their source and capture times, but their `record_available_at` is set to the migration instant so reconstruction does not pretend those rows were available earlier than Task 04A.
+Existing probability observations, evidence items and move log revisions keep their source and capture times, but their `record_available_at` is set to the migration instant so reconstruction does not pretend those rows were available earlier than Task 04A. Migration 0002 temporarily disables the three append-only row triggers from 0001 only while running those one-time `UPDATE`s; there is no down migration—failed upgrades roll back with the migrator transaction.
 
 ### Event metadata revisions
 

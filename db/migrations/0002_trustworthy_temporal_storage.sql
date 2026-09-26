@@ -2,9 +2,10 @@
 --
 -- Adds append-only event_revisions for reconstructible semantic fields, a global
 -- history coverage baseline, and record_available_at on every history row.
--- record_available_at is always set at insert time (never caller-supplied) and
--- marks when a row became available for point-in-time reconstruction. Existing
--- rows receive the migration timestamp, not backdated capture times.
+-- record_available_at is always set at insert time (never caller-supplied;
+-- transaction_timestamp() within each write transaction) and marks when a row
+-- became available for point-in-time reconstruction. Existing rows receive the
+-- migration timestamp, not backdated capture times.
 
 CREATE TABLE omen_history_coverage (
   singleton boolean PRIMARY KEY DEFAULT true CONSTRAINT omen_history_coverage_singleton CHECK (singleton),
@@ -15,7 +16,8 @@ CREATE TABLE omen_history_coverage (
 );
 
 INSERT INTO omen_history_coverage (singleton, semantic_event_fields_from, record_availability_realigned_at)
-VALUES (true, clock_timestamp(), clock_timestamp());
+SELECT true, baseline.ts, baseline.ts
+  FROM (SELECT clock_timestamp() AS ts) AS baseline;
 
 ALTER TABLE probability_observations
   ADD COLUMN record_available_at timestamptz;
@@ -26,12 +28,21 @@ ALTER TABLE evidence
 ALTER TABLE move_log_revisions
   ADD COLUMN record_available_at timestamptz;
 
+-- Append-only triggers from 0001 reject UPDATE; disable only for this one-time realignment.
+ALTER TABLE probability_observations DISABLE TRIGGER probability_observations_append_only;
+ALTER TABLE evidence DISABLE TRIGGER evidence_append_only;
+ALTER TABLE move_log_revisions DISABLE TRIGGER move_log_revisions_append_only;
+
 UPDATE probability_observations
    SET record_available_at = (SELECT record_availability_realigned_at FROM omen_history_coverage);
 UPDATE evidence
    SET record_available_at = (SELECT record_availability_realigned_at FROM omen_history_coverage);
 UPDATE move_log_revisions
    SET record_available_at = (SELECT record_availability_realigned_at FROM omen_history_coverage);
+
+ALTER TABLE probability_observations ENABLE TRIGGER probability_observations_append_only;
+ALTER TABLE evidence ENABLE TRIGGER evidence_append_only;
+ALTER TABLE move_log_revisions ENABLE TRIGGER move_log_revisions_append_only;
 
 ALTER TABLE probability_observations
   ALTER COLUMN record_available_at SET NOT NULL;
@@ -45,7 +56,8 @@ ALTER TABLE move_log_revisions
 CREATE FUNCTION omen_assign_record_available_at() RETURNS trigger
 LANGUAGE plpgsql AS $$
 BEGIN
-  NEW.record_available_at := clock_timestamp();
+  -- Fixed for the whole transaction so one bundle shares one reconstruction instant.
+  NEW.record_available_at := transaction_timestamp();
   RETURN NEW;
 END;
 $$;

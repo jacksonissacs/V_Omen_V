@@ -282,6 +282,22 @@ async function appendEventRevisionIfChanged(client: ClientBase, bundle: EventBun
 async function appendInitialEventRevision(client: ClientBase, bundle: EventBundle): Promise<AppendCounts> {
   const event = bundle.event
   if (!event) return { appended: 0, unchanged: 0 }
+
+  await client.query("SELECT 1 FROM events WHERE id = $1 FOR UPDATE", [bundle.eventId])
+  const incoming = semanticFromInput(event)
+  const latest = await loadLatestSemanticSnapshot(client, bundle.eventId)
+  if (!latest) {
+    throw new HistoryConflictError(`Event ${bundle.eventId} does not exist; include bundle.event to create it.`)
+  }
+  if (latest.fromRevision && latest.latestVersion >= 1) {
+    if (sameSemantic(latest.snapshot, incoming)) {
+      return { appended: 0, unchanged: 1 }
+    }
+    throw new HistoryConflictError(
+      `Event ${bundle.eventId} revision 1 is already recorded with different values. Publish corrections with event.correctionNote.`,
+    )
+  }
+
   const appended = await insertEventRevision(client, bundle.eventId, event, 1, null)
   return { appended: appended ? 1 : 0, unchanged: appended ? 0 : 1 }
 }

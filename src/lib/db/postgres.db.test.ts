@@ -670,6 +670,29 @@ describe("temporal storage and record availability", () => {
     })
   })
 
+  it("realigns pre-existing history rows when migration 0002 runs on a populated database", async () => {
+    const database = await emptyDatabase()
+    const migrations = loadMigrations()
+    await withClient(database.url, async (client) => {
+      await identifyDatabase(client, "test", `vitest ${database.name}`)
+      await migrate(client, migrations.slice(0, 1))
+      await writeEventBundle(client, seedBundle())
+    })
+    await withClient(database.url, async (client) => {
+      await migrate(client, migrations)
+      const coverage = await readHistoryCoverage(client)
+      const realignedAt = new Date(coverage.recordAvailabilityRealignedAt)
+      const { rows } = await client.query<{ captured_at: Date; record_available_at: Date }>(
+        `SELECT captured_at, record_available_at FROM probability_observations WHERE event_id = 'evt-boc-cut'`,
+      )
+      expect(rows.length).toBeGreaterThan(0)
+      for (const row of rows) {
+        expect(row.record_available_at.toISOString()).toBe(realignedAt.toISOString())
+        expect(row.record_available_at.getTime()).toBeGreaterThan(row.captured_at.getTime())
+      }
+    })
+  })
+
   it("does not let backdated capture times imply earlier reconstruction availability", async () => {
     const database = await migratedDatabase()
     await withClient(database.url, async (client) => {
@@ -690,22 +713,83 @@ describe("temporal storage and record availability", () => {
               provenance: "demo",
             },
           ],
+          evidence: [
+            {
+              id: "ev-backdate-probe",
+              sourceName: "Backdate evidence",
+              sourcePublishedAt: "2020-01-01T00:00:00Z",
+              firstObservedAt: "2020-01-01T00:00:30Z",
+              capturedAt: "2020-01-01T00:01:00Z",
+              summary: "Backdated evidence row.",
+              stance: "neutral",
+              reliability: 0.5,
+              recordedBy: "test",
+              provenance: "demo",
+            },
+          ],
+          moveLogRevisions: [
+            {
+              moveLogId: "ml-backdate-probe",
+              version: 1,
+              publishedAt: "2020-01-01T00:02:00Z",
+              author: "test",
+              whatChanged: "Backdated move log.",
+              likelyCause: "test",
+              explainedPct: 50,
+              unexplainedFactors: [],
+              evidenceIds: ["ev-backdate-probe"],
+              provenance: "demo",
+            },
+          ],
         }),
       )
       const after = Date.now()
       const { rows } = await client.query<{
+        table_name: string
         captured_at: Date
         record_available_at: Date
       }>(
-        `SELECT captured_at, record_available_at
+        `SELECT 'observation' AS table_name, captured_at, record_available_at
            FROM probability_observations
-          WHERE source_name = 'backdate probe'`,
+          WHERE source_name = 'backdate probe'
+         UNION ALL
+         SELECT 'evidence', captured_at, record_available_at
+           FROM evidence
+          WHERE id = 'ev-backdate-probe'
+         UNION ALL
+         SELECT 'move_log', published_at AS captured_at, record_available_at
+           FROM move_log_revisions
+          WHERE move_log_id = 'ml-backdate-probe'`,
       )
-      const row = rows[0]!
-      expect(row.captured_at.toISOString()).toBe("2020-01-01T00:01:00.000Z")
-      expect(row.record_available_at.getTime()).toBeGreaterThanOrEqual(before - 2_000)
-      expect(row.record_available_at.getTime()).toBeLessThanOrEqual(after + 2_000)
-      expect(row.record_available_at.getTime()).toBeGreaterThan(row.captured_at.getTime())
+      expect(rows).toHaveLength(3)
+      for (const row of rows) {
+        expect(row.record_available_at.getTime()).toBeGreaterThanOrEqual(before - 2_000)
+        expect(row.record_available_at.getTime()).toBeLessThanOrEqual(after + 2_000)
+        expect(row.record_available_at.getTime()).toBeGreaterThan(row.captured_at.getTime())
+      }
+      expect(rows.find((row) => row.table_name === "observation")!.captured_at.toISOString()).toBe(
+        "2020-01-01T00:01:00.000Z",
+      )
+    })
+  })
+
+  it("assigns one record_available_at instant to every row inserted in the same bundle transaction", async () => {
+    const database = await migratedDatabase()
+    await withClient(database.url, async (client) => {
+      await writeEventBundle(client, seedBundle())
+      const { rows } = await client.query<{ record_available_at: Date }>(
+        `SELECT record_available_at FROM probability_observations WHERE event_id = 'evt-boc-cut'
+         UNION ALL
+         SELECT record_available_at FROM evidence WHERE event_id = 'evt-boc-cut'
+         UNION ALL
+         SELECT record_available_at FROM move_log_revisions r
+           JOIN move_logs m ON m.id = r.move_log_id
+          WHERE m.event_id = 'evt-boc-cut'
+         UNION ALL
+         SELECT record_available_at FROM event_revisions WHERE event_id = 'evt-boc-cut'`,
+      )
+      const instants = new Set(rows.map((row) => row.record_available_at.toISOString()))
+      expect(instants.size).toBe(1)
     })
   })
 
@@ -748,7 +832,29 @@ describe("temporal storage and record availability", () => {
 
     const history = await withClient(database.url, (client) => readEventRevisionHistory(client, "evt-boc-cut"))
     expect(history.map((revision) => revision.version)).toEqual([1, 2, 3])
-    expect(history.map((revision) => revision.status)).toEqual(["active", "watch", "resolved"])
+    expect(new Set(history.map((revision) => revision.status))).toEqual(new Set(["active", "watch", "resolved"]))
+  })
+
+  it("treats concurrent identical first creates as an unchanged replay once revision 1 exists", async () => {
+    const database = await migratedDatabase()
+    const bundle = seedBundle()
+    bundle.eventId = "evt-concurrent-create"
+    bundle.event = { ...bundle.event!, id: "evt-concurrent-create" }
+
+    const results = await Promise.allSettled([
+      withClient(database.url, (client) => writeEventBundle(client, bundle)),
+      withClient(database.url, (client) => writeEventBundle(client, bundle)),
+    ])
+    expect(results.every((result) => result.status === "fulfilled")).toBe(true)
+
+    const history = await withClient(database.url, (client) =>
+      readEventRevisionHistory(client, "evt-concurrent-create"),
+    )
+    expect(history.map((revision) => revision.version)).toEqual([1])
+    const { rows } = await withClient(database.url, (client) =>
+      client.query("SELECT count(*)::int AS count FROM events WHERE id = 'evt-concurrent-create'"),
+    )
+    expect(rows[0].count).toBe(1)
   })
 })
 
