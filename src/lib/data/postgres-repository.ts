@@ -6,6 +6,12 @@ import { applyEventFilter, buildFeed, eventGraph } from "@/lib/data/event-query"
 import type { IntelligenceRepository } from "@/lib/data/repository"
 import { RepositoryUnavailableError } from "@/lib/data/repository-errors"
 import { readEvents, type StoredEvents } from "@/lib/db/event-reader"
+import { readStoredReconstruction } from "@/lib/db/history-checkpoint"
+import {
+  HistoricalReconstructionError,
+  validateReconstructionRequest,
+  type ReconstructionOutcome,
+} from "@/lib/domain/historical-reconstruction"
 import { EXPECTED_SCHEMA_VERSION, MIGRATIONS_TABLE } from "@/lib/db/schema-version"
 import { probabilityDelta } from "@/lib/domain/scoring"
 import type {
@@ -48,7 +54,7 @@ export class PostgresIntelligenceRepository implements IntelligenceRepository {
     this.schemaVerified = true
   }
 
-  private async snapshot(ids?: string[]): Promise<StoredEvents> {
+  private async withSnapshot<T>(read: (client: PoolClient) => Promise<T>): Promise<T> {
     let client: PoolClient
     try {
       client = await this.pool.connect()
@@ -58,16 +64,23 @@ export class PostgresIntelligenceRepository implements IntelligenceRepository {
     try {
       await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY")
       await this.verifySchema(client)
-      const stored = await readEvents(client, ids)
+      const result = await read(client)
       await client.query("COMMIT")
-      return stored
+      return result
     } catch (error) {
       await client.query("ROLLBACK").catch(() => undefined)
       if (error instanceof RepositoryUnavailableError) throw error
+      if (error instanceof HistoricalReconstructionError) {
+        throw new RepositoryUnavailableError("Stored history checkpoint failed verification.", { cause: error })
+      }
       throw new RepositoryUnavailableError("PostgreSQL storage read failed.", { cause: error })
     } finally {
       client.release()
     }
+  }
+
+  private snapshot(ids?: string[]): Promise<StoredEvents> {
+    return this.withSnapshot((client) => readEvents(client, ids))
   }
 
   async listEvents(filter?: EventFilter): Promise<AionEvent[]> {
@@ -110,5 +123,11 @@ export class PostgresIntelligenceRepository implements IntelligenceRepository {
 
   async search(query: string): Promise<SearchHit[]> {
     return searchCatalog(query, (await this.snapshot()).events)
+  }
+
+  async reconstructEvent(eventId: string, checkpointId: string): Promise<ReconstructionOutcome> {
+    const invalid = validateReconstructionRequest(eventId, checkpointId)
+    if (invalid) return invalid
+    return this.withSnapshot((client) => readStoredReconstruction(client, eventId, checkpointId.toLowerCase()))
   }
 }
