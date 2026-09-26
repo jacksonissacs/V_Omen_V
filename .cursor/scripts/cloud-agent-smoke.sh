@@ -17,8 +17,10 @@ echo "== Runtime user =="
 [[ "$(id -u)" != "0" ]] || fail "must not run as root"
 
 echo "== Workspace permissions =="
-touch /workspace/.cloud-agent-write-test && rm /workspace/.cloud-agent-write-test
-touch "${HOME}/.cloud-agent-write-test" && rm "${HOME}/.cloud-agent-write-test"
+touch /workspace/.cloud-agent-write-test || fail "/workspace is not writable for $(whoami)"
+rm -f /workspace/.cloud-agent-write-test
+touch "${HOME}/.cloud-agent-write-test" || fail "HOME is not writable (${HOME})"
+rm -f "${HOME}/.cloud-agent-write-test"
 
 echo "== Node 22 =="
 node -v | grep -q '^v22\.' || fail "expected Node 22, got $(node -v)"

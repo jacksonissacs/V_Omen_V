@@ -34,13 +34,15 @@ jobs:
 
       - name: Start PostgreSQL, smoke test, and repository checks (inside image)
         run: |
+          # GHA bind-mounts the checkout as root:root; Cloud Agent runs as ubuntu and needs a writable workspace.
           docker run --rm \
+            --user root \
             -v "$PWD:/workspace" \
             -w /workspace \
             -e NEXT_TELEMETRY_DISABLED=1 \
             -e OMEN_STORAGE_MODE=demo \
             "${IMAGE_NAME}:${IMAGE_TAG}" \
-            bash -lc '
+            bash -c 'chown -R ubuntu:ubuntu /workspace && exec su ubuntu -s /bin/bash -lc "
               set -euo pipefail
               source .cursor/scripts/cloud-agent-env.sh
               bash .cursor/scripts/cloud-agent-start.sh
@@ -54,7 +56,7 @@ jobs:
               npm run build
               npm run test:db
               npm run test:workflow
-            '
+            "'
 
       - uses: actions/upload-artifact@v4
         if: always()
