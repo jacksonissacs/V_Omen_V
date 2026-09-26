@@ -225,6 +225,8 @@ A bundle is validated in full before connecting. History rows are written in one
 ```bash
 npm test          # unit and component tests; no database needed
 npm run test:db   # PostgreSQL integration tests
+npm run test:workflow  # production Next.js + disposable PostgreSQL + Chrome
+npm run intake:check   # external CISA KEV reachability; not part of test:workflow
 ```
 
 `npm run test:db` needs `OMEN_TEST_DATABASE_ADMIN_URL`, a connection to a **local** server whose role has `CREATEDB`. Each run creates uniquely named `omen_test_<pid>_<hex>` databases and identifies them as `test`. It drops only databases matching that pattern. Without the variable, every integration test fails with a `BLOCKED:` message instead of passing silently.
@@ -244,10 +246,14 @@ The integration suite covers:
 - persistence across processes: separate `tsx scripts/omen-db.ts` processes write, the test reads over a fresh pool, and a third process reads the data back;
 - explicit failures for a missing schema, schema version drift, bad credentials and a missing database in database mode.
 
+`npm run test:workflow` is a separate deterministic suite. It needs a production build (`npm run build`), `OMEN_TEST_DATABASE_ADMIN_URL`, and Chrome (`CHROME_PATH` when the binary is not on the default path). It creates a disposable database, writes labelled synthetic fixtures through `omen-db` and `omen-operator`, and starts `next start`. Checkpoint ids in that suite are the decimal `history_checkpoints.id` values published with `content_md5`. It does not request CISA or any other external source. Failure screenshots, HTML and console diagnostics are written to `test-artifacts/` (gitignored).
+
+`npm run intake:check` is the external-source smoke check. It GETs the allowlisted CISA KEV document, prints catalog metadata, and does not write the review queue. CI runs it as its own job so a feed outage is not confused with a deterministic workflow failure.
+
 ## Not included
 
 - No hosted database provisioning, production migrations or production writes (owner approval required).
 - No public write endpoint, auth, server-side per-user watchlists, or billing. Following is stored in the browser for the current storage mode. "Followed by default" is a column on the event.
-- No Archive / workspace UI for checkpoint reconstruction yet (`/archive` remains a demo shell). Latest-projection reads are unchanged. Stored reconstruction is `GET /api/events/:id/history` and `GET /api/events/:id/history/:checkpointId`. Arbitrary-time reconstruction is not provided.
+- `/archive` and `/events/:id/history/:checkpointId` replay stored checkpoints. They do not reconstruct an arbitrary wall-clock instant. Latest-projection reads stay on the event page.
 - Legacy demo-only screens (Markets, Signals and others listed in `docs/architecture.md`) still read the in-process demo book in both modes.
 - Source intake ([source-intake.md](source-intake.md)) writes a gitignored local review queue. Importing a selected version stages a database review item for an event that already exists. It does not insert observations, evidence, or Move Log rows until an operator approves that item and publishes it.

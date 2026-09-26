@@ -97,6 +97,8 @@ npm run build
 npm start         # production server after build
 
 npm run test:db   # PostgreSQL integration tests (needs OMEN_TEST_DATABASE_ADMIN_URL)
+npm run test:workflow # production Next.js + disposable PostgreSQL + Chrome (needs a build)
+npm run intake:check  # external CISA KEV smoke check; separate from test:workflow
 npm run db:migrate | db:status | db:upsert | db:show   # nonproduction database command
 npm run intake -- refresh   # manual CISA KEV review queue; see docs/source-intake.md
 npm run operator -- intake import --queue <queue.json> --item <id> --by "<name>"
@@ -134,4 +136,4 @@ See the [roadmap](docs/roadmap.md) for the order those appear.
 
 ## Tests
 
-Tests cover scoring, the catalog helpers, the mock repository, command search, the application shell, event cards, the event intelligence view, the repository-backed workspace routes (Pulse, Events, event detail, Watchlists, ⌘K) including their loading, unavailable, and empty states, a guard that keeps the repository, database code and seeded fixtures out of client modules, storage configuration, bundle validation, and the `/api/events` routes. `npm run test:db` adds PostgreSQL integration tests against disposable databases.
+Tests cover scoring, the catalog helpers, the mock repository, command search, the application shell, event cards, the event intelligence view, the repository-backed workspace routes (Pulse, Events, event detail, Watchlists, ⌘K) including their loading, unavailable, and empty states, a guard that keeps the repository, database code and seeded fixtures out of client modules, storage configuration, bundle validation, and the `/api/events` routes. `npm run test:db` adds PostgreSQL integration tests against disposable databases. `npm run test:workflow` starts a production `next start` against labelled synthetic fixtures and checks intake staging, review, publication, checkpoint replay, retries, outages, and browser navigation. Failure traces land in `test-artifacts/`. `npm run intake:check` is an external-source smoke check and is not part of that suite.

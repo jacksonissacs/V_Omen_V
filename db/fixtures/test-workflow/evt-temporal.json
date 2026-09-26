@@ -1,0 +1,89 @@
+{
+  "event": {
+    "id": "evt-test-temporal",
+    "title": "[SYNTHETIC TEST] Example agency publishes the 2026 bulletin",
+    "question": "Will the example agency publish the 2026 bulletin before 1 December 2026?",
+    "status": "active",
+    "deadline": "2026-12-01T00:00:00.000Z",
+    "resolutionCriteria": "Resolves YES if the example agency publishes the labelled 2026 bulletin on its public site before the deadline. SYNTHETIC TEST FIXTURE — not a real event.",
+    "category": "Science",
+    "significance": "low",
+    "region": "Test",
+    "summary": "SYNTHETIC TEST FIXTURE for the integrated OMEN workflow. Two observations, dated and undated evidence, and a published Move Log.",
+    "tags": ["SYNTHETIC-TEST", "workflow"],
+    "relatedEventIds": ["evt-test-single"],
+    "provenance": "demo",
+    "followedByDefault": true,
+    "catalogPosition": 1,
+    "display": {
+      "displayTime": "12:00 UTC",
+      "catalystLabel": "Recorded catalyst",
+      "catalyst": "SYNTHETIC TEST bulletin notice",
+      "catalystTime": "12:00:00",
+      "entities": ["SYNTHETIC TEST"]
+    }
+  },
+  "observations": [
+    {
+      "sourceKind": "provider",
+      "sourceName": "SYNTHETIC TEST book",
+      "probabilityType": "market_implied",
+      "probabilityPct": 41.5,
+      "observedAt": "2026-09-01T12:00:00.000Z",
+      "capturedAt": "2026-09-01T12:01:00.000Z",
+      "note": "SYNTHETIC TEST first observation",
+      "provenance": "demo"
+    },
+    {
+      "sourceKind": "provider",
+      "sourceName": "SYNTHETIC TEST book",
+      "probabilityType": "market_implied",
+      "probabilityPct": 55.25,
+      "observedAt": "2026-09-10T15:30:00.000Z",
+      "capturedAt": "2026-09-10T15:31:00.000Z",
+      "note": "SYNTHETIC TEST second observation",
+      "provenance": "demo"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev-test-temporal-1",
+      "sourceName": "SYNTHETIC TEST agency notice",
+      "sourceUrl": "https://example.test/synthetic/agency-bulletin-2026",
+      "sourcePublishedAt": "2026-09-10T15:00:00.000Z",
+      "firstObservedAt": "2026-09-10T15:05:00.000Z",
+      "capturedAt": "2026-09-10T15:06:00.000Z",
+      "summary": "SYNTHETIC TEST: the example agency posted a dated notice. This is a labelled fixture, not a sourced observation from a live agency.",
+      "stance": "supports",
+      "reliability": 0.8,
+      "recordedBy": "omen-workflow-test",
+      "provenance": "demo"
+    },
+    {
+      "id": "ev-test-temporal-2",
+      "sourceName": "SYNTHETIC TEST undated desk note",
+      "sourcePublishedAt": null,
+      "firstObservedAt": "2026-09-10T16:00:00.000Z",
+      "capturedAt": "2026-09-10T16:01:00.000Z",
+      "summary": "SYNTHETIC TEST: undated internal-style note. Publication time must stay 'Not stated by source'.",
+      "stance": "contextual",
+      "reliability": 0.4,
+      "recordedBy": "omen-workflow-test",
+      "provenance": "demo"
+    }
+  ],
+  "moveLogRevisions": [
+    {
+      "moveLogId": "ml-test-temporal-1",
+      "version": 1,
+      "publishedAt": "2026-09-10T16:30:00.000Z",
+      "author": "SYNTHETIC TEST desk",
+      "whatChanged": "SYNTHETIC TEST: implied odds moved from 41.5% to 55.25% after the labelled notice.",
+      "likelyCause": "SYNTHETIC TEST agency notice",
+      "explainedPct": 60,
+      "unexplainedFactors": ["SYNTHETIC TEST residual is not identified"],
+      "evidenceIds": ["ev-test-temporal-1"],
+      "provenance": "demo"
+    }
+  ]
+}
