@@ -35,7 +35,12 @@ export function CommandPalette() {
     const commands = [
       { section: "Ask", label: "Why did rate-cut odds move today?", href: "/events/evt-boc-cut", icon: Sparkles },
       { section: "Ask", label: "Which related event normally reacts but hasn't moved?", href: "/relations", icon: Sparkles },
-      { section: "Rewind", label: "Rewind this event to August 17 at 10:35 AM", href: "/archive", icon: History },
+      {
+        section: "Rewind",
+        label: "Rewind Bank of Canada cut to August archive snapshot",
+        href: "/archive?event=evt-boc-cut&cutoff=2026-08-17T14:35:00.000Z&checkpoint=observation:2026-08-17T14:35:00.000Z",
+        icon: History,
+      },
       { section: "Navigate", label: "Intelligence", href: "/pulse", icon: Activity },
       { section: "Navigate", label: "Events", href: "/events", icon: Activity },
       { section: "Navigate", label: "Agents", href: "/agents", icon: Database },

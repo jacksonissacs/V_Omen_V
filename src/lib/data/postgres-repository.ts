@@ -5,7 +5,8 @@ import type { Pool, PoolClient } from "pg"
 import { applyEventFilter, buildFeed, eventGraph } from "@/lib/data/event-query"
 import type { IntelligenceRepository } from "@/lib/data/repository"
 import { RepositoryUnavailableError } from "@/lib/data/repository-errors"
-import { readEvents, type StoredEvents } from "@/lib/db/event-reader"
+import { mapPgMoveLogRevision } from "@/lib/archive/map-move-log-revisions"
+import { readEvents, readMoveLogHistory, type StoredEvents } from "@/lib/db/event-reader"
 import { EXPECTED_SCHEMA_VERSION, MIGRATIONS_TABLE } from "@/lib/db/schema-version"
 import { probabilityDelta } from "@/lib/domain/scoring"
 import type {
@@ -110,5 +111,27 @@ export class PostgresIntelligenceRepository implements IntelligenceRepository {
 
   async search(query: string): Promise<SearchHit[]> {
     return searchCatalog(query, (await this.snapshot()).events)
+  }
+
+  async listMoveLogRevisions(eventId: string) {
+    let client: PoolClient
+    try {
+      client = await this.pool.connect()
+    } catch (error) {
+      throw new RepositoryUnavailableError("Could not connect to PostgreSQL storage.", { cause: error })
+    }
+    try {
+      await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY")
+      await this.verifySchema(client)
+      const revisions = await readMoveLogHistory(client, eventId)
+      await client.query("COMMIT")
+      return revisions.map(mapPgMoveLogRevision)
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => undefined)
+      if (error instanceof RepositoryUnavailableError) throw error
+      throw new RepositoryUnavailableError("PostgreSQL storage read failed.", { cause: error })
+    } finally {
+      client.release()
+    }
   }
 }

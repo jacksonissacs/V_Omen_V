@@ -1,6 +1,8 @@
 "use client"
 
 import Link from "next/link"
+
+import { archiveHistoryHref } from "@/components/archive/archive-view"
 import { useRef, useState, type ReactNode } from "react"
 
 import { TabGroup } from "@/components/common/tab-group"
@@ -99,6 +101,15 @@ export function EventIntelligenceView({
             <EventFigure label="OMEN forecast" value={formatProbability(forecast.probability)} muted small />
           ) : null}
           <div className="aion-event-actions">
+            {latest ? (
+              <Link
+                className="aion-button"
+                href={archiveHistoryHref(event.id, latest.capturedAt ?? latest.observedAt)}
+                data-testid="event-archive-link"
+              >
+                View history
+              </Link>
+            ) : null}
             <button type="button" className="aion-button" data-primary="true" onClick={inspectEvidence}>
               Inspect evidence
             </button>

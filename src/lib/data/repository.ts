@@ -12,6 +12,7 @@ import { MockIntelligenceRepository } from "@/lib/data/mock-repository"
 import { PostgresIntelligenceRepository } from "@/lib/data/postgres-repository"
 import { RepositoryUnavailableError } from "@/lib/data/repository-errors"
 import { readStorageConfig, type StorageMode } from "@/lib/db/config"
+import type { StoredMoveLogRevision } from "@/lib/domain/historical-reconstruction"
 import type { AionEvent, Provenance } from "@/types/event"
 
 /**
@@ -36,6 +37,8 @@ export interface IntelligenceRepository {
   listFeed(filter?: EventFilter): Promise<IntelligenceItem[]>
   getGraph(): Promise<RelationshipGraph>
   search(query: string): Promise<SearchHit[]>
+  /** Append-only move log revisions for historical reconstruction, oldest first. */
+  listMoveLogRevisions(eventId: string): Promise<StoredMoveLogRevision[]>
 }
 
 /** Summarises record provenance for display. `none` means there were no records to describe. */
@@ -67,6 +70,7 @@ class UnavailableRepository implements IntelligenceRepository {
   listFeed = this.fail
   getGraph = this.fail
   search = this.fail
+  listMoveLogRevisions = this.fail
 }
 
 let instance: IntelligenceRepository | undefined
