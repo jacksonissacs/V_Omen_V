@@ -13,6 +13,13 @@ V0 prioritizes one loop, in this order:
 
 Work that does not advance this loop waits until after V0.
 
+Owner-approved **beta coverage order**, out-of-scope surfaces, and the future **`observed_development`** record type are defined in [ai-first-beta-scope.md](ai-first-beta-scope.md). Agents follow [mobile-agent-playbook.md](mobile-agent-playbook.md). Beta scope changes **what to cover first**; it does not relax the safeguards below.
+
+## Beta record types (policy only until implemented)
+
+- **Tracked questions** (today): resolvable questions with probabilities, deadlines, and append-only move and checkpoint history. All existing validation, triggers, and tests for this shape stay in force until a dedicated task changes them.
+- **`observed_development`** (authorized, not yet implemented): a future append-only record for material developments that should be stored **without** a forecasting probability, a resolvable forecasting question, or an artificial deadline. Tasks that add this type must include schema, write and read paths, UI honesty, and tests. Until then, do not bypass observation requirements on events or invent probabilities to stand in for a development.
+
 ## Brand and surfaces
 
 - Preserve OMEN branding: name, mark, visual language, and copy tone.
