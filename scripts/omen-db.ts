@@ -15,6 +15,7 @@ import { Client } from "pg"
 import { assertPostgresUrl, productionMarker, StorageConfigError } from "../src/lib/db/config"
 import { BundleValidationError, parseEventBundle } from "../src/lib/db/event-bundle"
 import { readEvents, readMoveLogHistory } from "../src/lib/db/event-reader"
+import { publishHistoryCheckpoint } from "../src/lib/db/history-checkpoint"
 import { HistoryConflictError, writeEventBundle } from "../src/lib/db/event-store"
 import {
   assertWritableDatabase,
@@ -105,8 +106,12 @@ async function runUpsert(client: Client, file: string | undefined) {
   const bundle = parseEventBundle(raw)
   const identity = await assertWritableDatabase(client)
   const summary = await writeEventBundle(client, bundle)
+  const checkpoint = await publishHistoryCheckpoint(client, summary.eventId)
   console.log(`Target: ${identity.environment} (${identity.label})`)
   console.log(`Event ${summary.eventId}: ${summary.event}`)
+  console.log(
+    `Checkpoint ${checkpoint.id} sequence ${checkpoint.sequence} (${checkpoint.created ? "published" : "unchanged"}, semantic history ${checkpoint.semanticHistory})`,
+  )
   console.log(
     `  eventRevisions: ${summary.eventRevisions.appended} appended, ${summary.eventRevisions.unchanged} already recorded`,
   )

@@ -8,6 +8,11 @@ import {
   graphEdges,
   graphNodes,
 } from "@/lib/data/mock-catalog"
+import {
+  DEMO_RECONSTRUCTION_UNSUPPORTED,
+  validateReconstructionRequest,
+  type ReconstructionOutcome,
+} from "@/lib/domain/historical-reconstruction"
 import type { IntelligenceRepository } from "@/lib/data/repository"
 import { applyEventFilter } from "@/lib/data/event-query"
 import type { EventFilter, RelationshipGraph, SearchHit } from "@/lib/domain/types"
@@ -58,5 +63,11 @@ export class MockIntelligenceRepository implements IntelligenceRepository {
 
   async search(query: string): Promise<SearchHit[]> {
     return searchCatalog(query, events)
+  }
+
+  async reconstructEvent(eventId: string, checkpointId: string): Promise<ReconstructionOutcome> {
+    const invalid = validateReconstructionRequest(eventId, checkpointId)
+    if (invalid) return invalid
+    return { outcome: "unsupported_history", message: DEMO_RECONSTRUCTION_UNSUPPORTED }
   }
 }

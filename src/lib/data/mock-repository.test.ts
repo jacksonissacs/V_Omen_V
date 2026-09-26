@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import { events as catalog } from "@/data/events"
 import { MockIntelligenceRepository } from "@/lib/data/mock-repository"
+import { DEMO_RECONSTRUCTION_UNSUPPORTED } from "@/lib/domain/historical-reconstruction"
 import { CATEGORY_DOMAIN } from "@/lib/domain/categories"
 
 describe("MockIntelligenceRepository", () => {
@@ -93,6 +94,18 @@ describe("MockIntelligenceRepository", () => {
         (edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target),
       ),
     ).toBe(true)
+  })
+
+  it("refuses stored reconstruction instead of replaying the current demo book", async () => {
+    const result = await repository.reconstructEvent(
+      "evt-boc-cut",
+      "11111111-1111-4111-8111-111111111111",
+    )
+    expect(result).toEqual({ outcome: "unsupported_history", message: DEMO_RECONSTRUCTION_UNSUPPORTED })
+    expect(JSON.stringify(result)).not.toContain("Bank of Canada")
+    expect(await repository.reconstructEvent("evt-boc-cut", "not-a-checkpoint")).toMatchObject({
+      outcome: "invalid_request",
+    })
   })
 
   it("searches events, markets, and commands", async () => {

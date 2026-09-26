@@ -57,7 +57,7 @@ Three different times appear on history rows. Do not treat source or capture tim
 | --- | --- |
 | Source time (`observed_at`, `source_published_at`, move log `published_at`) | What the source or publication claims about when something happened or was published. Callers may supply these; they do not establish OMEN knowledge. |
 | Capture time (`captured_at`, evidence `first_observed_at`, move log `recorded_at`, event revision `recorded_at`) | When OMEN observed or recorded the claim in the write path. Bundles may supply `capturedAt` on observations and evidence; the database still enforces ordering against source times. |
-| **`record_available_at`** | When the stored row became available for point-in-time reconstruction. Set only by the database at insert (`transaction_timestamp()`, shared across rows inserted in the same transaction). Never caller-supplied. A reconstruction at instant *T* may include a row only when `record_available_at <= T`. |
+| **`record_available_at`** | The writing transaction's start (`transaction_timestamp()`), shared by every row inserted in that transaction. Never caller-supplied. It is not commit time and it is **not** a reconstruction predicate. |
 
 Additional rules:
 
@@ -84,6 +84,24 @@ Semantic changes go through `event_revisions`, mirroring move logs:
 - the `events` row remains the read-optimized projection; historical views must read `event_revisions`, not infer past semantics from today's projection.
 
 Presentation-only `display` data is not versioned and must not be imported into historical reconstructions.
+
+### Verified checkpoints
+
+Arbitrary wall-clock replay is not supported. `record_available_at <= T` can claim a row was visible before its transaction committed, because that column is the transaction start. Two snapshots taken at the same clock time can also disagree. V0 therefore replays a **published checkpoint id**, not a UTC cutoff.
+
+`history_checkpoints` is an append-only record of one event's history as seen by a later repeatable-read snapshot (`pg_current_snapshot()`). `history_checkpoint_members` stores the relation, primary key and inserting transaction id of each visible row across `event_revisions`, `probability_observations`, `evidence` and `move_log_revisions`. The publishing transaction must not be the transaction that inserted those rows. An identical digest does not create a second checkpoint. `npm run db:upsert` publishes that checkpoint after the bundle commits.
+
+A checkpoint does not assert that its rows were visible at `record_available_at`, at any clock time before the checkpoint transaction committed, or at instants between checkpoints.
+
+`GET /api/events/:id/history/:checkpointId` reads that checkpoint through `IntelligenceRepository.reconstructEvent`. The handler refuses `?at=` and `?cutoff=` without querying storage. The response is a historical record, not an `AionEvent`:
+
+- event semantics are the highest **member** `event_revisions` version, not the highest version stored and not the current `events` row;
+- observations, evidence and Move Log revisions are the member rows only. Each Move Log contributes its highest member version, so a later correction stays out of an earlier checkpoint;
+- `display`, catalog position and follow flags are omitted. Title, status, deadline, criteria, tags and related event ids appear only on an eligible revision;
+- when `semantic_history` is `unavailable` (no post-migration revision, including events that predate migration 0002), the response is **pre-coverage**: `semantics` is null and the current projection is not copied in. Observations, evidence and Move Logs that are members are still returned, with the checkpoint's coverage baseline and provenance;
+- invalid ids, unknown events, unsupported history (demo storage, or no matching checkpoint), pre-coverage and database failure are different outcomes. Database mode never falls back to current or demo data.
+
+Reads run in one repeatable-read snapshot. Membership and row loads are primary-key lookups. The response includes the checkpoint id, sequence and digest, the coverage baseline copied onto the checkpoint, and provenance.
 
 ### Move Log revisions and corrections
 
@@ -168,6 +186,7 @@ The integration suite covers:
 - repository reads and writes, idempotent re-runs and rollback on conflict;
 - correction as a new version with v1 preserved (move logs and event metadata);
 - trustworthy `record_available_at`, coverage baseline, backdated capture input, and concurrent revision allocation;
+- checkpoint replay: later evidence, corrections, semantic edits and late commits stay out of earlier checkpoints; pre-coverage does not copy the current projection;
 - persistence across processes: separate `tsx scripts/omen-db.ts` processes write, the test reads over a fresh pool, and a third process reads the data back;
 - explicit failures for a missing schema, schema version drift, bad credentials and a missing database in database mode.
 
@@ -175,5 +194,5 @@ The integration suite covers:
 
 - No hosted database provisioning, production migrations or production writes (owner approval required).
 - No public write endpoint, auth, per-user watchlists, or billing. "Followed by default" is a column on the event.
-- No Archive / workspace UI for point-in-time reconstruction yet (`/archive` remains a demo shell). The storage layer is ready; reads still use the latest projection.
+- No Archive screen for checkpoint replay yet (`/archive` remains a demo shell). Stored reconstruction is `GET /api/events/:id/history/:checkpointId`. Workspace pages still read the latest projection. There is no UTC cutoff API.
 - Legacy demo-only screens (Markets, Signals and others listed in `docs/architecture.md`) still read the in-process demo book in both modes.
