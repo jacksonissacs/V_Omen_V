@@ -294,8 +294,8 @@ describe("EventIntelligenceView", () => {
   it("toggles the watchlist from the intelligence view", async () => {
     const { event, related } = await loadEvent("evt-gpu-export")
     const { user } = renderView(event, related)
-    await user.click(screen.getByRole("button", { name: "Follow" }))
-    expect(screen.getByRole("button", { name: "Following" })).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: `Follow ${event.title}` }))
+    expect(screen.getByRole("button", { name: `Unfollow ${event.title}` })).toBeInTheDocument()
   })
 
   it("links only the related events it is given", async () => {

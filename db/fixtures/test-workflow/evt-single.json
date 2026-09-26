@@ -1,0 +1,31 @@
+{
+  "event": {
+    "id": "evt-test-single",
+    "title": "[SYNTHETIC TEST] Single observation event",
+    "question": "Will the synthetic single-observation case stay without a computed change?",
+    "status": "watch",
+    "deadline": "2026-11-01T00:00:00.000Z",
+    "resolutionCriteria": "Resolves YES only as a labelled SYNTHETIC TEST of a one-observation event. Not a real question.",
+    "category": "Science",
+    "significance": "low",
+    "region": "Test",
+    "summary": "SYNTHETIC TEST FIXTURE with exactly one probability observation and no evidence or Move Log.",
+    "tags": ["SYNTHETIC-TEST", "one-observation"],
+    "relatedEventIds": [],
+    "provenance": "demo",
+    "followedByDefault": false,
+    "catalogPosition": 2
+  },
+  "observations": [
+    {
+      "sourceKind": "author",
+      "sourceName": "SYNTHETIC TEST analyst",
+      "probabilityType": "forecaster_estimate",
+      "probabilityPct": 33,
+      "observedAt": "2026-09-08T08:00:00.000Z",
+      "capturedAt": "2026-09-08T08:02:00.000Z",
+      "note": "SYNTHETIC TEST only observation",
+      "provenance": "demo"
+    }
+  ]
+}

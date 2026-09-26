@@ -1,23 +1,17 @@
 "use client"
 
 import Link from "next/link"
-import type { MouseEvent } from "react"
 
 import { Residual } from "@/components/common/residual"
 import { ChangeIndicator } from "@/components/events/change-indicator"
 import { ConfidenceIndicator } from "@/components/events/confidence-indicator"
 import { ProbabilityBadge } from "@/components/events/probability-badge"
 import { SourceBadge } from "@/components/events/source-badge"
-import { useWorkspace } from "@/components/layout/workspace-provider"
+import { FollowEventButton } from "@/components/events/follow-event-button"
 import type { AionEvent } from "@/types/event"
 
 export function EventCard({ event }: { event: AionEvent }) {
-  const { isWatched, toggleWatch } = useWorkspace()
   const href = `/events/${event.id}`
-  const stop = (callback: () => void) => (mouseEvent: MouseEvent) => {
-    mouseEvent.stopPropagation()
-    callback()
-  }
 
   return (
     <article className="aion-pulse-card">
@@ -74,15 +68,11 @@ export function EventCard({ event }: { event: AionEvent }) {
         <Link className="aion-button" data-quiet="true" href={href} onClick={(event) => event.stopPropagation()}>
           View evidence
         </Link>
-        <button
-          type="button"
-          className="aion-button"
-          data-quiet="true"
-          aria-pressed={isWatched(event.id)}
-          onClick={stop(() => toggleWatch(event.id))}
-        >
-          {isWatched(event.id) ? "Following" : "Follow"}
-        </button>
+        <FollowEventButton
+          eventId={event.id}
+          eventTitle={event.title}
+          onClick={(mouseEvent) => mouseEvent.stopPropagation()}
+        />
       </div>
     </article>
   )

@@ -1,5 +1,13 @@
 import { buildEvent, type EventDraft } from "@/data/build-event"
 import type { IntelligenceRepository } from "@/lib/data/repository"
+import {
+  DEMO_RECONSTRUCTION_UNSUPPORTED,
+  invalidEventId,
+  resolveCheckpointListQuery,
+  validateReconstructionRequest,
+  type CheckpointListOutcome,
+  type ReconstructionOutcome,
+} from "@/lib/domain/historical-reconstruction"
 import type { AionEvent } from "@/types/event"
 
 export function testEvent(overrides: Partial<EventDraft> & Pick<EventDraft, "id" | "title">): AionEvent {
@@ -31,7 +39,13 @@ export function testEvent(overrides: Partial<EventDraft> & Pick<EventDraft, "id"
 /** A repository over caller-supplied events, so tests prove screens read the port, not fixtures. */
 export function fakeRepository(
   events: AionEvent[],
-  options: { followed?: string[]; anomalyId?: string; storage?: IntelligenceRepository["storage"] } = {},
+  options: {
+    followed?: string[]
+    anomalyId?: string
+    storage?: IntelligenceRepository["storage"]
+    listHistoryCheckpoints?: IntelligenceRepository["listHistoryCheckpoints"]
+    reconstructEvent?: IntelligenceRepository["reconstructEvent"]
+  } = {},
 ): IntelligenceRepository {
   const byId = new Map(events.map((event) => [event.id, event]))
   return {
@@ -47,6 +61,20 @@ export function fakeRepository(
     listFeed: async () => [],
     getGraph: async () => ({ nodes: [], edges: [] }),
     search: async () => [],
+    listHistoryCheckpoints:
+      options.listHistoryCheckpoints ??
+      (async (eventId, query): Promise<CheckpointListOutcome> => {
+        const invalid = invalidEventId(eventId) ?? resolveCheckpointListQuery(query)
+        if ("outcome" in invalid) return invalid
+        return { outcome: "unsupported_history", message: DEMO_RECONSTRUCTION_UNSUPPORTED }
+      }),
+    reconstructEvent:
+      options.reconstructEvent ??
+      (async (eventId, checkpointId): Promise<ReconstructionOutcome> => {
+        const invalid = validateReconstructionRequest(eventId, checkpointId)
+        if (invalid) return invalid
+        return { outcome: "unsupported_history", message: DEMO_RECONSTRUCTION_UNSUPPORTED }
+      }),
   }
 }
 
@@ -67,5 +95,7 @@ export function failingRepository(
     listFeed: fail,
     getGraph: fail,
     search: fail,
+    listHistoryCheckpoints: fail,
+    reconstructEvent: fail,
   }
 }

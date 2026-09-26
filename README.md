@@ -96,7 +96,8 @@ npm run typecheck # tsc --noEmit (run after a build so .next/types exist)
 npm run build
 npm start         # production server after build
 
-npm run test:db   # PostgreSQL integration tests (needs OMEN_TEST_DATABASE_ADMIN_URL)
+npm run test:db       # PostgreSQL integration tests (needs OMEN_TEST_DATABASE_ADMIN_URL)
+npm run test:workflow # production Next.js + PostgreSQL + Chrome workflow (needs a build, OMEN_TEST_DATABASE_ADMIN_URL, Chrome)
 npm run db:migrate | db:status | db:upsert | db:show   # nonproduction database command
 ```
 
@@ -105,6 +106,8 @@ npm run db:migrate | db:status | db:upsert | db:show   # nonproduction database 
 - `GET /api/events`
 - `GET /api/events?domain=finance`
 - `GET /api/events/:id`
+- `GET /api/events/:id/history` — bounded checkpoint discovery
+- `GET /api/events/:id/history/:checkpointId` — stored checkpoint replay, not a wall-clock cutoff
 
 Domains: `technology`, `finance`, `geopolitics`, `supply_chain`.
 
@@ -129,4 +132,4 @@ See the [roadmap](docs/roadmap.md) for the order those appear.
 
 ## Tests
 
-Tests cover scoring, the catalog helpers, the mock repository, command search, the application shell, event cards, the event intelligence view, the repository-backed workspace routes (Pulse, Events, event detail, Watchlists, ⌘K) including their loading, unavailable, and empty states, a guard that keeps the repository, database code and seeded fixtures out of client modules, storage configuration, bundle validation, and the `/api/events` routes. `npm run test:db` adds PostgreSQL integration tests against disposable databases.
+Tests cover scoring, the catalog helpers, the mock repository, command search, the application shell, event cards, the event intelligence view, the repository-backed workspace routes (Pulse, Events, event detail, Watchlists, ⌘K) including their loading, unavailable, and empty states, a guard that keeps the repository, database code and seeded fixtures out of client modules, storage configuration, bundle validation, and the `/api/events` routes. `npm run test:db` adds PostgreSQL integration tests against disposable databases. `npm run test:workflow` starts a production `next start` against labelled synthetic fixtures written through `omen-db upsert`, then inspects HTTP payloads, rendered HTML, and Chrome (homepage → Pulse → event → evidence → Move Log, historical URL refusal, outage, mobile, keyboard, back/forward). Failure traces land in `test-artifacts/`.

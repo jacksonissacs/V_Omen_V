@@ -7,18 +7,22 @@ import {
   useEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react"
 
 import type { EventSummary } from "@/lib/events"
+import { getFollowingStore } from "@/lib/following/following-store"
+import type { FollowingStorageScope } from "@/lib/following/persistence"
 import type { AionEvent, Provenance } from "@/types/event"
 
-export type ShellStorage = "demo" | "database" | "misconfigured"
+export type ShellStorage = FollowingStorageScope
 export type ShellProvenance = Provenance | "mixed" | "none"
 
 /** Serializable data the server layout loads once for the whole workspace shell. */
 export interface WorkspaceShellData {
   eventIndex: EventSummary[]
+  /** Repository-provided ids used only to seed first-visit following; never overwrites browser saves. */
   followedEventIds: string[]
   /** False when the repository could not be read; the shell renders but search is disabled. */
   available: boolean
@@ -52,6 +56,9 @@ interface WorkspaceContextValue {
   watchlist: Set<string>
   isWatched: (id: string) => boolean
   toggleWatch: (id: string) => void
+  followingReady: boolean
+  followingSaveError: string | null
+  followingReadWarning: string | null
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null)
@@ -64,17 +71,27 @@ export function WorkspaceProvider({
   data?: WorkspaceShellData
 }) {
   const { eventIndex, followedEventIds, available: shellDataAvailable, storage, provenance } = data
-  const [collapsed, setCollapsed] = useState(false)
-  const [paletteOpen, setPaletteOpen] = useState(false)
-  const [callEvent, setCallEvent] = useState<AionEvent | null>(null)
-  const [watchlist, setWatchlist] = useState<Set<string>>(
-    () => new Set(followedEventIds),
+  const followingStore = useMemo(() => getFollowingStore(storage), [storage])
+  followingStore.setRepositoryDefaults(followedEventIds)
+
+  const following = useSyncExternalStore(
+    followingStore.subscribe,
+    followingStore.getSnapshot,
+    followingStore.getServerSnapshot,
   )
+
+  const watchlist = useMemo(() => new Set(following.eventIds), [following.eventIds])
+
   const summaryById = useMemo(
     () => new Map(eventIndex.map((summary) => [summary.id, summary])),
     [eventIndex],
   )
   const findEventSummary = useCallback((id: string) => summaryById.get(id), [summaryById])
+
+  const [collapsed, setCollapsed] = useState(false)
+  const [paletteOpen, setPaletteOpen] = useState(false)
+  const [callEvent, setCallEvent] = useState<AionEvent | null>(null)
+
   const toggleCollapsed = useCallback(() => {
     setCollapsed((value) => !value)
   }, [])
@@ -89,14 +106,12 @@ export function WorkspaceProvider({
 
   const isWatched = useCallback((id: string) => watchlist.has(id), [watchlist])
 
-  const toggleWatch = useCallback((id: string) => {
-    setWatchlist((current) => {
-      const next = new Set(current)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }, [])
+  const toggleWatch = useCallback(
+    (id: string) => {
+      followingStore.toggle(id)
+    },
+    [followingStore],
+  )
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -130,6 +145,9 @@ export function WorkspaceProvider({
       watchlist,
       isWatched,
       toggleWatch,
+      followingReady: following.ready,
+      followingSaveError: following.saveError,
+      followingReadWarning: following.readWarning,
     }),
     [
       eventIndex,
@@ -146,6 +164,9 @@ export function WorkspaceProvider({
       watchlist,
       isWatched,
       toggleWatch,
+      following.ready,
+      following.saveError,
+      following.readWarning,
     ],
   )
 

@@ -7,7 +7,7 @@ export default defineConfig({
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
     // PostgreSQL integration tests need a disposable server; run them with `npm run test:db`.
-    exclude: [...configDefaults.exclude, "src/**/*.db.test.ts"],
+    exclude: [...configDefaults.exclude, "src/**/*.db.test.ts", "src/**/*.workflow.test.ts"],
   },
   resolve: {
     alias: {
