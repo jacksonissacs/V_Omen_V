@@ -10,25 +10,30 @@ import {
   invalidCheckpointId,
   type ReconstructionOutcome,
 } from "@/lib/domain/historical-reconstruction"
+import { arbitraryTimeQuery } from "@/lib/history/historical-request"
 
-export async function generateMetadata({
-  params,
-}: {
+type CheckpointPageProps = {
   params: Promise<{ id: string; checkpointId: string }>
-}): Promise<Metadata> {
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>
+}
+
+export async function generateMetadata({ params, searchParams }: CheckpointPageProps): Promise<Metadata> {
   const { checkpointId } = await params
+  const query = searchParams ? await searchParams : undefined
+  if (arbitraryTimeQuery(query)) return { title: "Historical view unavailable" }
   return { title: `Checkpoint ${checkpointId}` }
 }
 
-export default async function EventCheckpointPage({
-  params,
-}: {
-  params: Promise<{ id: string; checkpointId: string }>
-}) {
+export default async function EventCheckpointPage({ params, searchParams }: CheckpointPageProps) {
   const { id, checkpointId } = await params
+  const query = searchParams ? await searchParams : undefined
   const invalid = invalidCheckpointId(checkpointId)
   if (invalid) {
     return <HistoricalUnavailable eventId={id} request={{ kind: "checkpoint", value: checkpointId }} />
+  }
+  const arbitrary = arbitraryTimeQuery(query)
+  if (arbitrary) {
+    return <HistoricalUnavailable eventId={id} request={arbitrary} />
   }
 
   let replay: ReconstructionOutcome

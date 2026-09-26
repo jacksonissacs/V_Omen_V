@@ -335,6 +335,18 @@ describe("production HTTP payloads", () => {
     expect(arbitrary.status).toBe(422)
     expect(arbitrary.body.outcome).toBe("unsupported_history")
     expect(JSON.stringify(arbitrary.body)).not.toContain(CURRENT_TITLE)
+
+    const arbitraryPage = await fetchText(
+      server,
+      `/events/evt-test-temporal/history/${earlyCheckpoint}?at=2026-09-01T00:00:00.000Z`,
+    )
+    expect(arbitraryPage.status).toBe(200)
+    expect(arbitraryPage.text).toContain("<title>Historical view unavailable · OMEN</title>")
+    const arbitraryHtml = visibleHtml(arbitraryPage.text)
+    expect(arbitraryHtml).toContain("Historical view unavailable")
+    expect(arbitraryHtml).not.toContain("Event semantics in this checkpoint")
+    expect(arbitraryHtml).not.toContain(CURRENT_TITLE)
+    expect(arbitraryHtml).not.toContain(DEMO_TITLE)
   })
 
   it("fails visibly on a database outage without serving demo events", async () => {
@@ -442,6 +454,8 @@ describe("browser workspace", () => {
   it("reconstructs a checkpoint from the shareable history URL and returns to present", async () => {
     const historical = await openHistory("evt-test-temporal", earlyCheckpoint)
     expect(page.url()).toContain(`/events/evt-test-temporal/history/${earlyCheckpoint}`)
+    expect(await page.title()).toContain(`Checkpoint ${earlyCheckpoint}`)
+    expect(await page.title()).not.toContain(DEMO_TITLE)
     expect(historical).toContain(CURRENT_TITLE)
     expect(historical).toContain("ml-test-temporal-1")
     expect(historical).toContain("SYNTHETIC TEST agency notice")
@@ -519,6 +533,71 @@ describe("browser workspace", () => {
     expect(reloaded).toContain("Historical checkpoint view")
     expect(reloaded).not.toContain("Historical view unavailable")
     await saveScreenshot(page, "03b_archive_checkpoint")
+  })
+
+  it("changes events without carrying a checkpoint and walks that navigation with back and forward", async () => {
+    await openArchive("evt-test-temporal", earlyCheckpoint)
+    await page.waitForFunction(
+      () => document.body.innerText.includes("Event semantics in this checkpoint"),
+      { timeout: 20_000 },
+    )
+    await page.select('select[aria-label="Event"]', "evt-test-single")
+    await page.waitForFunction(
+      () => {
+        const url = new URL(window.location.href)
+        return url.searchParams.get("event") === "evt-test-single" && url.searchParams.get("checkpoint") === null
+      },
+      { timeout: 20_000 },
+    )
+    await waitForWorkspaceReady(page)
+    const panel = await page.evaluate(
+      () => document.querySelector("[data-testid='historical-reconstruction']")?.textContent ?? "",
+    )
+    expect(panel).toBe("")
+    expect(new URL(page.url()).searchParams.get("checkpoint")).toBeNull()
+
+    await page.goBack({ waitUntil: "domcontentloaded" })
+    await waitForWorkspaceReady(page)
+    await page.waitForFunction(
+      (id) => {
+        const url = new URL(window.location.href)
+        return (
+          url.searchParams.get("checkpoint") === id &&
+          document.body.innerText.includes("Event semantics in this checkpoint")
+        )
+      },
+      { timeout: 20_000 },
+      earlyCheckpoint,
+    )
+    expect(await reconstructionText()).toContain(CURRENT_TITLE)
+
+    await page.goForward({ waitUntil: "domcontentloaded" })
+    await waitForWorkspaceReady(page)
+    await page.waitForFunction(
+      () => new URL(window.location.href).searchParams.get("event") === "evt-test-single",
+      { timeout: 20_000 },
+    )
+    expect(new URL(page.url()).searchParams.get("checkpoint")).toBeNull()
+  })
+
+  it("opens a shared checkpoint URL in a fresh browser session", async () => {
+    const context = await browser.createBrowserContext()
+    const fresh = await context.newPage()
+    try {
+      attachBrowserDiagnostics(fresh)
+      await fresh.setViewport({ width: 1280, height: 800 })
+      await gotoWorkspacePath(fresh, server.url, `/events/evt-test-temporal/history/${earlyCheckpoint}`)
+      expect(await fresh.title()).toContain(`Checkpoint ${earlyCheckpoint}`)
+      expect(await fresh.title()).not.toContain(DEMO_TITLE)
+      const text = await bodyText(fresh)
+      expect(text).toContain("Historical checkpoint view")
+      expect(text).toContain(CURRENT_TITLE)
+      expect(text).not.toContain(DEMO_TITLE)
+      await saveScreenshot(fresh, "07_fresh_session_checkpoint")
+    } finally {
+      await fresh.close().catch(() => undefined)
+      await context.close().catch(() => undefined)
+    }
   })
 
   it("keeps mobile layout inside the viewport", async () => {
@@ -839,6 +918,12 @@ describe("intake review publication and checkpoint stability", () => {
     ])
 
     await openHistory("evt-test-temporal", earlyCheckpoint)
+    const historyPage = await fetchText(server, `/events/evt-test-temporal/history/${earlyCheckpoint}`)
+    expect(historyPage.text).toContain(`<title>Checkpoint ${earlyCheckpoint} · OMEN</title>`)
+    expect(historyPage.text).not.toContain(`<title>${LATER_TITLE}`)
+    const historyVisible = visibleHtml(historyPage.text)
+    expect(historyVisible).toContain(CURRENT_TITLE)
+    expect(historyVisible).not.toContain(LATER_TITLE)
     const historySurface = await reconstructionText()
     expect(historySurface).toContain(CURRENT_TITLE)
     expect(historySurface).not.toContain(LATER_TITLE)

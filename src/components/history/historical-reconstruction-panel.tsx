@@ -1,6 +1,7 @@
 import { Kv } from "@/components/common/kv"
 import { seriesFromHistoricalObservations } from "@/lib/archive/historical-series"
 import { formatDateTime } from "@/lib/format"
+import { navigableHttpUrl } from "@/lib/http-url"
 import type { HistoricalReconstruction } from "@/lib/domain/historical-reconstruction"
 import {
   BASIS_LABEL,
@@ -116,21 +117,24 @@ export function HistoricalReconstructionPanel({
           <h2>Evidence in this checkpoint</h2>
           {reconstruction.evidence.length ? (
             <ul style={{ margin: 0, paddingLeft: 18 }}>
-              {reconstruction.evidence.map((item) => (
+              {reconstruction.evidence.map((item) => {
+                const sourceHref = navigableHttpUrl(item.sourceUrl)
+                return (
                 <li key={item.id}>
                   {item.sourceName}
                   {item.sourcePublishedAt ? ` · published ${formatDateTime(item.sourcePublishedAt)}` : ""}
-                  {item.sourceUrl ? (
+                  {sourceHref ? (
                     <>
                       {" "}
                       ·{" "}
-                      <a className="aion-evidence-link" href={item.sourceUrl}>
+                      <a className="aion-evidence-link" href={sourceHref} rel="noreferrer">
                         Open source
                       </a>
                     </>
                   ) : null}
                 </li>
-              ))}
+                )
+              })}
             </ul>
           ) : (
             <p className="aion-note" style={{ border: 0, margin: 0, padding: 0 }}>

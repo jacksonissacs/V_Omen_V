@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  arbitraryTimeQuery,
   historicalViewUnavailableMessage,
   requestedHistoricalView,
 } from "@/lib/history/historical-request"
@@ -37,6 +38,12 @@ describe("requestedHistoricalView", () => {
       kind: "cutoff",
       value: "2026-09-01T00:00:00.000Z",
     })
+    expect(requestedHistoricalView(new URLSearchParams("at="))).toEqual({ kind: "at", value: "" })
+    expect(arbitraryTimeQuery({ checkpoint: "12", at: "2026-09-01T00:00:00.000Z" })).toEqual({
+      kind: "at",
+      value: "2026-09-01T00:00:00.000Z",
+    })
+    expect(arbitraryTimeQuery({ checkpoint: "12" })).toBeUndefined()
   })
 
   it("names the missing reconstruction instead of describing current text", () => {
