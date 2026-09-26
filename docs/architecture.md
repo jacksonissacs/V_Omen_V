@@ -142,13 +142,11 @@ These screens are outside the V0 core boundary and were **not migrated** to the 
 | `/signals` | Client component imports `@/data/events` directly |
 | `/agents` | Hard-coded ledger and ranking fixtures in `src/data/workspace.ts` |
 | `/research` | Hard-coded forecast history in `src/data/workspace.ts` |
-| `/archive` | Content inline in `archive-screen.tsx` |
+| `/archive` | Server-loaded event index; client replays checkpoints via `/api/events/:id/history` |
 | `/relations` | Content inline in `relations-screen.tsx` (does not use `getGraph()`) |
 | `/alerts`, `/api-access`, `/team`, `/settings` | Static rows in the page or screen component |
 
-`/archive` is labelled as a demo on screen: its date, time and replay controls do not query stored records.
-
-The sidebar and ⌘K only link the recorded loop: Pulse, Events, Watchlists, and Settings. Markets, Signals, Agents, Research, Archive, Relations, and Alerts stay routable and are not offered as navigation. ⌘K has no Ask, Rewind, or Create commands. Pulse cards show the headline series (source, observed time, and capture time kept separate) and do not present σ, data quality, or an explained/unexplained bar as measurements. An attribution percentage is labelled illustrative or as the move-log author's statement. Analogue counts are the number of stored comparisons, and zero stays zero. The Make a call modal is no longer reachable from any screen.
+The sidebar and ⌘K link the recorded loop: Pulse, Events, Watchlists, Archive, and Settings. Markets, Signals, Agents, Research, Relations, and Alerts stay routable and are not offered as navigation. ⌘K has no Ask, Rewind, or Create commands. Pulse cards show the headline series (source, observed time, and capture time kept separate) and do not present σ, data quality, or an explained/unexplained bar as measurements. An attribution percentage is labelled illustrative or as the move-log author's statement. Analogue counts are the number of stored comparisons, and zero stays zero. The Make a call modal is no longer reachable from any screen.
 
 ## Event detail
 

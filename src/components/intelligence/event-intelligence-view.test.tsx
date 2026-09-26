@@ -235,6 +235,14 @@ describe("EventIntelligenceView", () => {
     expect(chronology).not.toHaveTextContent("+4.2")
   })
 
+  it("links to Archive for stored checkpoint replay without embedding current text in the URL", async () => {
+    const { event } = await loadEvent("evt-boc-cut")
+    renderView(event)
+    const link = screen.getByTestId("event-archive-link")
+    expect(link).toHaveAttribute("href", "/archive?event=evt-boc-cut")
+    expect(link).toHaveTextContent("Open recorded history")
+  })
+
   it("puts Inspect evidence first and offers no prediction entry", async () => {
     const { event } = await loadEvent("evt-boc-cut")
     const { user } = renderView(event)

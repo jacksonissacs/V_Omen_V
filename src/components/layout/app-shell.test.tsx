@@ -31,8 +31,9 @@ describe("AppShell", () => {
     expect(screen.getByRole("link", { name: "Intelligence" })).toHaveAttribute("href", "/pulse")
     expect(screen.getByRole("link", { name: "Events" })).toHaveAttribute("href", "/events")
     expect(screen.getByRole("link", { name: "Watchlists" })).toHaveAttribute("href", "/watchlists")
+    expect(screen.getByRole("link", { name: "Archive" })).toHaveAttribute("href", "/archive")
     expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings")
-    for (const label of ["Markets", "Signals", "Agents", "Research", "Archive", "Relations", "Alerts"]) {
+    for (const label of ["Markets", "Signals", "Agents", "Research", "Relations", "Alerts"]) {
       expect(screen.queryByRole("link", { name: label })).not.toBeInTheDocument()
     }
     expect(screen.queryByText(/Alan/)).not.toBeInTheDocument()

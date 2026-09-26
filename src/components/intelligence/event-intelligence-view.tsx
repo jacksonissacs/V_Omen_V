@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useRef, useState, type ReactNode } from "react"
 
 import { TabGroup } from "@/components/common/tab-group"
+import { buildArchiveHref } from "@/lib/archive/archive-url"
 import { IntelligencePanel, type InspectorTab } from "@/components/intelligence/intelligence-panel"
 import { ProbabilityChart } from "@/components/intelligence/probability-chart"
 import { FollowEventButton } from "@/components/events/follow-event-button"
@@ -102,6 +103,9 @@ export function EventIntelligenceView({
               Inspect evidence
             </button>
             <FollowEventButton eventId={event.id} eventTitle={event.title} quiet={false} />
+            <Link className="aion-button" href={buildArchiveHref(event.id)} data-testid="event-archive-link">
+              Open recorded history
+            </Link>
           </div>
         </div>
         <dl className="aion-event-record" data-testid="event-record">

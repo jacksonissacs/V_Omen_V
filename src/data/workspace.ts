@@ -7,7 +7,7 @@ export const primaryNav: NavItem[] = [
   { href: "/watchlists", label: "Watchlists", icon: "watchlists" },
 ]
 
-export const workspaceNav: NavItem[] = []
+export const workspaceNav: NavItem[] = [{ href: "/archive", label: "Archive", icon: "archive" }]
 
 export const footerNav: NavItem[] = [{ href: "/settings", label: "Settings", icon: "settings" }]
 
