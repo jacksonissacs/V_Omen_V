@@ -117,6 +117,27 @@ export interface HistoryCheckpointSummary {
   semanticHistory: "recorded" | "unavailable"
 }
 
+export function checkpointSummaryFromReconstruction(
+  reconstruction: HistoricalReconstruction,
+): HistoryCheckpointSummary {
+  return {
+    id: reconstruction.checkpoint.id,
+    sequence: reconstruction.checkpoint.sequence,
+    contentMd5: reconstruction.checkpoint.contentMd5,
+    memberCount: reconstruction.checkpoint.memberCount,
+    semanticHistory: reconstruction.coverage.semanticHistory,
+  }
+}
+
+export function mergeCheckpointSummaries(
+  existing: HistoryCheckpointSummary[],
+  incoming: HistoryCheckpointSummary[],
+): HistoryCheckpointSummary[] {
+  const byId = new Map(existing.map((item) => [item.id, item]))
+  for (const item of incoming) byId.set(item.id, item)
+  return [...byId.values()].sort((a, b) => b.sequence - a.sequence)
+}
+
 export interface HistoryCheckpointPage {
   eventId: string
   limit: number

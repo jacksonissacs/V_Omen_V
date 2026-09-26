@@ -9,7 +9,9 @@ import { ScreenHead } from "@/components/common/screen-head"
 import { HistoricalReconstructionPanel } from "@/components/history/historical-reconstruction-panel"
 import { buildArchiveHref, buildEventHistoryHref } from "@/lib/archive/archive-url"
 import {
+  checkpointSummaryFromReconstruction,
   HISTORY_CHECKPOINT_LIST_DEFAULT,
+  mergeCheckpointSummaries,
   type HistoricalReconstruction,
   type HistoryCheckpointSummary,
 } from "@/lib/domain/historical-reconstruction"
@@ -81,21 +83,70 @@ function reconstructionFromResponse(body: ReplayResponse): HistoricalReconstruct
   }
 }
 
-function mergeCheckpointPages(
-  existing: HistoryCheckpointSummary[],
-  incoming: HistoryCheckpointSummary[],
-): HistoryCheckpointSummary[] {
-  const byId = new Map(existing.map((item) => [item.id, item]))
-  for (const item of incoming) byId.set(item.id, item)
-  return [...byId.values()].sort((a, b) => b.sequence - a.sequence)
-}
-
 function historyRequestKey(eventId: string, checkpointId?: string): string {
   return `${eventId}\n${checkpointId ?? ""}`
 }
 
 function listedEventMatches(expectedEventId: string, eventId: string | undefined): boolean {
   return eventId === undefined || eventId === expectedEventId
+}
+
+function checkpointListHasSequence(checkpoints: HistoryCheckpointSummary[], sequence: number): boolean {
+  return checkpoints.some((item) => item.sequence === sequence)
+}
+
+type FetchCheckpointPageResult = {
+  checkpoints: HistoryCheckpointSummary[]
+  hasMore: boolean
+  status: CheckpointDiscoveryStatus
+  eventId?: string
+}
+
+type AugmentCheckpointListResult = {
+  checkpoints: HistoryCheckpointSummary[]
+  neighborDiscoveryDegraded: boolean
+}
+
+async function augmentCheckpointListForActive(
+  eventId: string,
+  merged: HistoryCheckpointSummary[],
+  active: HistoryCheckpointSummary,
+  fetchPage: (eventId: string, options: { beforeSequence?: number; signal?: AbortSignal }) => Promise<FetchCheckpointPageResult>,
+  signal?: AbortSignal,
+): Promise<AugmentCheckpointListResult> {
+  let result = mergeCheckpointSummaries(merged, [active])
+  let neighborDiscoveryDegraded = false
+  if (!checkpointListHasSequence(result, active.sequence + 1)) {
+    try {
+      const newerSide = await fetchPage(eventId, { beforeSequence: active.sequence + 2, signal })
+      if (newerSide.status === "unavailable" || newerSide.status === "unsupported_history") {
+        neighborDiscoveryDegraded = true
+      } else if (listedEventMatches(eventId, newerSide.eventId)) {
+        result = mergeCheckpointSummaries(result, newerSide.checkpoints)
+      } else {
+        neighborDiscoveryDegraded = true
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") throw error
+      neighborDiscoveryDegraded = true
+    }
+  }
+  if (active.sequence > 1 && !checkpointListHasSequence(result, active.sequence - 1)) {
+    try {
+      const olderSide = await fetchPage(eventId, { beforeSequence: active.sequence, signal })
+      if (olderSide.status === "unavailable" || olderSide.status === "unsupported_history") {
+        neighborDiscoveryDegraded = true
+      } else if (listedEventMatches(eventId, olderSide.eventId)) {
+        result = mergeCheckpointSummaries(result, olderSide.checkpoints)
+      } else {
+        neighborDiscoveryDegraded = true
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") throw error
+      neighborDiscoveryDegraded = true
+    }
+  }
+  return { checkpoints: result, neighborDiscoveryDegraded }
 }
 
 export function ArchiveView({
@@ -113,8 +164,10 @@ export function ArchiveView({
   const limitationsId = useId()
   const checkpointListRef = useRef<HTMLUListElement>(null)
   const loadTokenRef = useRef(0)
+  const neighborRequestRef = useRef(0)
   const olderRequestRef = useRef(0)
   const activeEventRef = useRef("")
+  const checkpointsRef = useRef(initialCheckpoints)
   const [focusedCheckpoint, setFocusedCheckpoint] = useState(0)
   const [reconstruction, setReconstruction] = useState<HistoricalReconstruction | null>(initialReconstruction)
   const [checkpoints, setCheckpoints] = useState<HistoryCheckpointSummary[]>(initialCheckpoints)
@@ -128,6 +181,8 @@ export function ArchiveView({
   )
   const [loading, setLoading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [neighborDiscoveryDegraded, setNeighborDiscoveryDegraded] = useState(false)
+  const [retryingNeighbors, setRetryingNeighbors] = useState(false)
 
   const urlEvent = searchParams.get("event")
   const urlCheckpoint = searchParams.get("checkpoint") ?? undefined
@@ -204,36 +259,128 @@ export function ArchiveView({
     [],
   )
 
+  const applyNeighborAugmentation = useCallback(
+    async (input: {
+      eventId: string
+      requestKey: string
+      loadToken: number
+      mergedList: HistoryCheckpointSummary[]
+      activeSummary: HistoryCheckpointSummary
+      signal?: AbortSignal
+    }) => {
+      const neighborToken = ++neighborRequestRef.current
+      try {
+        const augmented = await augmentCheckpointListForActive(
+          input.eventId,
+          input.mergedList,
+          input.activeSummary,
+          fetchCheckpointPage,
+          input.signal,
+        )
+        if (neighborToken !== neighborRequestRef.current) return
+        if (input.loadToken !== loadTokenRef.current) return
+        if (input.signal?.aborted) return
+        if (activeEventRef.current !== input.eventId) return
+        if (historyRequestKey(input.eventId, input.activeSummary.id) !== input.requestKey) return
+        setNeighborDiscoveryDegraded(augmented.neighborDiscoveryDegraded)
+        setCheckpoints(augmented.checkpoints)
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return
+        if (neighborToken !== neighborRequestRef.current) return
+        if (input.loadToken !== loadTokenRef.current) return
+        if (input.signal?.aborted) return
+        if (activeEventRef.current !== input.eventId) return
+        if (historyRequestKey(input.eventId, input.activeSummary.id) !== input.requestKey) return
+        setCheckpoints(mergeCheckpointSummaries(input.mergedList, [input.activeSummary]))
+        setNeighborDiscoveryDegraded(true)
+      }
+    },
+    [fetchCheckpointPage],
+  )
+
+  const retryNeighborDiscovery = useCallback(async () => {
+    if (!urlCheckpoint || !reconstruction || reconstruction.checkpoint.id !== urlCheckpoint) return
+    if (reconstruction.eventId !== activeEventId) return
+    const requestKey = historyRequestKey(activeEventId, urlCheckpoint)
+    const loadToken = loadTokenRef.current
+    const mergedList = checkpointsRef.current
+    const activeSummary = checkpointSummaryFromReconstruction(reconstruction)
+    setRetryingNeighbors(true)
+    try {
+      await applyNeighborAugmentation({
+        eventId: activeEventId,
+        requestKey,
+        loadToken,
+        mergedList,
+        activeSummary,
+      })
+    } finally {
+      setRetryingNeighbors(false)
+    }
+  }, [activeEventId, applyNeighborAugmentation, reconstruction, urlCheckpoint])
+
   const loadCheckpoint = useCallback(
     async (nextEventId: string, checkpointId: string, signal?: AbortSignal) => {
       const token = ++loadTokenRef.current
+      ++neighborRequestRef.current
       const requestKey = historyRequestKey(nextEventId, checkpointId)
       setLoading(true)
+      setNeighborDiscoveryDegraded(false)
+      let listApplied = false
       try {
-        const [listed, replayResponse] = await Promise.all([
+        const [listedSettled, replaySettled] = await Promise.allSettled([
           fetchCheckpointPage(nextEventId, { signal }),
           fetch(`/api/events/${encodeURIComponent(nextEventId)}/history/${encodeURIComponent(checkpointId)}`, {
             signal,
           }),
         ])
         if (token !== loadTokenRef.current || signal?.aborted) return
-        if (!listedEventMatches(nextEventId, listed.eventId)) {
+
+        let mergedForAugment = checkpointsRef.current
+        if (listedSettled.status === "fulfilled") {
+          const listed = listedSettled.value
+          if (!listedEventMatches(nextEventId, listed.eventId)) {
+            setStatus("unavailable")
+            setStatusRequestKey(requestKey)
+            setReconstruction(null)
+            setCheckpoints([])
+            setHasMoreCheckpoints(false)
+            setDiscoveryStatus("unavailable")
+            return
+          }
+          mergedForAugment =
+            mergedForAugment.length === 0
+              ? listed.checkpoints
+              : mergeCheckpointSummaries(mergedForAugment, listed.checkpoints)
+          setCheckpoints(mergedForAugment)
+          setHasMoreCheckpoints(listed.hasMore)
+          setDiscoveryStatus(listed.status)
+          listApplied = true
+        } else if (!(listedSettled.reason instanceof DOMException && listedSettled.reason.name === "AbortError")) {
+          setCheckpoints((current) => (current.length ? current : []))
+          setHasMoreCheckpoints(false)
+          setDiscoveryStatus("unavailable")
+        }
+
+        if (replaySettled.status === "rejected") {
+          if (replaySettled.reason instanceof DOMException && replaySettled.reason.name === "AbortError") return
           setStatus("unavailable")
           setStatusRequestKey(requestKey)
           setReconstruction(null)
-          setCheckpoints([])
-          setHasMoreCheckpoints(false)
-          setDiscoveryStatus("unavailable")
           return
         }
 
-        setCheckpoints((current) =>
-          current.length === 0 ? listed.checkpoints : mergeCheckpointPages(current, listed.checkpoints),
-        )
-        setHasMoreCheckpoints(listed.hasMore)
-        setDiscoveryStatus(listed.status)
-
-        const body = (await replayResponse.json()) as ReplayResponse
+        let body: ReplayResponse
+        try {
+          body = (await replaySettled.value.json()) as ReplayResponse
+        } catch {
+          if (token !== loadTokenRef.current || signal?.aborted) return
+          setStatus("unavailable")
+          setStatusRequestKey(requestKey)
+          setReconstruction(null)
+          return
+        }
+        const replayResponse = replaySettled.value
         if (token !== loadTokenRef.current || signal?.aborted) return
         if (body.eventId && body.eventId !== nextEventId) {
           setStatus("unavailable")
@@ -245,7 +392,21 @@ export function ArchiveView({
         setStatus(nextStatus)
         setStatusRequestKey(requestKey)
         if (nextStatus === "ok" || nextStatus === "pre_coverage") {
-          setReconstruction(reconstructionFromResponse(body))
+          const nextReconstruction = reconstructionFromResponse(body)
+          setReconstruction(nextReconstruction)
+          if (nextReconstruction && listApplied) {
+            const activeSummary = checkpointSummaryFromReconstruction(nextReconstruction)
+            const listWithActive = mergeCheckpointSummaries(mergedForAugment, [activeSummary])
+            setCheckpoints(listWithActive)
+            void applyNeighborAugmentation({
+              eventId: nextEventId,
+              requestKey,
+              loadToken: token,
+              mergedList: listWithActive,
+              activeSummary,
+              signal,
+            })
+          }
         } else {
           setReconstruction(null)
         }
@@ -255,14 +416,14 @@ export function ArchiveView({
         setStatus("unavailable")
         setStatusRequestKey(requestKey)
         setReconstruction(null)
-        setCheckpoints([])
-        setHasMoreCheckpoints(false)
-        setDiscoveryStatus("unavailable")
+        if (!listApplied) {
+          setDiscoveryStatus("unavailable")
+        }
       } finally {
         if (token === loadTokenRef.current) setLoading(false)
       }
     },
-    [fetchCheckpointPage],
+    [applyNeighborAugmentation, fetchCheckpointPage],
   )
 
   const loadDiscovery = useCallback(
@@ -299,6 +460,10 @@ export function ArchiveView({
   }, [activeEventId])
 
   useEffect(() => {
+    checkpointsRef.current = checkpoints
+  }, [checkpoints])
+
+  useEffect(() => {
     if (!activeEventId) return
     const controller = new AbortController()
     queueMicrotask(() => {
@@ -316,9 +481,17 @@ export function ArchiveView({
     [checkpoints],
   )
 
-  const activeIndex = sortedCheckpoints.findIndex((item) => item.id === urlCheckpoint)
-  const olderCheckpoint = activeIndex >= 0 ? sortedCheckpoints[activeIndex + 1] : undefined
-  const newerCheckpoint = activeIndex > 0 ? sortedCheckpoints[activeIndex - 1] : undefined
+  const activeSequence =
+    viewReconstruction?.checkpoint.sequence ??
+    sortedCheckpoints.find((item) => item.id === urlCheckpoint)?.sequence
+  const olderCheckpoint =
+    activeSequence !== undefined
+      ? sortedCheckpoints.find((item) => item.sequence === activeSequence - 1)
+      : undefined
+  const newerCheckpoint =
+    activeSequence !== undefined
+      ? sortedCheckpoints.find((item) => item.sequence === activeSequence + 1)
+      : undefined
 
   const loadOlderCheckpoints = async () => {
     const eventId = activeEventRef.current
@@ -338,7 +511,7 @@ export function ArchiveView({
         return
       }
       setCheckpoints((current) => {
-        const merged = mergeCheckpointPages(current, listed.checkpoints)
+        const merged = mergeCheckpointSummaries(current, listed.checkpoints)
         setDiscoveryStatus(merged.length ? "ready" : "empty")
         return merged
       })
@@ -530,7 +703,9 @@ export function ArchiveView({
           Loading stored checkpoint…
         </p>
       ) : null}
-      {viewStatus === "unavailable" && checkpointSettled ? (
+      {viewStatus === "unavailable" &&
+      checkpointSettled &&
+      (discoveryStatus === "unavailable" || !sortedCheckpoints.length) ? (
         <p className="aion-note" role="alert" data-testid="archive-replay-unavailable">
           Archive storage is unavailable. Historical reconstruction cannot be loaded.
         </p>
@@ -568,13 +743,47 @@ export function ArchiveView({
       ) : null}
 
       {viewReconstruction ? (
+        <HistoricalReconstructionPanel
+          reconstruction={viewReconstruction}
+          preCoverage={viewStatus === "pre_coverage"}
+        />
+      ) : null}
+      {inHistory &&
+      checkpointSettled &&
+      !viewReconstruction &&
+      viewStatus === "unavailable" &&
+      sortedCheckpoints.length > 0 &&
+      discoveryStatus !== "unavailable" ? (
+        <p className="aion-note" role="alert" data-testid="archive-replay-retry">
+          Stored checkpoint replay failed. The checkpoint list below is still available.{" "}
+          <button
+            type="button"
+            className="aion-button"
+            disabled={loading || !urlCheckpoint}
+            onClick={() => urlCheckpoint && void loadCheckpoint(activeEventId, urlCheckpoint)}
+          >
+            Retry replay
+          </button>
+        </p>
+      ) : null}
+      {inHistory && checkpointSettled && viewReconstruction && neighborDiscoveryDegraded ? (
+        <p className="aion-note" role="alert" data-testid="archive-neighbor-retry">
+          Neighboring checkpoints could not be loaded. Previous and Next may be unavailable until discovery
+          succeeds.{" "}
+          <button
+            type="button"
+            className="aion-button"
+            disabled={loading || retryingNeighbors}
+            onClick={() => void retryNeighborDiscovery()}
+          >
+            {retryingNeighbors ? "Retrying neighbor discovery…" : "Retry neighbor discovery"}
+          </button>
+        </p>
+      ) : null}
+      {inHistory && checkpointSettled ? (
         <>
-          <HistoricalReconstructionPanel
-            reconstruction={viewReconstruction}
-            preCoverage={viewStatus === "pre_coverage"}
-          />
           {checkpointList}
-          {urlCheckpoint ? (
+          {viewReconstruction && urlCheckpoint ? (
             <p style={{ marginTop: 12 }}>
               <Link className="aion-button" href={buildEventHistoryHref(activeEventId, urlCheckpoint)}>
                 Open this checkpoint on the event route
