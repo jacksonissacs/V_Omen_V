@@ -9,48 +9,17 @@ import {
   graphNodes,
 } from "@/lib/data/mock-catalog"
 import type { IntelligenceRepository } from "@/lib/data/repository"
-import { domainCategories } from "@/lib/domain/categories"
-import { probabilityDelta } from "@/lib/domain/scoring"
-import type { Domain, EventFilter, RelationshipGraph, SearchHit } from "@/lib/domain/types"
+import { applyEventFilter } from "@/lib/data/event-query"
+import type { EventFilter, RelationshipGraph, SearchHit } from "@/lib/domain/types"
 import { searchCatalog } from "@/lib/search/command-index"
 import type { AionEvent } from "@/types/event"
 
-function matchesFilter(event: AionEvent, filter?: EventFilter): boolean {
-  if (filter?.domain && filter.domain !== "all") {
-    if (!domainCategories(filter.domain).includes(event.category)) {
-      return false
-    }
-  }
-  if (filter?.query) {
-    const q = filter.query.trim().toLowerCase()
-    if (!q) return true
-    const haystack = [
-      event.title,
-      event.question,
-      event.summary,
-      event.region,
-      event.category,
-      ...event.tags,
-    ]
-      .join(" ")
-      .toLowerCase()
-    return haystack.includes(q)
-  }
-  return true
-}
-
 /** In-process adapter over the seeded demo book. Development and tests only. */
 export class MockIntelligenceRepository implements IntelligenceRepository {
-  readonly provenance = "demo" as const
+  readonly storage = "demo" as const
 
   async listEvents(filter?: EventFilter): Promise<AionEvent[]> {
-    const matching = events.filter((event) => matchesFilter(event, filter))
-    if (filter?.order === "catalog") return matching
-    return matching.sort((a, b) => {
-      const aMove = Math.abs(probabilityDelta(a.probability, a.previousProbability))
-      const bMove = Math.abs(probabilityDelta(b.probability, b.previousProbability))
-      return bMove - aMove || b.timestamp.localeCompare(a.timestamp)
-    })
+    return applyEventFilter(events, filter)
   }
 
   async getEvent(id: string): Promise<AionEvent | undefined> {
@@ -90,13 +59,4 @@ export class MockIntelligenceRepository implements IntelligenceRepository {
   async search(query: string): Promise<SearchHit[]> {
     return searchCatalog(query, events)
   }
-}
-
-export function isDomain(value: string | undefined | null): value is Domain {
-  return (
-    value === "technology" ||
-    value === "finance" ||
-    value === "geopolitics" ||
-    value === "supply_chain"
-  )
 }

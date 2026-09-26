@@ -1,0 +1,40 @@
+{
+  "eventId": "evt-boc-cut",
+  "evidence": [
+    {
+      "id": "ev-boc-4",
+      "sourceName": "Illustrative desk note: 2Y attribution re-run",
+      "sourcePublishedAt": null,
+      "firstObservedAt": "2026-09-05T12:40:00.000Z",
+      "capturedAt": "2026-09-05T12:40:30.000Z",
+      "summary": "Undated internal-style note (illustrative). Part of the 2Y move traces to a same-minute U.S. Treasury block, not the CPI print.",
+      "stance": "contradicts",
+      "reliability": 0.55,
+      "recordedBy": "omen-demo-seed",
+      "provenance": "demo"
+    }
+  ],
+  "moveLogRevisions": [
+    {
+      "moveLogId": "ml-boc-cut-2026-09-04",
+      "version": 2,
+      "publishedAt": "2026-09-05T13:10:00.000Z",
+      "author": "OMEN demo desk",
+      "whatChanged": "Consensus moved +12.6 pts in 18 minutes after the 14:30 CPI release. The 2s/CAD complex led; housing did not follow.",
+      "likelyCause": "Statistics Canada CPI release",
+      "explainedPct": 64,
+      "unexplainedFactors": [
+        "Canadian housing did not reprice with the rate shock",
+        "Residual 36% of the move is not identified; part of the 2Y reaction coincided with a U.S. Treasury block"
+      ],
+      "evidenceIds": [
+        "ev-boc-1",
+        "ev-boc-2",
+        "ev-boc-3",
+        "ev-boc-4"
+      ],
+      "correctionNote": "Coverage revised from 69% to 64%: part of the Canada 2Y reaction coincided with a U.S. Treasury block trade and is no longer attributed to the CPI release.",
+      "provenance": "demo"
+    }
+  ]
+}

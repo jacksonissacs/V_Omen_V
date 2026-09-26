@@ -1,0 +1,247 @@
+{
+  "event": {
+    "id": "evt-boc-cut",
+    "title": "Bank of Canada cuts rates in October",
+    "question": "Will the Bank of Canada cut the overnight rate at the 28–29 October 2026 decision?",
+    "status": "active",
+    "deadline": "2026-10-29T13:45:00.000Z",
+    "resolutionCriteria": "Resolves YES if the Bank of Canada announces a reduction of its target for the overnight rate at the interest-rate decision scheduled for 29 October 2026, as published on bankofcanada.ca. Resolves NO if the target is held or raised at that decision. An unscheduled move before that date does not count.",
+    "category": "Economics",
+    "significance": "critical",
+    "region": "Canada",
+    "summary": "Implied October cut odds jumped after Statistics Canada printed a softer CPI path than desks had marked.",
+    "tags": [
+      "BoC",
+      "CPI",
+      "rates"
+    ],
+    "relatedEventIds": [
+      "evt-housing-ca",
+      "evt-fed-cut",
+      "evt-ecb-cut"
+    ],
+    "provenance": "demo",
+    "followedByDefault": true,
+    "catalogPosition": 0,
+    "display": {
+      "displayTime": "14:42 EDT",
+      "confidence": "High",
+      "sourceTier": 1,
+      "sigma": 4.7,
+      "duration": "18 min",
+      "catalystLabel": "Primary catalyst",
+      "catalyst": "Statistics Canada CPI release",
+      "catalystTime": "14:30:00",
+      "entities": [
+        "Canada",
+        "CPI",
+        "Bank of Canada"
+      ],
+      "signals": [
+        {
+          "id": "sig-boc-1",
+          "label": "Canadian 2Y yield",
+          "value": "+17 bps",
+          "direction": "up"
+        },
+        {
+          "id": "sig-boc-2",
+          "label": "CAD / USD",
+          "value": "−0.4%",
+          "direction": "down"
+        },
+        {
+          "id": "sig-boc-3",
+          "label": "Related rate market",
+          "value": "+6 pts",
+          "direction": "up"
+        }
+      ],
+      "relatedMarkets": [
+        {
+          "id": "mkt-cad",
+          "name": "USD/CAD",
+          "venue": "Spot",
+          "last": 1.372,
+          "unit": "CAD",
+          "changePct": -0.4
+        },
+        {
+          "id": "mkt-can2y",
+          "name": "Canada 2Y",
+          "venue": "OTC",
+          "last": 2.91,
+          "unit": "%",
+          "changePct": 0.17
+        },
+        {
+          "id": "mkt-boc-oct",
+          "name": "BoC Oct cut",
+          "venue": "OMEN",
+          "last": 73.8,
+          "unit": "%",
+          "changePct": 12.6
+        }
+      ],
+      "analogues": [
+        {
+          "id": "an-boc-1",
+          "title": "April 2024 Canadian CPI miss",
+          "year": 2024,
+          "similarity": 0.78,
+          "outcome": "October-equivalent cut odds jumped 9–14 pts; housing lagged a session.",
+          "lesson": "Rate markets clear first. Housing is a second-day object."
+        }
+      ],
+      "timeline": [
+        {
+          "time": "14:30:00",
+          "text": "Statistics Canada CPI release",
+          "type": "source"
+        },
+        {
+          "time": "14:30:42",
+          "text": "CAD begins repricing",
+          "delta": "−0.4%",
+          "tone": "down"
+        },
+        {
+          "time": "14:31:08",
+          "text": "Canadian 2Y yields move",
+          "delta": "+17 bps",
+          "tone": "up"
+        },
+        {
+          "time": "14:31:51",
+          "text": "OMEN detects abnormal movement"
+        },
+        {
+          "time": "14:32:07",
+          "text": "Probability rises",
+          "delta": "+4.2 pts",
+          "tone": "up"
+        },
+        {
+          "time": "14:34:16",
+          "text": "Related rate market reacts",
+          "delta": "+6 pts",
+          "tone": "up"
+        },
+        {
+          "time": "14:38:42",
+          "text": "Move reaches",
+          "delta": "+12.6 pts",
+          "tone": "up"
+        }
+      ],
+      "anomaly": {
+        "title": "Canadian housing correction by Q2 2027",
+        "body": "Historically this market moves with Bank of Canada rate surprises in 78% of comparable shocks. No meaningful movement detected 26 minutes after today's repricing.",
+        "interpretations": [
+          "pricing lag",
+          "different interpretation",
+          "liquidity",
+          "relationship breakdown"
+        ]
+      }
+    }
+  },
+  "observations": [
+    {
+      "sourceKind": "provider",
+      "sourceName": "OMEN demo book",
+      "probabilityType": "market_implied",
+      "probabilityPct": 48,
+      "observedAt": "2026-08-01T12:00:00.000Z",
+      "capturedAt": "2026-08-01T12:01:00.000Z",
+      "provenance": "demo"
+    },
+    {
+      "sourceKind": "provider",
+      "sourceName": "OMEN demo book",
+      "probabilityType": "market_implied",
+      "probabilityPct": 58.4,
+      "observedAt": "2026-08-17T14:35:00.000Z",
+      "capturedAt": "2026-08-17T14:36:00.000Z",
+      "note": "Archive snapshot.",
+      "provenance": "demo"
+    },
+    {
+      "sourceKind": "provider",
+      "sourceName": "OMEN demo book",
+      "probabilityType": "market_implied",
+      "probabilityPct": 61.2,
+      "observedAt": "2026-09-01T12:00:00.000Z",
+      "capturedAt": "2026-09-01T12:01:00.000Z",
+      "provenance": "demo"
+    },
+    {
+      "sourceKind": "provider",
+      "sourceName": "OMEN demo book",
+      "probabilityType": "market_implied",
+      "probabilityPct": 73.8,
+      "observedAt": "2026-09-04T18:42:00.000Z",
+      "capturedAt": "2026-09-04T18:43:00.000Z",
+      "note": "CPI release.",
+      "provenance": "demo"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev-boc-1",
+      "sourceName": "Statistics Canada CPI, August 2026",
+      "sourcePublishedAt": "2026-09-04T18:30:00.000Z",
+      "firstObservedAt": "2026-09-04T18:30:41.000Z",
+      "capturedAt": "2026-09-04T18:30:46.000Z",
+      "summary": "Headline 1.9% y/y; core trimmed mean 2.4%. Below the 2.1 / 2.6 desk marks.",
+      "stance": "supports",
+      "reliability": 0.96,
+      "recordedBy": "omen-demo-seed",
+      "provenance": "demo"
+    },
+    {
+      "id": "ev-boc-2",
+      "sourceName": "CAD spot and 2Y Canada",
+      "sourcePublishedAt": "2026-09-04T18:31:08.000Z",
+      "firstObservedAt": "2026-09-04T18:31:20.000Z",
+      "capturedAt": "2026-09-04T18:31:25.000Z",
+      "summary": "CAD −0.4%; 2Y +17 bps in the first minute.",
+      "stance": "supports",
+      "reliability": 0.9,
+      "recordedBy": "omen-demo-seed",
+      "provenance": "demo"
+    },
+    {
+      "id": "ev-boc-3",
+      "sourceName": "BoC July MPR (archived)",
+      "sourcePublishedAt": "2026-07-30T14:00:00.000Z",
+      "firstObservedAt": "2026-09-04T18:36:05.000Z",
+      "capturedAt": "2026-09-04T18:36:10.000Z",
+      "summary": "Staff still described policy as modestly restrictive.",
+      "stance": "contextual",
+      "reliability": 0.8,
+      "recordedBy": "omen-demo-seed",
+      "provenance": "demo"
+    }
+  ],
+  "moveLogRevisions": [
+    {
+      "moveLogId": "ml-boc-cut-2026-09-04",
+      "version": 1,
+      "publishedAt": "2026-09-04T18:45:00.000Z",
+      "author": "OMEN demo desk",
+      "whatChanged": "Consensus moved +12.6 pts in 18 minutes after the 14:30 CPI release. The 2s/CAD complex led; housing did not follow.",
+      "likelyCause": "Statistics Canada CPI release",
+      "explainedPct": 69,
+      "unexplainedFactors": [
+        "Canadian housing did not reprice with the rate shock",
+        "Residual 31% of the move is not identified in the first-hour tape"
+      ],
+      "evidenceIds": [
+        "ev-boc-1",
+        "ev-boc-2"
+      ],
+      "provenance": "demo"
+    }
+  ]
+}

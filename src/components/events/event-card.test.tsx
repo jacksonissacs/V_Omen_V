@@ -21,5 +21,7 @@ describe("EventCard", () => {
     expect(screen.getByText("Extra-territorial GPU license expansion")).toBeInTheDocument()
     expect(screen.getByText("68.0%")).toBeInTheDocument()
     expect(screen.getByText("+17.0 pts")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Make a call" })).not.toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "View evidence" })).toHaveAttribute("href", "/events/evt-gpu-export")
   })
 })

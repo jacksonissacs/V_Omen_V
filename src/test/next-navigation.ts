@@ -17,3 +17,8 @@ vi.mock("next/navigation", () => ({
     throw new NotFoundError()
   },
 }))
+
+vi.mock("next/server", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/server")>()),
+  connection: async () => undefined,
+}))

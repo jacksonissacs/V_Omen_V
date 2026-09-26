@@ -1,18 +1,32 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useRef, useState, type ReactNode } from "react"
 
-import { Residual } from "@/components/common/residual"
 import { TabGroup } from "@/components/common/tab-group"
-import { EventTimeline } from "@/components/events/event-timeline"
-import { SourceBadge } from "@/components/events/source-badge"
-import { IntelligencePanel } from "@/components/intelligence/intelligence-panel"
+import { IntelligencePanel, type InspectorTab } from "@/components/intelligence/intelligence-panel"
+import { ProbabilityChart } from "@/components/intelligence/probability-chart"
 import { useWorkspace } from "@/components/layout/workspace-provider"
-import { MarketImpact } from "@/components/markets/market-impact"
 import { formatDateTime } from "@/lib/format"
+import { recordedChronology } from "@/lib/domain/event-chronology"
+import {
+  BASIS_LABEL,
+  CHART_RANGES,
+  RANGE_LABEL,
+  describeBasis,
+  formatInterval,
+  latestChange,
+  latestCompleteForecast,
+  observationBeforeRange,
+  observationsInRange,
+  probabilityBasis,
+  rangeChange,
+  rangeWindow,
+  type ChartRange,
+  type ObservedChange,
+} from "@/lib/domain/probability-history"
 import { formatProbability, formatSignedPp } from "@/lib/domain/scoring"
-import type { AionEvent } from "@/types/event"
+import type { AionEvent, ProbabilitySeries } from "@/types/event"
 
 export function EventIntelligenceView({
   event,
@@ -21,14 +35,23 @@ export function EventIntelligenceView({
   event: AionEvent
   related: AionEvent[]
 }) {
-  const { openCall, isWatched, toggleWatch } = useWorkspace()
-  const [chartTab, setChartTab] = useState("Probability")
-  const [range, setRange] = useState("1D")
-  const [inspectorTab, setInspectorTab] = useState<"Source" | "Evidence" | "Attribution" | "Analogues">(
-    "Source",
-  )
-  const previousBelief = event.expectationHistory[0]
-  const priorPoint = event.expectationHistory[event.expectationHistory.length - 2]
+  const { isWatched, toggleWatch } = useWorkspace()
+  const [range, setRange] = useState<ChartRange>("ALL")
+  const [seriesId, setSeriesId] = useState(event.probabilitySeries[0]?.id)
+  const [inspectorTab, setInspectorTab] = useState<InspectorTab>("Evidence")
+  const inspectorRef = useRef<HTMLElement>(null)
+
+  const headline = event.probabilitySeries[0]
+  const latest = headline?.observations.at(-1)
+  const change = latestChange(headline)
+  const forecast = latestCompleteForecast(event.forecasts)
+  const charted = event.probabilitySeries.find((item) => item.id === seriesId) ?? headline
+
+  const inspectEvidence = () => {
+    setInspectorTab("Evidence")
+    inspectorRef.current?.scrollIntoView?.({ behavior: "smooth", block: "start" })
+    inspectorRef.current?.focus({ preventScroll: true })
+  }
 
   return (
     <section className="aion-screen">
@@ -37,40 +60,47 @@ export function EventIntelligenceView({
           <span style={{ letterSpacing: ".06em", color: "var(--a-tx-1)" }}>
             {event.category}
           </span>
-          <SourceBadge tier={event.sourceTier} label={`Tier ${event.sourceTier} evidence`} />
+          {headline ? (
+            <span className="aion-chip" data-testid="probability-basis" data-basis={probabilityBasis(headline)}>
+              {BASIS_LABEL[probabilityBasis(headline)]} probability
+            </span>
+          ) : null}
+          <span className="aion-chip">
+            {event.evidence.length} evidence {event.evidence.length === 1 ? "record" : "records"}
+          </span>
           {event.resolvesAt ? <span className="aion-chip">Resolves {event.resolvesAt}</span> : null}
-          <span className="aion-chip">{event.significance}</span>
         </div>
         <h1>{event.title}</h1>
         <p className="aion-event-question">{event.question}</p>
+        {event.resolutionCriteria ? (
+          <p className="aion-note" style={{ marginBottom: 14 }}>
+            <span className="aion-label">Resolution criteria</span> {event.resolutionCriteria}
+          </p>
+        ) : null}
         <div className="aion-event-figures">
-          <EventFigure label="Current probability" value={formatProbability(event.probability)} />
           <EventFigure
-            label="Previous probability"
-            value={formatProbability(event.previousProbability)}
+            label="Current probability"
+            value={latest ? formatProbability(latest.probability) : "Not recorded"}
+          />
+          <EventFigure
+            label="Previous observation"
+            value={change ? formatProbability(change.from.probability) : "None recorded"}
             muted
             small
           />
           <EventFigure
             label="Change"
-            value={formatSignedPp(event.change).replace(" pp", " pts")}
-            tone={event.change >= 0 ? "up" : "down"}
+            value={change ? formatSignedPp(change.deltaPp) : "Not computable"}
+            tone={change ? (change.deltaPp > 0 ? "up" : change.deltaPp < 0 ? "down" : undefined) : undefined}
+            muted={!change}
             small
           />
-          <EventFigure
-            label="OMEN estimate"
-            value={formatProbability(Math.max(event.probability - 2.6, 0.1))}
-            muted
-            small
-          />
+          {forecast ? (
+            <EventFigure label="OMEN forecast" value={formatProbability(forecast.probability)} muted small />
+          ) : null}
           <div className="aion-event-actions">
-            <button
-              type="button"
-              className="aion-button"
-              data-primary="true"
-              onClick={() => openCall(event)}
-            >
-              Make a call
+            <button type="button" className="aion-button" data-primary="true" onClick={inspectEvidence}>
+              Inspect evidence
             </button>
             <button
               type="button"
@@ -82,96 +112,83 @@ export function EventIntelligenceView({
             </button>
           </div>
         </div>
+        <dl className="aion-event-record" data-testid="event-record">
+          <RecordLine label="Probability source">
+            {headline ? describeBasis(headline) : "No probability series is recorded for this event."}
+          </RecordLine>
+          <RecordLine label="Change compares">
+            {change ? describeChange(change) : "Fewer than two observations are recorded, so no change can be computed."}
+          </RecordLine>
+          <RecordLine label="Latest recorded observation">
+            {latest
+              ? `${formatDateTime(latest.observedAt)} · ${latest.capturedAt ? `captured by OMEN ${formatDateTime(latest.capturedAt)}` : "OMEN capture time not recorded"} · not a live feed`
+              : "None"}
+          </RecordLine>
+          <RecordLine label="OMEN forecast">
+            {forecast
+              ? `${formatProbability(forecast.probability)} by ${[forecast.author, forecast.model].filter(Boolean).join(" · ")} · issued ${formatDateTime(forecast.issuedAt)} · method: ${forecast.method} · evidence cutoff ${formatDateTime(forecast.evidenceCutoff)}`
+              : "No OMEN forecast has been recorded for this event."}
+          </RecordLine>
+        </dl>
       </div>
 
       <div className="aion-event-layout">
         <div>
           <div className="aion-qa-grid">
-            <QaCard label="What changed?" value={event.whatChanged} />
-            <QaCard label="When did it change?" value={formatDateTime(event.timestamp)} />
             <QaCard
-              label="How significant?"
-              value={`${event.significance} · ${event.sigma.toFixed(1)}σ over ${event.duration}`}
+              label="What changed?"
+              value={
+                change
+                  ? `${seriesLabel(headline)} moved from ${formatProbability(change.from.probability)} to ${formatProbability(change.to.probability)} (${formatSignedPp(change.deltaPp)}).`
+                  : "Only one observation is recorded, so no change can be computed."
+              }
             />
-            <QaCard label="What likely caused it?" value={event.likelyCause} />
+            <QaCard
+              label="When did it change?"
+              value={
+                change
+                  ? `Between ${formatDateTime(change.from.observedAt)} and ${formatDateTime(change.to.observedAt)} (${formatInterval(change.intervalMs)} apart). No observations are recorded in between.`
+                  : latest
+                    ? `Single observation at ${formatDateTime(latest.observedAt)}.`
+                    : "No observations recorded."
+              }
+            />
+            <QaCard
+              label="What is this probability?"
+              value={headline ? `${BASIS_LABEL[probabilityBasis(headline)]} · ${headline.sourceName}` : "Not recorded"}
+            />
+            <QaCard
+              label="What likely caused it?"
+              value={event.moveLog ? `${event.likelyCause} (interpretation, move log v${event.moveLog.version})` : "No move log has attributed a cause."}
+            />
           </div>
+          {event.moveLog ? <MoveLogNote moveLog={event.moveLog} /> : null}
 
           <div className="aion-panel">
-            <div className="aion-chart-bar">
-              <TabGroup
-                items={["Probability", "Volume", "Spread", "Related"]}
-                value={chartTab}
-                onChange={setChartTab}
+            <h2>Recorded probability</h2>
+            {charted ? (
+              <SeriesHistory
+                series={event.probabilitySeries}
+                charted={charted}
+                onSeriesChange={setSeriesId}
+                range={range}
+                onRangeChange={setRange}
               />
-              <TabGroup
-                items={["1H", "6H", "1D", "1W", "1M", "ALL"]}
-                value={range}
-                onChange={setRange}
-                ranges
-              />
-            </div>
-            <ProbabilityChart event={event} mode={chartTab} range={range} />
+            ) : (
+              <p className="aion-note" data-testid="history-empty">
+                No probability observations are recorded for this event.
+              </p>
+            )}
           </div>
 
           <div className="aion-panel">
             <h2>When did this change?</h2>
-            <EventTimeline items={event.timeline} />
+            <RecordedChronology event={event} series={headline} />
           </div>
 
           <div className="aion-panel">
             <h2>Why did this move?</h2>
-            <div className="aion-attribution-grid">
-              <Attribute label="Primary trigger" value={event.catalyst} />
-              <Attribute
-                label="Identification confidence"
-                value={`${Math.min(event.explained + 20, 99)}%`}
-                mono
-              />
-              <Attribute label="Coverage of move" value={`${event.explained}%`} mono />
-              <Attribute label="Data quality" value={event.confidence} />
-            </div>
-            <Residual explained={event.explained} />
-            <div className="aion-inspector-section">Related markets moving</div>
-            <MarketImpact markets={event.relatedMarkets} />
-            <div className="aion-inspector-section">Additional signals</div>
-            {event.signals.map((signal) => (
-              <div className="aion-signal-row" key={signal.id}>
-                <span>{signal.label}</span>
-                <span
-                  className={`aion-mono ${signal.direction === "up" ? "aion-up" : signal.direction === "down" ? "aion-down" : ""}`}
-                >
-                  {signal.value}
-                </span>
-              </div>
-            ))}
-            <p className="aion-note">
-              We are confident {event.likelyCause.toLowerCase()} triggered the repricing, but
-              historically similar releases account for only about {event.explained}% of a move
-              of this magnitude. Remaining unexplained: {event.unexplainedFactors.join("; ")}.
-            </p>
-          </div>
-
-          <div className="aion-panel">
-            <h2>What did the system previously believe?</h2>
-            {previousBelief ? (
-              <p>
-                The book opened at{" "}
-                <span className="aion-mono">{formatProbability(previousBelief.probability)}</span>
-                {previousBelief.note ? ` · ${previousBelief.note}` : ""}.
-                {priorPoint
-                  ? ` Immediately before this move it stood at ${formatProbability(priorPoint.probability)}${priorPoint.note ? ` (${priorPoint.note})` : ""}.`
-                  : null}
-              </p>
-            ) : (
-              <p>No prior expectation path is stored for this event.</p>
-            )}
-            <div className="aion-history-strip">
-              {event.expectationHistory.map((point) => (
-                <span key={point.at} className="aion-mono">
-                  {formatProbability(point.probability)}
-                </span>
-              ))}
-            </div>
+            <Explanation event={event} change={change} series={headline} />
           </div>
 
           <div className="aion-panel">
@@ -187,28 +204,15 @@ export function EventIntelligenceView({
               ))
             )}
           </div>
-
-          {event.anomaly ? (
-            <div className="aion-panel aion-anomaly">
-              <div className="aion-anomaly-flag">△ {event.anomaly.title}</div>
-              <p>{event.anomaly.body}</p>
-              <div className="aion-anomaly-interpretations">
-                {event.anomaly.interpretations.map((item) => (
-                  <span key={item}>Possible: {item}</span>
-                ))}
-              </div>
-              <Link className="aion-button" data-quiet="true" style={{ marginTop: 12 }} href="/relations">
-                View relationship
-              </Link>
-            </div>
-          ) : null}
         </div>
 
-        <aside className="aion-inspector">
-          <div className="aion-inspector-tabs">
-            {(["Source", "Evidence", "Attribution", "Analogues"] as const).map((item) => (
+        <aside className="aion-inspector" ref={inspectorRef} tabIndex={-1} aria-label="Evidence inspector">
+          <div className="aion-inspector-tabs" role="tablist">
+            {(["Evidence", "Record", "Analogues"] as const).map((item) => (
               <button
                 type="button"
+                role="tab"
+                aria-selected={inspectorTab === item}
                 className="aion-tab"
                 data-active={inspectorTab === item}
                 key={item}
@@ -222,6 +226,221 @@ export function EventIntelligenceView({
         </aside>
       </div>
     </section>
+  )
+}
+
+function seriesLabel(series: ProbabilitySeries | undefined): string {
+  if (!series) return "The probability"
+  return `The ${BASIS_LABEL[probabilityBasis(series)].toLowerCase()} probability`
+}
+
+function describeChange(change: ObservedChange): string {
+  return `${formatProbability(change.from.probability)} at ${formatDateTime(change.from.observedAt)} → ${formatProbability(change.to.probability)} at ${formatDateTime(change.to.observedAt)}, ${formatInterval(change.intervalMs)} apart, in the same series.`
+}
+
+function SeriesHistory({
+  series,
+  charted,
+  onSeriesChange,
+  range,
+  onRangeChange,
+}: {
+  series: ProbabilitySeries[]
+  charted: ProbabilitySeries
+  onSeriesChange: (id: string) => void
+  range: ChartRange
+  onRangeChange: (range: ChartRange) => void
+}) {
+  const bounds = rangeWindow(charted, range)
+  const points = observationsInRange(charted, range)
+  const before = observationBeforeRange(charted, range)
+  const change = rangeChange(charted, range)
+  const basis = BASIS_LABEL[probabilityBasis(charted)]
+
+  if (!bounds || points.length === 0) {
+    return (
+      <p className="aion-note" data-testid="history-empty">
+        No observations are recorded in this series.
+      </p>
+    )
+  }
+
+  return (
+    <>
+      <div className="aion-chart-bar">
+        {series.length > 1 ? (
+          <label className="aion-series-select">
+            <span className="aion-label">Series</span>
+            <select value={charted.id} onChange={(event) => onSeriesChange(event.target.value)}>
+              {series.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {BASIS_LABEL[probabilityBasis(item)]} · {item.sourceName}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <span className="aion-label" style={{ marginTop: 4 }}>
+            {basis} · {charted.sourceName}
+          </span>
+        )}
+        <div role="group" aria-label="Time range" className="aion-range-group">
+          <TabGroup
+            items={[...CHART_RANGES]}
+            value={range}
+            onChange={(value) => onRangeChange(value as ChartRange)}
+            ranges
+          />
+        </div>
+      </div>
+      <ProbabilityChart
+        points={points}
+        window={bounds}
+        historyStartsAt={charted.observations[0].observedAt}
+        label={`${basis} probability, ${points.length} recorded ${points.length === 1 ? "observation" : "observations"} from ${formatDateTime(bounds.start)} to ${formatDateTime(bounds.end)}.`}
+      />
+      <p className="aion-chart-summary" data-testid="range-summary">
+        {range === "ALL" ? "All recorded history" : `Last ${RANGE_LABEL[range]} of recorded history`}:{" "}
+        {formatDateTime(bounds.start)} – {formatDateTime(bounds.end)}. The range ends at the latest recorded
+        observation, not the current time.{" "}
+        {change
+          ? `${formatProbability(change.from.probability)} → ${formatProbability(change.to.probability)}, ${formatSignedPp(change.deltaPp)} over ${formatInterval(change.intervalMs)} (${points.length} observations).`
+          : `Only one observation falls in this range, so no change can be computed for it.`}
+        {before
+          ? ` The previous observation, ${formatProbability(before.probability)} at ${formatDateTime(before.observedAt)}, is outside this range.`
+          : ""}{" "}
+        Lines join consecutive observations; no values are recorded between them.
+      </p>
+      <div className="aion-table-wrap">
+        <table className="aion-table" data-testid="observation-table">
+          <caption className="aion-table-caption">
+            {points.length} of {charted.observations.length} recorded observations in this range
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Observed (UTC)</th>
+              <th scope="col" className="num">Probability</th>
+              <th scope="col" className="num">Change from prior</th>
+              <th scope="col">Captured by OMEN</th>
+              <th scope="col">Note</th>
+            </tr>
+          </thead>
+          <tbody>
+            {points.map((point) => {
+              const index = charted.observations.indexOf(point)
+              const prior = charted.observations[index - 1]
+              const delta = prior ? Number((point.probability - prior.probability).toFixed(1)) : undefined
+              return (
+                <tr key={point.observedAt}>
+                  <td className="aion-mono">{formatDateTime(point.observedAt)}</td>
+                  <td className="num aion-mono">{formatProbability(point.probability)}</td>
+                  <td className={`num aion-mono ${delta === undefined ? "" : delta > 0 ? "aion-up" : delta < 0 ? "aion-down" : ""}`}>
+                    {delta === undefined ? "First observation" : formatSignedPp(delta)}
+                  </td>
+                  <td className="aion-mono">{point.capturedAt ? formatDateTime(point.capturedAt) : "Not recorded"}</td>
+                  <td>{point.note ?? "—"}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
+  )
+}
+
+function RecordedChronology({ event, series }: { event: AionEvent; series: ProbabilitySeries | undefined }) {
+  const entries = recordedChronology(event, series)
+  if (entries.length === 0) return <p className="aion-note">No timestamped records are stored for this event.</p>
+  return (
+    <ol className="aion-chronology" data-testid="recorded-chronology">
+      {entries.map((entry) => (
+        <li key={`${entry.kind}-${entry.at}-${entry.text}`} data-kind={entry.kind}>
+          <span className="aion-mono aion-chronology-time">{formatDateTime(entry.at)}</span>
+          <span>
+            {entry.text}
+            {entry.deltaPp !== undefined ? (
+              <span
+                className={`aion-mono ${entry.deltaPp > 0 ? "aion-up" : entry.deltaPp < 0 ? "aion-down" : ""}`}
+                style={{ marginLeft: 6, fontSize: 11 }}
+              >
+                {formatSignedPp(entry.deltaPp)}
+              </span>
+            ) : null}
+          </span>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+function Explanation({
+  event,
+  change,
+  series,
+}: {
+  event: AionEvent
+  change: ObservedChange | undefined
+  series: ProbabilitySeries | undefined
+}) {
+  const linked = new Set(event.moveLog?.evidenceIds ?? [])
+  const openQuestions = [
+    ...event.unexplainedFactors,
+    ...(event.anomaly ? [`${event.anomaly.title}: possible ${event.anomaly.interpretations.join(", ")}`] : []),
+  ]
+  return (
+    <div className="aion-explanation">
+      <section aria-labelledby="explain-observed">
+        <h3 id="explain-observed">Observed</h3>
+        <p className="aion-explanation-note">Recorded values and what sources said, with their times.</p>
+        <ul>
+          <li>
+            {change
+              ? `${seriesLabel(series)} was ${formatProbability(change.from.probability)} at ${formatDateTime(change.from.observedAt)} and ${formatProbability(change.to.probability)} at ${formatDateTime(change.to.observedAt)}: ${formatSignedPp(change.deltaPp)}.`
+              : "Fewer than two probability observations are recorded."}
+          </li>
+          {event.evidence.length === 0 ? <li>No evidence is recorded for this event.</li> : null}
+          {event.evidence.map((source) => (
+            <li key={source.id}>
+              <strong>{source.name}</strong>
+              {linked.has(source.id) ? <span className="aion-chip" style={{ marginLeft: 6 }}>Cited by move log</span> : null}
+              <br />
+              {source.summary}{" "}
+              <span className="aion-explanation-time">
+                Published {source.publishedAt ? formatDateTime(source.publishedAt) : "— not stated by source"}
+                {source.firstObservedAt ? ` · first observed by OMEN ${formatDateTime(source.firstObservedAt)}` : ""}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+      <section aria-labelledby="explain-interpretation">
+        <h3 id="explain-interpretation">Interpretation</h3>
+        <p className="aion-explanation-note">
+          {event.moveLog
+            ? `Move log ${event.moveLog.id} v${event.moveLog.version} by ${event.moveLog.author}, published ${formatDateTime(event.moveLog.publishedAt)}.`
+            : "No move log has been published. The text below is unpublished narrative, not a recorded attribution."}
+          {event.provenance === "demo" ? " Illustrative demo text." : ""}
+        </p>
+        <ul>
+          <li>
+            <span className="aion-label">Likely cause</span> {event.likelyCause}
+          </li>
+          <li>{event.whatChanged}</li>
+          {event.moveLog?.correctionNote ? <li>Correction: {event.moveLog.correctionNote}</li> : null}
+        </ul>
+      </section>
+      <section aria-labelledby="explain-unknown">
+        <h3 id="explain-unknown">Still unknown</h3>
+        <ul>
+          {openQuestions.length === 0 ? (
+            <li>No open questions are recorded. That does not mean the move is fully explained.</li>
+          ) : (
+            openQuestions.map((item) => <li key={item}>{item}</li>)
+          )}
+        </ul>
+      </section>
+    </div>
   )
 }
 
@@ -254,20 +473,27 @@ function EventFigure({
   )
 }
 
-function Attribute({
-  label,
-  value,
-  mono,
-}: {
-  label: string
-  value: string
-  mono?: boolean
-}) {
+function RecordLine({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div>
-      <span className="aion-label">{label}</span>
-      <span className={`aion-attribution-value ${mono ? "aion-mono" : ""}`}>{value}</span>
+      <dt>{label}</dt>
+      <dd>{children}</dd>
     </div>
+  )
+}
+
+function MoveLogNote({ moveLog }: { moveLog: NonNullable<AionEvent["moveLog"]> }) {
+  return (
+    <p className="aion-note" data-testid="move-log-note">
+      Move log {moveLog.id} · version {moveLog.version} · published {formatDateTime(moveLog.publishedAt)} by{" "}
+      {moveLog.author}
+      {moveLog.version > 1 ? (
+        <>
+          {" "}
+          · first published {formatDateTime(moveLog.firstPublishedAt)} · correction: {moveLog.correctionNote}
+        </>
+      ) : null}
+    </p>
   )
 }
 
@@ -277,65 +503,5 @@ function QaCard({ label, value }: { label: string; value: string }) {
       <span className="aion-label">{label}</span>
       <p>{value}</p>
     </div>
-  )
-}
-
-function ProbabilityChart({
-  event,
-  mode,
-  range,
-}: {
-  event: AionEvent
-  mode: string
-  range: string
-}) {
-  const verticalShift = mode === "Volume" ? 18 : mode === "Spread" ? -10 : 0
-  const endY = event.change >= 0 ? 68 : 120
-  return (
-    <svg
-      viewBox="0 0 800 220"
-      preserveAspectRatio="none"
-      className="aion-chart"
-      role="img"
-      aria-label={`${mode} over ${range}`}
-    >
-      <g stroke="rgba(255,255,255,.045)">
-        {[44, 88, 132, 176].map((y) => (
-          <line key={y} x1="0" y1={y} x2="800" y2={y} />
-        ))}
-      </g>
-      <text className="aion-axis" x="770" y="40">
-        {Math.round(event.probability + 6)}%
-      </text>
-      <text className="aion-axis" x="770" y="84">
-        {Math.round(event.probability)}%
-      </text>
-      <text className="aion-axis" x="770" y="128">
-        {Math.round(event.previousProbability)}%
-      </text>
-      <text className="aion-axis" x="770" y="172">
-        {Math.round(event.previousProbability - 10)}%
-      </text>
-      <path
-        d={`M0,138 L60,136 L120,139 L180,135 L240,137 L300,134 L360,136 L420,133 L480,135 L520,134 L560,131 L600,128 L615,112 L628,96 L640,${84 + verticalShift} L660,${76 + verticalShift} L690,72 L730,70 L800,${endY}`}
-        fill="none"
-        stroke="#8194FF"
-        strokeWidth="1.6"
-        vectorEffect="non-scaling-stroke"
-      />
-      <line
-        x1="600"
-        y1="10"
-        x2="600"
-        y2="210"
-        stroke="rgba(255,255,255,.14)"
-        strokeDasharray="2 4"
-      />
-      <circle cx="600" cy="128" r="3" fill="#0C0E11" stroke="#C9A96A" />
-      <text className="aion-axis" x="584" y="20" fill="#C9A96A">
-        {event.catalystTime.slice(0, 5)}
-      </text>
-      <circle cx="800" cy={endY} r="3.2" fill="#8194FF" />
-    </svg>
   )
 }

@@ -681,7 +681,135 @@
 .aion-chart {
   display: block;
   width: 100%;
-  height: 220px;
+  height: auto;
+}
+
+.aion-chart-summary {
+  margin: 10px 0 12px;
+  color: var(--a-tx-1);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.aion-table-caption {
+  padding: 0 10px 6px;
+  color: var(--a-tx-2);
+  font-size: 11px;
+  text-align: left;
+}
+
+.aion-range-group {
+  margin-left: auto;
+}
+
+.aion-series-select {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.aion-series-select select {
+  border: 1px solid var(--a-border-0);
+  border-radius: 4px;
+  background: var(--a-bg-1);
+  color: var(--a-tx-0);
+  font: inherit;
+  padding: 3px 6px;
+}
+
+.aion-event-record {
+  display: grid;
+  gap: 4px;
+  margin: 16px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.aion-event-record > div {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.aion-event-record dt {
+  color: var(--a-tx-2);
+}
+
+.aion-event-record dd {
+  margin: 0;
+  color: var(--a-tx-1);
+}
+
+.aion-chronology {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12.5px;
+}
+
+.aion-chronology li {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 12px;
+  color: var(--a-tx-1);
+}
+
+.aion-chronology li[data-kind="observation"] {
+  color: var(--a-tx-0);
+}
+
+.aion-chronology-time {
+  color: var(--a-tx-2);
+}
+
+.aion-explanation {
+  display: grid;
+  gap: 18px;
+}
+
+.aion-explanation h3 {
+  margin: 0 0 4px;
+}
+
+.aion-explanation ul {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--a-tx-1);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.aion-explanation strong {
+  color: var(--a-tx-0);
+  font-weight: 550;
+}
+
+.aion-explanation-note {
+  margin: 0;
+  color: var(--a-tx-2);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.aion-explanation-time {
+  color: var(--a-tx-2);
+  font-size: 11.5px;
+}
+
+.aion-evidence-link {
+  display: inline-block;
+  margin-top: 6px;
+  color: var(--a-accent);
+  font-size: 12px;
+}
+
+.aion-inspector:focus {
+  outline: none;
 }
 
 .aion-axis {
@@ -1496,7 +1624,7 @@ a.aion-button {
 @media (max-width: 1080px) {
   .aion-event-layout,
   .aion-relations-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .aion-inspector {
@@ -1593,7 +1721,14 @@ a.aion-button {
     flex-direction: column;
   }
 
-  .aion-tabs[data-ranges="true"] {
+  .aion-event-record > div,
+  .aion-chronology li {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .aion-tabs[data-ranges="true"],
+  .aion-range-group {
     margin-left: 0;
   }
 }
