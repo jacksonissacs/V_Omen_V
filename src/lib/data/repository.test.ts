@@ -47,6 +47,8 @@ describe("getRepository storage selection", () => {
       "OMEN_STORAGE_MODE=database requires DATABASE_URL.",
     )
     await expect(repository.listFollowedEventIds()).rejects.toThrow(RepositoryUnavailableError)
+    await expect(repository.reconstructEvent("evt-boc-cut", "1")).rejects.toThrow(RepositoryUnavailableError)
+    await expect(repository.listHistoryCheckpoints("evt-boc-cut")).rejects.toThrow(RepositoryUnavailableError)
   })
 
   it("fails every read for an unknown storage mode", async () => {

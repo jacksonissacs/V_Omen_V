@@ -106,6 +106,8 @@ npm run db:migrate | db:status | db:upsert | db:show   # nonproduction database 
 - `GET /api/events`
 - `GET /api/events?domain=finance`
 - `GET /api/events/:id`
+- `GET /api/events/:id/history` — bounded checkpoint discovery
+- `GET /api/events/:id/history/:checkpointId` — stored checkpoint replay, not a wall-clock cutoff
 
 Domains: `technology`, `finance`, `geopolitics`, `supply_chain`.
 
