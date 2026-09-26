@@ -469,30 +469,48 @@ describe("browser workspace", () => {
   it("reaches the same checkpoint from Archive and keeps the URL shareable", async () => {
     await gotoWorkspacePath(page, server.url, "/events/evt-test-temporal")
     await clickThrough(page, "a[data-testid='event-archive-link']")
-    expect(page.url()).toContain("event=evt-test-temporal")
-
-    const listed = await bodyText(page)
-    expect(listed).toContain(earlyCheckpoint)
-    if (!page.url().includes(earlyCheckpoint)) {
+    expect(new URL(page.url()).searchParams.get("event")).toBe("evt-test-temporal")
+    await page.waitForFunction(
+      (id) => document.body.innerText.includes(`id ${id}`),
+      { timeout: 20_000 },
+      earlyCheckpoint,
+    )
+    if (!urlSelectsCheckpoint(page.url(), earlyCheckpoint)) {
       await page.evaluate((id) => {
-        const control = [...document.querySelectorAll("a, button")].find((node) => node.textContent?.includes(id)) as
-          | HTMLElement
-          | undefined
-        control?.click()
+        const control = [...document.querySelectorAll("a, button")].find((node) =>
+          node.textContent?.includes(`id ${id}`),
+        ) as HTMLElement | undefined
+        if (!control) throw new Error(`No checkpoint control for id ${id}`)
+        control.click()
       }, earlyCheckpoint)
-      await page.waitForFunction((id) => window.location.href.includes(id), { timeout: 20_000 }, earlyCheckpoint)
+      await page.waitForFunction(
+        (id) => {
+          const url = new URL(window.location.href)
+          return url.searchParams.get("checkpoint") === id || url.pathname.endsWith(`/history/${id}`)
+        },
+        { timeout: 20_000 },
+        earlyCheckpoint,
+      )
       await waitForWorkspaceReady(page)
     }
-    const historical = await bodyText(page)
+    await page.waitForFunction(
+      () => document.body.innerText.includes("Event semantics in this checkpoint"),
+      { timeout: 20_000 },
+    )
+    const historical = await reconstructionText()
     expect(historical).toContain(CURRENT_TITLE)
     expect(historical).not.toContain(LATER_TITLE)
-    expect(page.url()).toContain(earlyCheckpoint)
+    expect(urlSelectsCheckpoint(page.url(), earlyCheckpoint)).toBe(true)
 
     const shared = page.url()
     await page.goto("about:blank")
     await page.goto(shared, { waitUntil: "domcontentloaded" })
     await waitForWorkspaceReady(page)
-    expect(await bodyText(page)).toContain(CURRENT_TITLE)
+    await page.waitForFunction(
+      () => document.body.innerText.includes("Event semantics in this checkpoint"),
+      { timeout: 20_000 },
+    )
+    expect(await reconstructionText()).toContain(CURRENT_TITLE)
     expect(await bodyText(page)).not.toContain(DEMO_TITLE)
     await saveScreenshot(page, "03b_archive_checkpoint")
   })
@@ -728,15 +746,8 @@ describe("intake review publication and checkpoint stability", () => {
       "SELECT count(*)::int AS count FROM move_log_revisions WHERE move_log_id = 'ml-test-temporal-1'",
     )
 
-    const repeat = await operator(database.url, [
-      "publish",
-      "approved",
-      "--review-item",
-      INTAKE_ID,
-      "--idempotency-key",
-      INTAKE_KEY,
-    ])
-    expect(repeat.code).toBe(0)
+    const repeat = await operator(database.url, ["publish", "retry", "--idempotency-key", INTAKE_KEY])
+    expect(repeat.code, `${repeat.stdout}\n${repeat.stderr}`).toBe(0)
     expect(parseOperatorCheckpointId(repeat.stdout)).toBe(intakeCheckpoint)
 
     await queryRows(
@@ -820,7 +831,7 @@ describe("intake review publication and checkpoint stability", () => {
     expect(historySurface).not.toContain("CISA Known Exploited Vulnerabilities")
 
     await openArchive("evt-test-temporal", laterCheckpoint)
-    expect(page.url()).toContain(laterCheckpoint)
+    expect(urlSelectsCheckpoint(page.url(), laterCheckpoint)).toBe(true)
     let steps = 0
     while (!urlSelectsCheckpoint(page.url(), earlyCheckpoint) && steps < 6) {
       const before = page.url()
