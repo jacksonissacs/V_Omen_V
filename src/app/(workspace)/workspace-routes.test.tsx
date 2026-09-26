@@ -11,7 +11,6 @@ import { mockPathname, mockPush, mockSearchParams, NotFoundError } from "@/test/
 import WorkspaceError from "@/app/(workspace)/error"
 import EventsLoading from "@/app/(workspace)/events/(book)/loading"
 import EventsPage from "@/app/(workspace)/events/(book)/page"
-import ArchivePage from "@/app/(workspace)/archive/page"
 import EventCheckpointPage from "@/app/(workspace)/events/[id]/history/[checkpointId]/page"
 import EventIntelligencePage, { generateMetadata } from "@/app/(workspace)/events/[id]/page"
 import WorkspaceLayout from "@/app/(workspace)/layout"
