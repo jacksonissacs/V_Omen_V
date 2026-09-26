@@ -134,6 +134,86 @@ describe("ArchiveView", () => {
     expect(screen.queryByText("EARLY_ONLY")).not.toBeInTheDocument()
   })
 
+  it("keeps a successful checkpoint list when replay alone fails", async () => {
+    mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a&checkpoint=11"))
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo) => {
+        const url = String(input)
+        if (url.includes("/history/11")) {
+          return json({ outcome: "unavailable", error: "Event storage is unavailable" }, 503)
+        }
+        return json({
+          outcome: "checkpoints",
+          eventId: "evt-a",
+          hasMore: false,
+          checkpoints: [summary("12", 2), summary("11", 1)],
+        })
+      }),
+    )
+    render(
+      <ArchiveView
+        {...archiveProps()}
+        initialCheckpoint="11"
+        initialStatus="ok"
+        initialReconstruction={reconstruction("evt-a", "11", "STALE_REPLAY_TITLE")}
+      />,
+    )
+    await waitFor(() => {
+      expect(screen.getByTestId("archive-replay-retry")).toBeInTheDocument()
+    })
+    expect(screen.getByRole("button", { name: /id 11/ })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /id 12/ })).toBeInTheDocument()
+    expect(screen.queryByTestId("archive-unavailable")).not.toBeInTheDocument()
+    expect(screen.queryByText("STALE_REPLAY_TITLE")).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Retry replay" })).toBeEnabled()
+  })
+
+  it("deep-links a checkpoint outside the first discovery page for navigation", async () => {
+    mockPush.mockClear()
+    mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a&checkpoint=21"))
+    const firstPage = Array.from({ length: 20 }, (_, index) => summary(String(25 - index), 25 - index))
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo) => {
+        const url = String(input)
+        if (url.match(/\/history\/21$/)) {
+          return json(replayBody("evt-a", "21", "DEEP_LINK_TITLE"))
+        }
+        if (url.includes("beforeSequence=22")) {
+          return json({
+            outcome: "checkpoints",
+            eventId: "evt-a",
+            hasMore: true,
+            checkpoints: [summary("21", 21), summary("20", 20)],
+          })
+        }
+        if (url.includes("/history?")) {
+          return json({
+            outcome: "checkpoints",
+            eventId: "evt-a",
+            hasMore: true,
+            checkpoints: firstPage,
+          })
+        }
+        if (url.match(/\/history\/22$/)) {
+          return json(replayBody("evt-a", "22", "NEWER_CHECKPOINT_TITLE"))
+        }
+        throw new Error(`Unexpected fetch: ${url}`)
+      }),
+    )
+    const user = userEvent.setup()
+    render(<ArchiveView {...archiveProps()} />)
+    await waitFor(() => {
+      expect(screen.getByText("DEEP_LINK_TITLE")).toBeInTheDocument()
+    })
+    expect(screen.getByRole("button", { name: /#21 · id 21/ })).toBeInTheDocument()
+    const next = screen.getByRole("button", { name: "Next checkpoint" })
+    expect(next).toBeEnabled()
+    await user.click(next)
+    expect(mockPush).toHaveBeenCalledWith("/archive?event=evt-a&checkpoint=22", { scroll: false })
+  })
+
   it("drops a late older-page response after the operator changes events", async () => {
     const older = deferred<Response>()
     mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a"))

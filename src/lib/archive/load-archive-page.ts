@@ -2,10 +2,12 @@ import "server-only"
 
 import type { ArchiveViewProps } from "@/components/archive/archive-view"
 import { getRepository, summarizeProvenance } from "@/lib/data/repository"
-import type {
-  HistoricalReconstruction,
-  HistoryCheckpointSummary,
-  ReconstructionOutcome,
+import {
+  checkpointSummaryFromReconstruction,
+  mergeCheckpointSummaries,
+  type HistoricalReconstruction,
+  type HistoryCheckpointSummary,
+  type ReconstructionOutcome,
 } from "@/lib/domain/historical-reconstruction"
 
 export type ArchiveLoadStatus = ArchiveViewProps["initialStatus"]
@@ -20,6 +22,14 @@ export interface ArchivePageData {
   initialCheckpoints: HistoryCheckpointSummary[]
   initialStatus: ArchiveLoadStatus
   initialOutcome?: ReconstructionOutcome["outcome"]
+}
+
+function checkpointsWithActiveReplay(
+  listed: HistoryCheckpointSummary[],
+  replay: ReconstructionOutcome,
+): HistoryCheckpointSummary[] {
+  if (replay.outcome !== "reconstruction" && replay.outcome !== "pre_coverage") return listed
+  return mergeCheckpointSummaries(listed, [checkpointSummaryFromReconstruction(replay.reconstruction)])
 }
 
 export async function loadArchivePageData(searchParams: {
@@ -71,22 +81,18 @@ export async function loadArchivePageData(searchParams: {
     }
   }
 
+  let listedCheckpoints: HistoryCheckpointSummary[] = []
+  let listFailed = false
   try {
-    const [listed, replay] = await Promise.all([
-      repository.listHistoryCheckpoints(eventId, { limit: 20 }),
-      repository.reconstructEvent(eventId, checkpointId),
-    ])
+    const listed = await repository.listHistoryCheckpoints(eventId, { limit: 20 })
+    listedCheckpoints = listed.outcome === "checkpoints" ? listed.checkpoints : []
+  } catch {
+    listFailed = true
+  }
 
-    const checkpoints = listed.outcome === "checkpoints" ? listed.checkpoints : []
-    return mapReplayOutcome({
-      events,
-      storage: repository.storage,
-      provenance,
-      eventId,
-      checkpointId,
-      checkpoints,
-      replay,
-    })
+  let replay: ReconstructionOutcome
+  try {
+    replay = await repository.reconstructEvent(eventId, checkpointId)
   } catch {
     return {
       events,
@@ -95,10 +101,21 @@ export async function loadArchivePageData(searchParams: {
       initialEventId: eventId,
       initialCheckpoint: checkpointId,
       initialReconstruction: null,
-      initialCheckpoints: [],
+      initialCheckpoints: listFailed ? [] : listedCheckpoints,
       initialStatus: "unavailable",
     }
   }
+
+  const checkpoints = checkpointsWithActiveReplay(listedCheckpoints, replay)
+  return mapReplayOutcome({
+    events,
+    storage: repository.storage,
+    provenance,
+    eventId,
+    checkpointId,
+    checkpoints,
+    replay,
+  })
 }
 
 function mapReplayOutcome(input: {
