@@ -75,6 +75,42 @@ describe("ArchiveView", () => {
     )
     await user.selectOptions(screen.getByLabelText("Event"), "evt-b")
     expect(mockPush).toHaveBeenCalledWith("/archive?event=evt-b", { scroll: false })
+    expect(screen.queryByText("Alpha historical title")).not.toBeInTheDocument()
+  })
+
+  it("clears the open reconstruction before the next event URL settles", async () => {
+    const pending = deferred<Response>()
+    mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a&checkpoint=11"))
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo) => {
+        const url = String(input)
+        if (url.includes("/history/11")) return pending.promise
+        return json({
+          outcome: "checkpoints",
+          eventId: "evt-a",
+          hasMore: false,
+          checkpoints: [summary("11", 1)],
+        })
+      }),
+    )
+    const user = userEvent.setup()
+    render(
+      <ArchiveView
+        {...archiveProps()}
+        initialCheckpoint="11"
+        initialStatus="ok"
+        initialReconstruction={reconstruction("evt-a", "11", "KEEP_UNTIL_EVENT_CHANGE")}
+      />,
+    )
+    expect(screen.getByText("KEEP_UNTIL_EVENT_CHANGE")).toBeInTheDocument()
+    await user.selectOptions(screen.getByLabelText("Event"), "evt-b")
+    expect(screen.queryByText("KEEP_UNTIL_EVENT_CHANGE")).not.toBeInTheDocument()
+    pending.resolve(json(replayBody("evt-a", "11", "LATE_AFTER_EVENT_CHANGE")))
+    await waitFor(() => {
+      expect(screen.queryByText("LATE_AFTER_EVENT_CHANGE")).not.toBeInTheDocument()
+    })
+    expect(screen.queryByText("KEEP_UNTIL_EVENT_CHANGE")).not.toBeInTheDocument()
   })
 
   it("does not keep an earlier checkpoint on screen after a newer selection resolves", async () => {

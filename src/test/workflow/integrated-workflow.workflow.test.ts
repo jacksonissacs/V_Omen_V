@@ -550,10 +550,10 @@ describe("browser workspace", () => {
       { timeout: 20_000 },
     )
     await waitForWorkspaceReady(page)
-    const panel = await page.evaluate(
-      () => document.querySelector("[data-testid='historical-reconstruction']")?.textContent ?? "",
+    await page.waitForFunction(
+      () => document.querySelector("[data-testid='historical-reconstruction']") === null,
+      { timeout: 20_000 },
     )
-    expect(panel).toBe("")
     expect(new URL(page.url()).searchParams.get("checkpoint")).toBeNull()
 
     await page.goBack({ waitUntil: "domcontentloaded" })

@@ -588,6 +588,10 @@ export function ArchiveView({
             value={activeEventId}
             aria-label="Event"
             onChange={(event) => {
+              loadTokenRef.current += 1
+              setReconstruction(null)
+              setStatus("present")
+              setStatusRequestKey("")
               pushUrl(event.target.value)
             }}
           >
