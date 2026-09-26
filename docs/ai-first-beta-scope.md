@@ -11,11 +11,11 @@ Launch and iterate in this order:
 3. **Crypto**.
 4. **Prediction markets**.
 5. **Entertainment and media**.
-6. **Broader business**.
+6. **Broader business** — broader **non-AI** business coverage (industrial, consumer, macro, and similar) after the verticals above.
 
 Material international developments that **materially affect North America** remain eligible at launch even when the primary region is elsewhere.
 
-**AI-related business** (policy, capital, supply chain, competition, safety regulation, enterprise adoption, and similar) belongs in scope from day one alongside core AI/technology events.
+**AI-related business** (policy, capital, supply chain, competition, safety regulation, enterprise adoption, and similar) belongs in the **launch AI and technology slice** from day one — not deferred to stage 6.
 
 ## Core invariants (unchanged)
 

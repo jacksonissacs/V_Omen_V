@@ -14,7 +14,9 @@ if ! command -v pg_isready >/dev/null 2>&1; then
   exit 1
 fi
 
-sudo service postgresql start
+if ! sudo service postgresql start 2>/dev/null; then
+  sudo pg_ctlcluster 16 main start
+fi
 
 for _ in $(seq 1 30); do
   if pg_isready -h 127.0.0.1 -p 5432 -U omen_test -d postgres >/dev/null 2>&1; then
