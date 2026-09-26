@@ -7,6 +7,7 @@ import type {
   MoveLogRevisionInput,
   ObservationInput,
 } from "./event-bundle"
+import { publishHistoryCheckpoint, type HistoryCheckpointPublication } from "./history-checkpoint"
 
 /** A bundle tried to change a record that history already holds. */
 export class HistoryConflictError extends Error {
@@ -28,6 +29,8 @@ export interface WriteSummary {
   observations: AppendCounts
   evidence: AppendCounts
   moveLogRevisions: AppendCounts
+  /** Verified snapshot of the event after the bundle transaction committed. */
+  checkpoint: HistoryCheckpointPublication
 }
 
 const sameArray = (a: readonly string[], b: readonly string[]) =>
@@ -538,17 +541,24 @@ async function count<T>(items: T[], write: (item: T) => Promise<boolean>): Promi
 }
 
 /**
- * Writes one validated bundle in a single transaction: upserts the event and
- * appends observations, evidence and move log revisions. Re-running an
- * identical bundle changes nothing; changing recorded history is refused.
- * Callers must check the target with `assertWritableDatabase` first.
+ * Writes one validated bundle, then publishes a visibility checkpoint.
+ *
+ * The history rows commit in one transaction. A second transaction publishes
+ * `history_checkpoints` for the event, after those rows are visible. Re-running
+ * an identical bundle changes nothing and does not append another checkpoint.
+ * Changing recorded history is refused. If the data commit succeeds and
+ * publishing fails, the rows stay committed; retrying the bundle publishes the
+ * checkpoint. Callers must check the target with `assertWritableDatabase` first.
  */
 export async function writeEventBundle(client: ClientBase, bundle: EventBundle): Promise<WriteSummary> {
   await client.query("BEGIN")
+  let eventRevisions: AppendCounts = { appended: 0, unchanged: 0 }
+  let event: WriteSummary["event"]
+  let observations: AppendCounts
+  let evidence: AppendCounts
+  let moveLogRevisions: AppendCounts
   try {
     await client.query("SET LOCAL omen.allow_event_projection = true")
-    let eventRevisions: AppendCounts = { appended: 0, unchanged: 0 }
-    let event: WriteSummary["event"]
     if (bundle.event) {
       const { rowCount: exists } = await client.query("SELECT 1 FROM events WHERE id = $1", [bundle.eventId])
       if (exists) {
@@ -561,14 +571,15 @@ export async function writeEventBundle(client: ClientBase, bundle: EventBundle):
     } else {
       event = await upsertEvent(client, bundle)
     }
-    const observations = await count(bundle.observations, (item) => appendObservation(client, bundle.eventId, item))
-    const evidence = await count(bundle.evidence, (item) => appendEvidence(client, bundle.eventId, item))
+    observations = await count(bundle.observations, (item) => appendObservation(client, bundle.eventId, item))
+    evidence = await count(bundle.evidence, (item) => appendEvidence(client, bundle.eventId, item))
     const revisions = [...bundle.moveLogRevisions].sort((a, b) => a.version - b.version)
-    const moveLogRevisions = await count(revisions, (item) => appendRevision(client, bundle.eventId, item))
+    moveLogRevisions = await count(revisions, (item) => appendRevision(client, bundle.eventId, item))
     await client.query("COMMIT")
-    return { eventId: bundle.eventId, event, eventRevisions, observations, evidence, moveLogRevisions }
   } catch (error) {
     await client.query("ROLLBACK").catch(() => undefined)
     throw error
   }
+  const checkpoint = await publishHistoryCheckpoint(client, bundle.eventId)
+  return { eventId: bundle.eventId, event, eventRevisions, observations, evidence, moveLogRevisions, checkpoint }
 }

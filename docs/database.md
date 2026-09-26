@@ -31,7 +31,7 @@ Storage says where records are kept. Provenance says where they came from. Every
 
 Migrations live in `db/migrations/NNNN_name.sql`, numbered consecutively. They are applied in order and recorded with a SHA-256 checksum in `omen_schema_migrations`. Editing an applied migration is refused; add a new one instead. The highest migration number must equal `EXPECTED_SCHEMA_VERSION` in `src/lib/db/schema-version.ts`, and a test checks that they match.
 
-`0001_core_event_storage.sql` and `0002_trustworthy_temporal_storage.sql` create the following tables.
+`0001_core_event_storage.sql`, `0002_trustworthy_temporal_storage.sql` and `0003_history_visibility_checkpoints.sql` create the following tables.
 
 | Table | Holds | Mutability |
 | --- | --- | --- |
@@ -41,7 +41,9 @@ Migrations live in `db/migrations/NNNN_name.sql`, numbered consecutively. They a
 | `evidence` | Source name/URL, `source_published_at` (nullable: the source may carry no date), `first_observed_at` (when OMEN first saw it), `captured_at`, `record_available_at`, stance, reliability 0–1, `recorded_by`, provenance | Append-only |
 | `move_logs` | One row per move on an event | Append-only |
 | `move_log_revisions` | Version, `published_at`, `recorded_at`, `record_available_at`, author, what changed, likely cause, explained %, unexplained factors, linked `evidence_ids`, correction note, provenance | Append-only |
-| `omen_history_coverage` | One row: when trustworthy semantic event history begins, and when pre-existing history rows were aligned to trustworthy `record_available_at` | Set at migration 0002 |
+| `omen_history_coverage` | One row: when append-only semantic event history begins, and when pre-existing history rows received their `record_available_at` realignment marker | Set at migration 0002. Immutable afterwards |
+| `history_checkpoints` | One immutable verified reconstruction point for an event: the publishing statement's snapshot, content digest, member count, and semantic-history label | Append-only |
+| `history_checkpoint_members` | History rows visible in that snapshot (`probability_observations`, `evidence`, `move_log_revisions`, `event_revisions`), with the inserting transaction id | Append-only. Written only by the publishing transaction |
 
 Every event must have at least one observation. This is a deferred constraint trigger, checked at commit.
 
@@ -49,15 +51,16 @@ Every event must have at least one observation. This is a deferred constraint tr
 
 Every probability is stored in **percentage points**, as `numeric(5,2)` constrained to `0.00–100.00` inclusive, so `73.8` means 73.8%. The same scale applies to `explained_pct`. `reliability` is a 0–1 fraction. The write command rejects values with more than two decimals, and PostgreSQL rounds any more-precise value written directly.
 
-### Time fields and reconstruction availability
+### Source time, recording time, snapshot capture, and publication
 
-Three different times appear on history rows. Do not treat source or capture times as proof that OMEN could have reconstructed a past view earlier.
+These are different facts. V0 does not reconstruct an arbitrary wall-clock instant, and one timestamp on a bundle is not a visibility proof.
 
-| Field | Meaning |
-| --- | --- |
-| Source time (`observed_at`, `source_published_at`, move log `published_at`) | What the source or publication claims about when something happened or was published. Callers may supply these; they do not establish OMEN knowledge. |
-| Capture time (`captured_at`, evidence `first_observed_at`, move log `recorded_at`, event revision `recorded_at`) | When OMEN observed or recorded the claim in the write path. Bundles may supply `capturedAt` on observations and evidence; the database still enforces ordering against source times. |
-| **`record_available_at`** | When the stored row became available for point-in-time reconstruction. Set only by the database at insert (`transaction_timestamp()`, shared across rows inserted in the same transaction). Never caller-supplied. A reconstruction at instant *T* may include a row only when `record_available_at <= T`. |
+| Kind | Fields | Meaning |
+| --- | --- | --- |
+| Source time | `observed_at`, `source_published_at`, move log `published_at` | What the source or publication claims. Callers may supply these. They do not say when OMEN recorded the claim or when a row became visible. |
+| Recording time | `captured_at`, evidence `first_observed_at`, move log `recorded_at`, event revision `recorded_at`, `record_available_at` | When the write path recorded the claim. Bundles may supply `capturedAt` and evidence observation times, and those values may be backdated. `recorded_at` defaults to the insert statement's clock. **`record_available_at`** is set only by the database to `transaction_timestamp()`: the start of the inserting transaction, shared by every history row that transaction inserts. It is never caller-supplied. It is not the commit time. |
+| Snapshot capture | `history_checkpoints.observed_snapshot` | The publishing statement's `pg_current_snapshot()`. Membership is the history rows whose inserting transaction ids are visible in that snapshot. |
+| Publication | the committed `history_checkpoints` row | The checkpoint becomes a fact when its transaction commits. No publication timestamp is stored. A later reader must not treat `record_available_at`, source time, or recording time as the time the checkpoint or its members became visible. |
 
 Additional rules:
 
@@ -65,15 +68,43 @@ Additional rules:
 - `captured_at`: when OMEN recorded the observation. The database enforces `captured_at >= observed_at`.
 - `source_published_at`: what the source claims. It is never filled in from `first_observed_at`. When the source has no date it stays `NULL`, and the UI shows "Not stated by source".
 - The database enforces `source_published_at <= first_observed_at <= captured_at`.
-- Backdated `capturedAt` values do **not** backdate `record_available_at`. Pre-migration rows receive `record_available_at` from `omen_history_coverage.record_availability_realigned_at`, not from their old capture times.
+- Backdated `capturedAt` values do **not** change `record_available_at`.
 
-**Transaction semantics:** each bundle runs in one transaction. Event projection updates set `SET LOCAL omen.allow_event_projection = true`; direct SQL updates to revision-controlled event columns are rejected otherwise. Event and move log revision version numbers are allocated under a row lock on the parent event or move log so concurrent writers cannot skip or duplicate versions. Identical bundle replays are no-ops; meaningful changes append new history rows.
+**Reproduced visibility gap.** `record_available_at <= T` does not mean a row was visible at T. A committed reader can miss the row while the inserting transaction is still open, including when that transaction is waiting on a lock, at a wall-clock time later than `record_available_at`. A transaction that starts earlier can become visible later than one that starts later, so the column does not order commit visibility. Two snapshots can also overlap in wall-clock time and see different committed rows (a `REPEATABLE READ` reader keeps its snapshot; a new reader sees the later commit). Arbitrary-time reconstruction is therefore not a single state, and V0 does not implement it.
+
+**Not used.** Replacing `transaction_timestamp()` with per-row `clock_timestamp()`, a sleep, or a commit-timestamp column would still be a wall-clock value. A reading taken before commit, including `clock_timestamp()` inside the open transaction, is already earlier than a committed observation that the row is absent. V0 does not store `pg_xact_commit_timestamp` or a deferred-trigger clock; those mechanisms are not a substitute for a snapshot.
+
+**Transaction semantics.** Bundle rows commit in one transaction. Event projection updates set `SET LOCAL omen.allow_event_projection = true`; direct SQL updates to revision-controlled event columns are rejected otherwise. Event and move log revision version numbers are allocated under a row lock on the parent event or move log so concurrent writers cannot skip or duplicate versions. After that transaction commits, a second transaction publishes a checkpoint. Identical bundle replays change nothing and do not append a checkpoint. If the data commit succeeds and publishing fails, the rows stay committed and retrying the bundle publishes the checkpoint.
+
+### Verified checkpoints (migration 0003)
+
+`history_checkpoints.visibility_contract` is always `observed_snapshot_members`. That is the only visibility claim V0 stores.
+
+Publishing (`omen_publish_history_checkpoint`) takes a transaction advisory lock for that event so two publishers serialise, without taking a row lock that would wait on an in-flight history insert. It refuses when the same transaction already has uncommitted history for the event. The insert trigger captures `pg_current_snapshot()` once and stores that value. A snapshot or digest supplied in the `INSERT` is not kept: two calls in one statement can observe different xid horizons once this transaction takes an xid or another transaction commits. Membership is the history visible in the captured snapshot. Triggers reject:
+
+- a publish attempted while the same transaction has uncommitted history for the event (those rows are invisible in the snapshot, so the checkpoint would omit them and then commit beside them);
+- a member whose inserting transaction id is not visible in the stored snapshot, or that was not written by the publishing transaction;
+- a member count other than the rows copied from that snapshot;
+- any coverage label other than the baseline copied from `omen_history_coverage`, or any visibility contract other than `observed_snapshot_members`;
+- a sequence that is not the next one for the event.
+
+An insert whose digest matches the latest checkpoint writes nothing.
+
+`content_md5` is the MD5 of the canonical member payload. PostgreSQL recomputes it in `omen_verify_history_checkpoint`. The digest detects a member set or payload that no longer matches the checkpoint. It is not a cryptographic signature: a role that can disable triggers can rewrite the database. History rows themselves stay append-only.
+
+`semantic_history` is `recorded` when the snapshot includes at least one `event_revisions` row, and `unavailable` when it includes none. The current `events` projection is never copied into a revision. `pre_baseline_event_revisions` is always `not_recorded`.
+
+A checkpoint does not cover other events. A committed state that no publishing transaction observed is not a verified reconstruction point: lock-waiting writers can commit an intermediate revision that the next publisher never saw on its own. Latest-projection reads still use `events` and the latest history rows. Archive must not treat those rows as a verified past view until a checkpoint includes them.
+
+`move_logs` is the parent of move log revisions and is not itself a checkpoint member. The revision row carries the publication.
 
 ### History coverage baseline (migration 0002)
 
-Migration `0002_trustworthy_temporal_storage.sql` does **not** backfill `event_revisions` from existing `events` rows. Semantic event history before the first revision recorded after migration is **unavailable** for reconstruction. The migration stores `omen_history_coverage.semantic_event_fields_from` as the baseline instant from which append-only event metadata history is trustworthy.
+Migration `0002_trustworthy_temporal_storage.sql` does **not** backfill `event_revisions` from existing `events` rows. Semantic event history before the first revision recorded after migration is **unavailable**. The migration stores `omen_history_coverage.semantic_event_fields_from` as the baseline from which append-only event metadata history exists. Migration 0003 makes that row immutable.
 
-Existing probability observations, evidence items and move log revisions keep their source and capture times, but their `record_available_at` is set to the migration instant so reconstruction does not pretend those rows were available earlier than Task 04A. Migration 0002 temporarily disables the three append-only row triggers from 0001 only while running those one-time `UPDATE`s; there is no down migration—failed upgrades roll back with the migrator transaction.
+Existing probability observations, evidence items and move log revisions keep their source and recording times. Their `record_available_at` is set to the migration's `clock_timestamp()`, a realignment marker taken inside the migration transaction before that transaction commits. It is not the time those rows became visible, and reconstruction does not filter on it. A later checkpoint includes those rows only because its snapshot sees them as committed, and it labels `semantic_history` as `unavailable` until a real `event_revisions` row exists. Migration 0003 does not rewrite history rows and does not publish checkpoints during the upgrade.
+
+Migration 0002 temporarily disables the three append-only row triggers from 0001 only while running those one-time `UPDATE`s. The comment in that file that calls `record_available_at` reconstruction availability is superseded by this section; the file is not edited, so its checksum stays valid. There is no down migration. Failed upgrades roll back with the migrator transaction.
 
 ### Event metadata revisions
 
@@ -146,7 +177,7 @@ OMEN_STORAGE_MODE=database npm run dev   # or set it in .env.local
 - `event` (optional; upserts the event projection and append-only metadata revisions) or `eventId` (append to an existing event).
 - `observations`, `evidence` and `moveLogRevisions` to append. `sourcePublishedAt` is required; use `null` when the source has no date. Move log corrections need `version > 1` and a `correctionNote`. Event metadata corrections need `event.correctionNote` when revision version would be greater than 1.
 
-A bundle is validated in full before connecting, then written in one transaction:
+A bundle is validated in full before connecting. History rows are written in one transaction, and a checkpoint is published in a second transaction:
 
 - Re-running an identical bundle changes nothing.
 - A bundle that would change a recorded observation, evidence item, event revision or published move log revision is rejected, and the whole transaction rolls back. For revisions, the error names the next free version to publish as a correction.
@@ -167,7 +198,8 @@ The integration suite covers:
 - every table constraint and trigger, including append-only history;
 - repository reads and writes, idempotent re-runs and rollback on conflict;
 - correction as a new version with v1 preserved (move logs and event metadata);
-- trustworthy `record_available_at`, coverage baseline, backdated capture input, and concurrent revision allocation;
+- recording-time `record_available_at` (not a visibility predicate), coverage baseline, backdated source and capture input, and concurrent revision allocation;
+- verified checkpoints: delayed commits, lock-waiting writers, multi-table bundles, legacy events with no semantic revision, and consistent multi-table reads;
 - persistence across processes: separate `tsx scripts/omen-db.ts` processes write, the test reads over a fresh pool, and a third process reads the data back;
 - explicit failures for a missing schema, schema version drift, bad credentials and a missing database in database mode.
 
@@ -175,5 +207,5 @@ The integration suite covers:
 
 - No hosted database provisioning, production migrations or production writes (owner approval required).
 - No public write endpoint, auth, per-user watchlists, or billing. "Followed by default" is a column on the event.
-- No Archive / workspace UI for point-in-time reconstruction yet (`/archive` remains a demo shell). The storage layer is ready; reads still use the latest projection.
+- No Archive / workspace UI for checkpoint reconstruction yet (`/archive` remains a demo shell). Latest-projection reads are unchanged. Arbitrary-time reconstruction is not provided; verified history is the checkpoint sequence only.
 - Legacy demo-only screens (Markets, Signals and others listed in `docs/architecture.md`) still read the in-process demo book in both modes.
