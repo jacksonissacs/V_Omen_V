@@ -1477,7 +1477,7 @@
 
 .aion-event-list-head {
   display: grid;
-  grid-template-columns: minmax(0, 2.4fr) 110px 110px 140px 60px 90px;
+  grid-template-columns: minmax(0, 2.4fr) 110px 110px minmax(140px, 1.2fr) 90px;
   align-items: center;
   gap: 12px;
   padding: 0 12px 8px;
@@ -1503,7 +1503,7 @@
 
 .aion-event-row-main {
   display: grid;
-  grid-template-columns: minmax(0, 2.4fr) 110px 110px 140px 60px;
+  grid-template-columns: minmax(0, 2.4fr) 110px 110px minmax(140px, 1.2fr);
   align-items: center;
   gap: 12px;
   min-width: 0;
@@ -1521,6 +1521,9 @@
 }
 
 .aion-event-row-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   color: var(--a-tx-2);
   font-size: 12px;
 }

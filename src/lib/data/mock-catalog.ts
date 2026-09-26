@@ -20,10 +20,10 @@ export const feed: IntelligenceItem[] = events
     id: `feed-${index + 1}`,
     eventId: event.id,
     occurredAt: event.timestamp,
-    kind: event.change === 0 ? "uncertainty" : "probability_shift",
+    kind: event.change === null || event.change === 0 ? "uncertainty" : "probability_shift",
     headline: event.whatChanged,
     detail: event.summary,
-    deltaPp: event.change,
+    ...(event.change === null ? {} : { deltaPp: event.change }),
   }))
 
 export const graphNodes: GraphNode[] = [

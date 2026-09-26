@@ -166,7 +166,7 @@ Version 1 has no correction note, and every later version requires one. UPDATE, 
 Workspace reads map the rows as follows:
 
 - observations are grouped into series by source kind, source name, probability type and provenance. Only observations in the same series are compared;
-- the headline series is the market-implied one when there is one, otherwise the most recently observed. Current and previous probability are its two most recent observations, and `expectationHistory` is its path, oldest first;
+- the headline series is the market-implied one when there is one, otherwise the most recently observed. Current probability is its latest observation. Previous probability and the change use the two most recent observations of that same series, and only when at least two exist — a one-point series has no previous probability and no change. `expectationHistory` is that series, oldest first;
 - every series, with `observed_at` and `captured_at` per point, is returned as `probabilitySeries`. Evidence carries its `captured_at`;
 - the event page labels a series **Illustrative** when its provenance is `demo`, whatever its probability type. Sourced `market_implied` series are **Market-implied**; `forecaster_estimate` and `model_estimate` are **Authored forecast**;
 - there is no forecast table yet, so `forecasts` is always empty and the event page shows no OMEN forecast;

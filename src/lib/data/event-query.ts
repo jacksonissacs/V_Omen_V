@@ -1,5 +1,4 @@
 import { CATEGORY_DOMAIN, domainCategories } from "@/lib/domain/categories"
-import { probabilityDelta } from "@/lib/domain/scoring"
 import type {
   EventFilter,
   GraphEdge,
@@ -38,8 +37,8 @@ export function applyEventFilter(events: readonly AionEvent[], filter?: EventFil
   const matching = events.filter((event) => matchesFilter(event, filter))
   if (filter?.order === "catalog") return matching
   return matching.sort((a, b) => {
-    const aMove = Math.abs(probabilityDelta(a.probability, a.previousProbability))
-    const bMove = Math.abs(probabilityDelta(b.probability, b.previousProbability))
+    const aMove = a.change === null ? Number.NEGATIVE_INFINITY : Math.abs(a.change)
+    const bMove = b.change === null ? Number.NEGATIVE_INFINITY : Math.abs(b.change)
     return bMove - aMove || b.timestamp.localeCompare(a.timestamp)
   })
 }
@@ -52,10 +51,10 @@ export function buildFeed(events: readonly AionEvent[]): IntelligenceItem[] {
       id: `feed-${index + 1}`,
       eventId: event.id,
       occurredAt: event.timestamp,
-      kind: event.change === 0 ? "uncertainty" : "probability_shift",
+      kind: event.change === null || event.change === 0 ? "uncertainty" : "probability_shift",
       headline: event.whatChanged,
       detail: event.summary,
-      deltaPp: event.change,
+      ...(event.change === null ? {} : { deltaPp: event.change }),
     }))
 }
 

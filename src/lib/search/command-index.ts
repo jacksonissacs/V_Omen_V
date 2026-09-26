@@ -5,17 +5,8 @@ import type { AionEvent } from "@/types/event"
 const STATIC_COMMANDS: SearchHit[] = [
   { id: "cmd-feed", kind: "command", title: "Open intelligence feed", subtitle: "Dashboard", href: "/pulse" },
   { id: "cmd-events", kind: "command", title: "Open events", subtitle: "Events", href: "/events" },
-  { id: "cmd-markets", kind: "command", title: "Open markets", subtitle: "Markets", href: "/markets" },
-  { id: "cmd-signals", kind: "command", title: "Open signals", subtitle: "Signals", href: "/signals" },
-  { id: "cmd-agents", kind: "command", title: "Open agents", subtitle: "Agents", href: "/agents" },
   { id: "cmd-watch", kind: "command", title: "Open watchlists", subtitle: "Watchlists", href: "/watchlists" },
-  { id: "cmd-research", kind: "command", title: "Open research", subtitle: "Research", href: "/research" },
-  { id: "cmd-graph", kind: "command", title: "Open relationship graph", subtitle: "Relations", href: "/relations" },
   { id: "cmd-settings", kind: "command", title: "Open settings", subtitle: "Settings", href: "/settings" },
-  { id: "cmd-tech", kind: "command", title: "Filter technology", subtitle: "Domain", href: "/events?category=Technology" },
-  { id: "cmd-fin", kind: "command", title: "Filter finance", subtitle: "Domain", href: "/events?category=Markets" },
-  { id: "cmd-geo", kind: "command", title: "Filter geopolitics", subtitle: "Domain", href: "/events?category=Geopolitics" },
-  { id: "cmd-ai", kind: "command", title: "Filter AI", subtitle: "Category", href: "/events?category=AI" },
 ]
 
 function normalize(value: string): string {
