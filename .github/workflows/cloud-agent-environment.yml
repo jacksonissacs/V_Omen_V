@@ -42,21 +42,7 @@ jobs:
             -e NEXT_TELEMETRY_DISABLED=1 \
             -e OMEN_STORAGE_MODE=demo \
             "${IMAGE_NAME}:${IMAGE_TAG}" \
-            bash -c 'chown -R ubuntu:ubuntu /workspace && exec su ubuntu -s /bin/bash -lc "
-              set -euo pipefail
-              source .cursor/scripts/cloud-agent-env.sh
-              bash .cursor/scripts/cloud-agent-start.sh
-              bash .cursor/scripts/cloud-agent-smoke.sh
-              bash .cursor/scripts/cloud-agent-start.sh
-              bash .cursor/scripts/cloud-agent-install.sh
-              npm run lint
-              npx next typegen
-              npm run typecheck
-              npm test
-              npm run build
-              npm run test:db
-              npm run test:workflow
-            "'
+            bash -c 'chown -R ubuntu:ubuntu /workspace && exec su ubuntu -s /bin/bash /workspace/.cursor/scripts/cloud-agent-ci-verify.sh'
 
       - uses: actions/upload-artifact@v4
         if: always()
