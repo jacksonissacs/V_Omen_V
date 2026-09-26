@@ -6,17 +6,19 @@ import userEvent from "@testing-library/user-event"
 import type { ReactElement, ReactNode } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { mockPathname, mockPush, NotFoundError } from "@/test/next-navigation"
+import { mockPathname, mockPush, mockSearchParams, NotFoundError } from "@/test/next-navigation"
 
 import WorkspaceError from "@/app/(workspace)/error"
 import EventsLoading from "@/app/(workspace)/events/(book)/loading"
 import EventsPage from "@/app/(workspace)/events/(book)/page"
+import EventCheckpointPage from "@/app/(workspace)/events/[id]/history/[checkpointId]/page"
 import EventIntelligencePage, { generateMetadata } from "@/app/(workspace)/events/[id]/page"
 import WorkspaceLayout from "@/app/(workspace)/layout"
 import PulseLoading from "@/app/(workspace)/pulse/loading"
 import PulsePage from "@/app/(workspace)/pulse/page"
 import WatchlistsLoading from "@/app/(workspace)/watchlists/loading"
 import WatchlistsPage from "@/app/(workspace)/watchlists/page"
+import { __resetFollowingStoresForTests } from "@/lib/following/following-store"
 import { __resetRepositoryForTests, type IntelligenceRepository } from "@/lib/data/repository"
 import { failingRepository, fakeRepository, testEvent } from "@/test/fake-repository"
 
@@ -79,9 +81,13 @@ function rowTitles(container: HTMLElement) {
 
 afterEach(() => {
   __resetRepositoryForTests()
+  __resetFollowingStoresForTests()
+  window.localStorage.clear()
   mockPush.mockClear()
   mockPathname.mockReset()
   mockPathname.mockReturnValue("/")
+  mockSearchParams.mockReset()
+  mockSearchParams.mockReturnValue(new URLSearchParams())
   vi.restoreAllMocks()
 })
 
@@ -254,6 +260,49 @@ describe("Event detail route", () => {
     expect(await generateMetadata(params("evt-nope"))).toEqual({ title: "Event not found" })
     expect(await generateMetadata(params("evt-alpha"))).toEqual({ title: "Alpha rate decision" })
   })
+
+  it("refuses a checkpoint or cutoff query instead of rendering the current event", async () => {
+    useRepository(fakeRepository(book))
+    mockPathname.mockReturnValue("/events/evt-alpha")
+    mockSearchParams.mockReturnValue(new URLSearchParams("checkpoint=ck-early"))
+    await renderRoute(
+      EventIntelligencePage({
+        ...params("evt-alpha"),
+        searchParams: Promise.resolve({ checkpoint: "ck-early" }),
+      }),
+    )
+
+    expect(screen.getByTestId("historical-unavailable")).toHaveTextContent(/Checkpoint id must be a UUID/)
+    expect(screen.getByRole("link", { name: "Return to present" })).toHaveAttribute(
+      "href",
+      "/events/evt-alpha",
+    )
+    expect(screen.queryByRole("heading", { name: "Alpha rate decision", level: 1 })).not.toBeInTheDocument()
+    expect(within(document.querySelector(".aion-crumb")!).getByText("Historical view unavailable")).toBeInTheDocument()
+    expect(await generateMetadata({
+      ...params("evt-alpha"),
+      searchParams: Promise.resolve({ cutoff: "2026-09-01T00:00:00.000Z" }),
+    })).toEqual({ title: "Historical view" })
+  })
+
+  it("renders a shareable checkpoint path without current title or status", async () => {
+    useRepository(fakeRepository(book))
+    mockPathname.mockReturnValue("/events/evt-alpha/history/ck-early")
+    await renderRoute(
+      EventCheckpointPage({
+        params: Promise.resolve({ id: "evt-alpha", checkpointId: "ck-early" }),
+      }),
+    )
+    expect(screen.getByTestId("historical-unavailable")).toHaveTextContent(/UUID/)
+    expect(screen.queryByRole("heading", { name: "Alpha rate decision" })).not.toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Return to present" })).toHaveAttribute(
+      "href",
+      "/events/evt-alpha",
+    )
+    await expect(
+      EventCheckpointPage({ params: Promise.resolve({ id: "evt-nope", checkpointId: "ck-early" }) }),
+    ).rejects.toBeInstanceOf(NotFoundError)
+  })
 })
 
 describe("Watchlists route", () => {
@@ -265,14 +314,13 @@ describe("Watchlists route", () => {
     expect(screen.getByText("Gamma housing lull")).toBeInTheDocument()
     expect(screen.queryByText("Beta model launch")).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole("button", { name: /Gamma housing lull/ }))
+    await user.click(screen.getByRole("button", { name: /^Gamma housing lull/ }))
     expect(mockPush).toHaveBeenCalledWith("/events/evt-gamma")
 
-    const [firstUnfollow] = screen.getAllByRole("button", { name: "Unfollow" })
-    await user.click(firstUnfollow!)
+    await user.click(screen.getByRole("button", { name: "Unfollow Alpha rate decision" }))
     expect(screen.queryByText("Alpha rate decision")).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole("button", { name: "Unfollow" }))
+    await user.click(screen.getByRole("button", { name: "Unfollow Gamma housing lull" }))
     expect(screen.getByText("Nothing followed")).toBeInTheDocument()
   })
 })

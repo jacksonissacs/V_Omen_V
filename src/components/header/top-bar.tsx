@@ -1,17 +1,26 @@
 "use client"
 
 import { Search } from "lucide-react"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 
 import { useWorkspace } from "@/components/layout/workspace-provider"
 import { routeHeadings } from "@/data/workspace"
+import { requestedHistoricalView } from "@/lib/history/historical-request"
 
 export function TopBar() {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { setPaletteOpen, findEventSummary, storage } = useWorkspace()
+  const historical = requestedHistoricalView(searchParams)
+  const historyMatch = pathname.match(/^\/events\/([^/]+)\/history\/([^/]+)$/)
   const eventMatch = pathname.match(/^\/events\/([^/]+)$/)
-  const event = eventMatch ? findEventSummary(eventMatch[1]) : undefined
-  const heading = event ? event.title : (routeHeadings[pathname] ?? "OMEN")
+  const event =
+    !historical && !historyMatch && eventMatch ? findEventSummary(eventMatch[1]) : undefined
+  const heading = historical || historyMatch
+    ? "Historical view unavailable"
+    : event
+      ? event.title
+      : (routeHeadings[pathname] ?? "OMEN")
   const readsStore = CORE_ROUTE.test(pathname)
 
   return (

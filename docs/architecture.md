@@ -77,6 +77,7 @@ Significance on an event is curated in the catalog for the MVP. Scoring helpers 
 | `listFeed(filter?)` | Not used by a screen yet |
 | `getGraph()` | Not used by a screen yet (`/relations` is still static) |
 | `search(query)` | Not used by a screen yet (⌘K uses the event index below) |
+| `reconstructEvent(id, checkpointId)` | `GET /api/events/:id/history/:checkpointId`. Historical checkpoint replay, not the current `AionEvent` |
 
 `EventFilter.order` selects `"move"` (default: largest absolute move first) or `"catalog"` (curated book order). Screens request catalog order and apply their own client-side sort, so tie-breaking matches the pre-repository behavior.
 
@@ -121,8 +122,11 @@ Internal JSON routes exist so the UI is not the only consumer:
 
 - `GET /api/events`
 - `GET /api/events/:id`
+- `GET /api/events/:id/history/:checkpointId`
 
-Both return `storage` and, on success, `provenance` alongside the data. A storage failure returns `503` with no data, and an unknown id returns `404`.
+The first two return `storage` and, on success, `provenance` alongside the current projection. A storage failure returns `503` with no data, and an unknown id returns `404`.
+
+The history route replays one stored checkpoint. It returns a historical record (coverage, checkpoint, provenance, and only member rows). It does not accept a UTC cutoff. Invalid ids are `400`, an unknown event is `404`, demo storage or a missing checkpoint is `422`, a checkpoint with no semantic revision is `409` pre-coverage, and a database or verification failure is `503`. None of those substitute current or demo rows.
 
 The App Router pages read the repository in-process in server components (no extra HTTP hop). The routes are the contract for later clients and for tests that want HTTP semantics.
 
@@ -155,6 +159,7 @@ Also demo-only inside migrated screens: the ⌘K "Ask", "Rewind" and "Create" co
 - "Why did this move?" is split into Observed (recorded values and sources with their times), Interpretation (move log text, marked unpublished or illustrative when it is) and Still unknown.
 - The change timeline is built from recorded observation, evidence and move log times, not from `display.timeline`.
 - Volume, Spread and Related chart modes, attribution and confidence percentages, analogue similarity scores and related-market/signal tiles are not shown: no dataset backs them.
+- `?checkpoint=`, `?at=`, `?cutoff=` and `/events/:id/history/:checkpointId` do not render the current record. This SHA has no stored checkpoints, so those URLs show **Historical view unavailable** and a return-to-present link.
 
 ## Frontend composition
 

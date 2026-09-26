@@ -1,0 +1,54 @@
+{
+  "event": {
+    "id": "evt-test-sourced",
+    "title": "[SYNTHETIC TEST] Sourced bulletin citation",
+    "question": "Will the cited example source remain labelled sourced in the workspace?",
+    "status": "watch",
+    "deadline": "2026-12-15T00:00:00.000Z",
+    "resolutionCriteria": "Resolves YES as a labelled SYNTHETIC TEST of sourced provenance and a public source URL. Not an operational citation.",
+    "category": "Science",
+    "significance": "low",
+    "region": "Test",
+    "summary": "SYNTHETIC TEST FIXTURE entered as sourced provenance with a cited URL.",
+    "tags": ["SYNTHETIC-TEST", "sourced"],
+    "relatedEventIds": [],
+    "provenance": "sourced",
+    "followedByDefault": false,
+    "catalogPosition": 3
+  },
+  "observations": [
+    {
+      "sourceKind": "provider",
+      "sourceName": "SYNTHETIC TEST exchange",
+      "probabilityType": "market_implied",
+      "probabilityPct": 22.5,
+      "observedAt": "2026-09-09T11:00:00.000Z",
+      "capturedAt": "2026-09-09T11:01:00.000Z",
+      "provenance": "sourced"
+    },
+    {
+      "sourceKind": "provider",
+      "sourceName": "SYNTHETIC TEST exchange",
+      "probabilityType": "market_implied",
+      "probabilityPct": 28.75,
+      "observedAt": "2026-09-11T11:00:00.000Z",
+      "capturedAt": "2026-09-11T11:01:00.000Z",
+      "provenance": "sourced"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev-test-sourced-1",
+      "sourceName": "SYNTHETIC TEST cited filing",
+      "sourceUrl": "https://example.test/synthetic/sourced-filing",
+      "sourcePublishedAt": "2026-09-11T10:00:00.000Z",
+      "firstObservedAt": "2026-09-11T10:30:00.000Z",
+      "capturedAt": "2026-09-11T10:31:00.000Z",
+      "summary": "SYNTHETIC TEST sourced evidence with a public URL. Labelled fixture, not an operational filing.",
+      "stance": "supports",
+      "reliability": 0.7,
+      "recordedBy": "omen-workflow-test",
+      "provenance": "sourced"
+    }
+  ]
+}

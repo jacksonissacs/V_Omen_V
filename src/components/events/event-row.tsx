@@ -2,15 +2,13 @@
 
 import Link from "next/link"
 
+import { FollowEventButton } from "@/components/events/follow-event-button"
 import { ChangeIndicator } from "@/components/events/change-indicator"
 import { ProbabilityBadge } from "@/components/events/probability-badge"
 import { SourceBadge } from "@/components/events/source-badge"
-import { useWorkspace } from "@/components/layout/workspace-provider"
 import type { AionEvent } from "@/types/event"
 
 export function EventRow({ event }: { event: AionEvent }) {
-  const { isWatched, toggleWatch } = useWorkspace()
-
   return (
     <div className="aion-event-row">
       <Link className="aion-event-row-main" href={`/events/${event.id}`}>
@@ -31,16 +29,7 @@ export function EventRow({ event }: { event: AionEvent }) {
         </span>
         <span className="aion-mono aion-event-row-meta">{event.sigma.toFixed(1)}σ</span>
       </Link>
-      <button
-        type="button"
-        className="aion-button"
-        data-quiet="true"
-        aria-label={isWatched(event.id) ? `Unfollow ${event.title}` : `Follow ${event.title}`}
-        aria-pressed={isWatched(event.id)}
-        onClick={() => toggleWatch(event.id)}
-      >
-        {isWatched(event.id) ? "Following" : "Follow"}
-      </button>
+      <FollowEventButton eventId={event.id} eventTitle={event.title} />
     </div>
   )
 }

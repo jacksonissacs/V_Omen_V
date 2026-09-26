@@ -10,7 +10,7 @@ import { PostgresIntelligenceRepository } from "@/lib/data/postgres-repository"
 import { __resetRepositoryForTests, getRepository, summarizeProvenance } from "@/lib/data/repository"
 import { RepositoryUnavailableError } from "@/lib/data/repository-errors"
 import { parseEventBundle } from "@/lib/db/event-bundle"
-import { readMoveLogHistory } from "@/lib/db/event-reader"
+import { readEventRevisionHistory, readHistoryCoverage, readMoveLogHistory } from "@/lib/db/event-reader"
 import { HistoryConflictError, writeEventBundle } from "@/lib/db/event-store"
 import {
   assertWritableDatabase,
@@ -30,7 +30,9 @@ import {
 const ROOT = path.resolve(__dirname, "../../..")
 const SEED_FILE = path.join(ROOT, "db/fixtures/demo-evt-boc-cut.json")
 const CORRECTION_FILE = path.join(ROOT, "db/fixtures/demo-evt-boc-cut.correction.json")
+const POPULATED_V1_FIXTURE = path.join(ROOT, "db/fixtures/test-populated-v1-evt-boc-cut.sql")
 const readJson = (file: string) => JSON.parse(readFileSync(file, "utf8"))
+const populateV1History = (client: Client) => client.query(readFileSync(POPULATED_V1_FIXTURE, "utf8"))
 const seedBundle = () => parseEventBundle(readJson(SEED_FILE))
 const correctionBundle = () => parseEventBundle(readJson(CORRECTION_FILE))
 
@@ -120,22 +122,30 @@ describe("migrations", () => {
       const migrations = loadMigrations()
       expect(migrations.at(-1)?.version).toBe(EXPECTED_SCHEMA_VERSION)
       const first = await migrate(client, migrations)
-      expect(first.applied.map((migration) => migration.version)).toEqual([1])
+      expect(first.applied.map((migration) => migration.version)).toEqual([1, 2, 3])
       const second = await migrate(client, migrations)
       expect(second.applied).toEqual([])
-      expect(second.alreadyApplied).toBe(1)
+      expect(second.alreadyApplied).toBe(3)
 
-      const { rows } = await client.query("SELECT version, checksum FROM omen_schema_migrations")
-      expect(rows).toEqual([{ version: 1, checksum: migrations[0]!.checksum }])
+      const { rows } = await client.query("SELECT version, checksum FROM omen_schema_migrations ORDER BY version")
+      expect(rows).toEqual([
+        { version: 1, checksum: migrations[0]!.checksum },
+        { version: 2, checksum: migrations[1]!.checksum },
+        { version: 3, checksum: migrations[2]!.checksum },
+      ])
       const tables = await client.query<{ table_name: string }>(
         "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name",
       )
       expect(tables.rows.map((row) => row.table_name)).toEqual([
+        "event_revisions",
         "events",
         "evidence",
+        "history_checkpoint_members",
+        "history_checkpoints",
         "move_log_revisions",
         "move_logs",
         "omen_database_identity",
+        "omen_history_coverage",
         "omen_schema_migrations",
         "probability_observations",
       ])
@@ -335,6 +345,8 @@ describe("constraints", () => {
       ["DELETE FROM evidence", /append-only: DELETE on evidence/],
       ["UPDATE move_log_revisions SET explained_pct = 99", /append-only: UPDATE on move_log_revisions/],
       ["DELETE FROM move_log_revisions", /append-only: DELETE on move_log_revisions/],
+      ["UPDATE event_revisions SET question = 'Changed?'", /append-only: UPDATE on event_revisions/],
+      ["DELETE FROM event_revisions", /append-only: DELETE on event_revisions/],
       ["UPDATE move_logs SET event_id = 'evt-sourced-sample'", /append-only: UPDATE on move_logs/],
       ["TRUNCATE evidence CASCADE", /append-only: TRUNCATE on/],
       ["TRUNCATE events CASCADE", /append-only: TRUNCATE on/],
@@ -366,6 +378,7 @@ describe("PostgreSQL repository reads and writes", () => {
     expect(summary).toEqual({
       eventId: "evt-boc-cut",
       event: "inserted",
+      eventRevisions: { appended: 1, unchanged: 0 },
       observations: { appended: 4, unchanged: 0 },
       evidence: { appended: 3, unchanged: 0 },
       moveLogRevisions: { appended: 1, unchanged: 0 },
@@ -411,6 +424,7 @@ describe("PostgreSQL repository reads and writes", () => {
   it("re-running an identical bundle changes nothing", async () => {
     const summary = await withClient(database.url, (client) => writeEventBundle(client, seedBundle()))
     expect(summary.event).toBe("updated")
+    expect(summary.eventRevisions).toEqual({ appended: 0, unchanged: 1 })
     expect(summary.observations).toEqual({ appended: 0, unchanged: 4 })
     expect(summary.evidence).toEqual({ appended: 0, unchanged: 3 })
     expect(summary.moveLogRevisions).toEqual({ appended: 0, unchanged: 1 })
@@ -502,6 +516,32 @@ describe("PostgreSQL repository reads and writes", () => {
     )
     const history = await readMoveLogHistory(pool, "evt-boc-cut")
     expect(history.map((revision) => revision.explainedPct)).toEqual([69, 64])
+  })
+
+  it("records event metadata corrections as new revisions and blocks bypassing the write path", async () => {
+    const bundle = seedBundle()
+    bundle.event = {
+      ...bundle.event!,
+      status: "watch",
+      correctionNote: "Status corrected after desk review.",
+    }
+    const summary = await withClient(database.url, (client) => writeEventBundle(client, bundle))
+    expect(summary.eventRevisions).toEqual({ appended: 1, unchanged: 0 })
+
+    const history = await readEventRevisionHistory(pool, "evt-boc-cut")
+    expect(history.map((revision) => [revision.version, revision.status, revision.correctionNote])).toEqual([
+      [1, "active", null],
+      [2, "watch", "Status corrected after desk review."],
+    ])
+    expect(await repository.getEvent("evt-boc-cut")).toMatchObject({ status: "watch" })
+
+    await withClient(database.url, async (client) => {
+      await client.query("BEGIN")
+      await expect(
+        client.query("UPDATE events SET status = 'resolved' WHERE id = 'evt-boc-cut'"),
+      ).rejects.toThrow(/semantic fields are revision-controlled/)
+      await client.query("ROLLBACK")
+    })
   })
 
   it("keeps each source and probability type in its own series and takes the headline change from one series", async () => {
@@ -624,6 +664,280 @@ describe("persistence across processes", () => {
   })
 })
 
+describe("temporal storage and record availability", () => {
+  it("establishes a coverage baseline without inventing pre-migration event revision history", async () => {
+    const database = await migratedDatabase()
+    await withClient(database.url, async (client) => {
+      const coverage = await readHistoryCoverage(client)
+      expect(coverage.semanticEventFieldsFrom).toBe(coverage.recordAvailabilityRealignedAt)
+      const { rows } = await client.query("SELECT count(*)::int AS count FROM event_revisions")
+      expect(rows[0].count).toBe(0)
+    })
+  })
+
+  it("realigns pre-existing history rows when migration 0002 runs on a populated database", async () => {
+    const database = await emptyDatabase()
+    const migrations = loadMigrations()
+    let beforeCounts: {
+      observations: number
+      evidence: number
+      moveLogRevisions: number
+      latestProbability: string
+    }
+    await withClient(database.url, async (client) => {
+      await identifyDatabase(client, "test", `vitest ${database.name}`)
+      await migrate(client, migrations.slice(0, 1))
+      await populateV1History(client)
+      const { rows: revisionTable } = await client.query(
+        "SELECT to_regclass('public.event_revisions') AS event_revisions",
+      )
+      expect(revisionTable[0].event_revisions).toBeNull()
+      const counts = await client.query<{
+        observations: number
+        evidence: number
+        move_log_revisions: number
+        latest_probability: string
+      }>(
+        `SELECT
+           (SELECT count(*)::int FROM probability_observations WHERE event_id = 'evt-boc-cut') AS observations,
+           (SELECT count(*)::int FROM evidence WHERE event_id = 'evt-boc-cut') AS evidence,
+           (SELECT count(*)::int FROM move_log_revisions r
+              JOIN move_logs m ON m.id = r.move_log_id WHERE m.event_id = 'evt-boc-cut') AS move_log_revisions,
+           (SELECT probability_pct::text FROM probability_observations
+              WHERE event_id = 'evt-boc-cut'
+              ORDER BY captured_at DESC LIMIT 1) AS latest_probability`,
+      )
+      beforeCounts = {
+        observations: counts.rows[0].observations,
+        evidence: counts.rows[0].evidence,
+        moveLogRevisions: counts.rows[0].move_log_revisions,
+        latestProbability: counts.rows[0].latest_probability,
+      }
+      expect(beforeCounts.observations).toBe(4)
+    })
+    await withClient(database.url, async (client) => {
+      await migrate(client, migrations)
+      const coverage = await readHistoryCoverage(client)
+      const realignedAt = new Date(coverage.recordAvailabilityRealignedAt)
+      expect(coverage.semanticEventFieldsFrom).toBe(coverage.recordAvailabilityRealignedAt)
+      const { rows: revisionRows } = await client.query("SELECT count(*)::int AS count FROM event_revisions")
+      expect(revisionRows[0].count).toBe(0)
+      const afterCounts = await client.query<{
+        observations: number
+        evidence: number
+        move_log_revisions: number
+        latest_probability: string
+      }>(
+        `SELECT
+           (SELECT count(*)::int FROM probability_observations WHERE event_id = 'evt-boc-cut') AS observations,
+           (SELECT count(*)::int FROM evidence WHERE event_id = 'evt-boc-cut') AS evidence,
+           (SELECT count(*)::int FROM move_log_revisions r
+              JOIN move_logs m ON m.id = r.move_log_id WHERE m.event_id = 'evt-boc-cut') AS move_log_revisions,
+           (SELECT probability_pct::text FROM probability_observations
+              WHERE event_id = 'evt-boc-cut'
+              ORDER BY captured_at DESC LIMIT 1) AS latest_probability`,
+      )
+      expect(afterCounts.rows[0].observations).toBe(beforeCounts.observations)
+      expect(afterCounts.rows[0].evidence).toBe(beforeCounts.evidence)
+      expect(afterCounts.rows[0].move_log_revisions).toBe(beforeCounts.moveLogRevisions)
+      expect(afterCounts.rows[0].latest_probability).toBe(beforeCounts.latestProbability)
+      const { rows } = await client.query<{ captured_at: Date; record_available_at: Date }>(
+        `SELECT captured_at, record_available_at FROM probability_observations WHERE event_id = 'evt-boc-cut'
+         UNION ALL
+         SELECT captured_at, record_available_at FROM evidence WHERE event_id = 'evt-boc-cut'
+         UNION ALL
+         SELECT published_at AS captured_at, record_available_at
+           FROM move_log_revisions r
+           JOIN move_logs m ON m.id = r.move_log_id
+          WHERE m.event_id = 'evt-boc-cut'`,
+      )
+      expect(rows.length).toBe(
+        beforeCounts.observations + beforeCounts.evidence + beforeCounts.moveLogRevisions,
+      )
+      for (const row of rows) {
+        expect(row.record_available_at.toISOString()).toBe(realignedAt.toISOString())
+        expect(row.record_available_at.getTime()).toBeGreaterThan(row.captured_at.getTime())
+      }
+      await expect(
+        client.query(`UPDATE probability_observations SET note = 'blocked' WHERE event_id = 'evt-boc-cut'`),
+      ).rejects.toThrow(/append-only/)
+      await expect(client.query(`UPDATE evidence SET summary = 'blocked' WHERE event_id = 'evt-boc-cut'`)).rejects.toThrow(
+        /append-only/,
+      )
+      await expect(
+        client.query(
+          `UPDATE move_log_revisions SET what_changed = 'blocked'
+             WHERE move_log_id = (SELECT id FROM move_logs WHERE event_id = 'evt-boc-cut' LIMIT 1)`,
+        ),
+      ).rejects.toThrow(/append-only/)
+    })
+  })
+
+  it("does not let backdated capture times imply earlier reconstruction availability", async () => {
+    const database = await migratedDatabase()
+    await withClient(database.url, async (client) => {
+      await writeEventBundle(client, seedBundle())
+      const before = Date.now()
+      await writeEventBundle(
+        client,
+        parseEventBundle({
+          eventId: "evt-boc-cut",
+          observations: [
+            {
+              sourceKind: "author",
+              sourceName: "backdate probe",
+              probabilityType: "forecaster_estimate",
+              probabilityPct: 33,
+              observedAt: "2020-01-01T00:00:00Z",
+              capturedAt: "2020-01-01T00:01:00Z",
+              provenance: "demo",
+            },
+          ],
+          evidence: [
+            {
+              id: "ev-backdate-probe",
+              sourceName: "Backdate evidence",
+              sourcePublishedAt: "2020-01-01T00:00:00Z",
+              firstObservedAt: "2020-01-01T00:00:30Z",
+              capturedAt: "2020-01-01T00:01:00Z",
+              summary: "Backdated evidence row.",
+              stance: "contextual",
+              reliability: 0.5,
+              recordedBy: "test",
+              provenance: "demo",
+            },
+          ],
+          moveLogRevisions: [
+            {
+              moveLogId: "ml-backdate-probe",
+              version: 1,
+              publishedAt: "2020-01-01T00:02:00Z",
+              author: "test",
+              whatChanged: "Backdated move log.",
+              likelyCause: "test",
+              explainedPct: 50,
+              unexplainedFactors: [],
+              evidenceIds: ["ev-backdate-probe"],
+              provenance: "demo",
+            },
+          ],
+        }),
+      )
+      const after = Date.now()
+      const { rows } = await client.query<{
+        table_name: string
+        captured_at: Date
+        record_available_at: Date
+      }>(
+        `SELECT 'observation' AS table_name, captured_at, record_available_at
+           FROM probability_observations
+          WHERE source_name = 'backdate probe'
+         UNION ALL
+         SELECT 'evidence', captured_at, record_available_at
+           FROM evidence
+          WHERE id = 'ev-backdate-probe'
+         UNION ALL
+         SELECT 'move_log', published_at AS captured_at, record_available_at
+           FROM move_log_revisions
+          WHERE move_log_id = 'ml-backdate-probe'`,
+      )
+      expect(rows).toHaveLength(3)
+      for (const row of rows) {
+        expect(row.record_available_at.getTime()).toBeGreaterThanOrEqual(before - 2_000)
+        expect(row.record_available_at.getTime()).toBeLessThanOrEqual(after + 2_000)
+        expect(row.record_available_at.getTime()).toBeGreaterThan(row.captured_at.getTime())
+      }
+      expect(rows.find((row) => row.table_name === "observation")!.captured_at.toISOString()).toBe(
+        "2020-01-01T00:01:00.000Z",
+      )
+    })
+  })
+
+  it("assigns one record_available_at instant to every row inserted in the same bundle transaction", async () => {
+    const database = await migratedDatabase()
+    await withClient(database.url, async (client) => {
+      await writeEventBundle(client, seedBundle())
+      const { rows } = await client.query<{ record_available_at: Date }>(
+        `SELECT record_available_at FROM probability_observations WHERE event_id = 'evt-boc-cut'
+         UNION ALL
+         SELECT record_available_at FROM evidence WHERE event_id = 'evt-boc-cut'
+         UNION ALL
+         SELECT record_available_at FROM move_log_revisions r
+           JOIN move_logs m ON m.id = r.move_log_id
+          WHERE m.event_id = 'evt-boc-cut'
+         UNION ALL
+         SELECT record_available_at FROM event_revisions WHERE event_id = 'evt-boc-cut'`,
+      )
+      const instants = new Set(rows.map((row) => row.record_available_at.toISOString()))
+      expect(instants.size).toBe(1)
+    })
+  })
+
+  it("rolls back the projection when a metadata correction omits the required note", async () => {
+    const database = await migratedDatabase()
+    await withClient(database.url, async (client) => {
+      await writeEventBundle(client, seedBundle())
+    })
+    const bundle = seedBundle()
+    bundle.event = { ...bundle.event!, status: "resolved" }
+    await expect(withClient(database.url, (client) => writeEventBundle(client, bundle))).rejects.toThrow(
+      /Include event.correctionNote to publish revision 2/,
+    )
+    const history = await withClient(database.url, (client) => readEventRevisionHistory(client, "evt-boc-cut"))
+    expect(history.map((revision) => revision.status)).toEqual(["active"])
+  })
+
+  it("allocates event revision versions serially under concurrent writes", async () => {
+    const database = await migratedDatabase()
+    await withClient(database.url, (client) => writeEventBundle(client, seedBundle()))
+
+    const run = (status: "watch" | "resolved", note: string) => {
+      const base = seedBundle()
+      return withClient(database.url, (client) =>
+        writeEventBundle(client, {
+          ...base,
+          event: { ...base.event!, status, correctionNote: note },
+          observations: [],
+          evidence: [],
+          moveLogRevisions: [],
+        }),
+      )
+    }
+
+    const results = await Promise.allSettled([
+      run("watch", "Concurrent correction A"),
+      run("resolved", "Concurrent correction B"),
+    ])
+    expect(results.every((result) => result.status === "fulfilled")).toBe(true)
+
+    const history = await withClient(database.url, (client) => readEventRevisionHistory(client, "evt-boc-cut"))
+    expect(history.map((revision) => revision.version)).toEqual([1, 2, 3])
+    expect(new Set(history.map((revision) => revision.status))).toEqual(new Set(["active", "watch", "resolved"]))
+  })
+
+  it("treats concurrent identical first creates as an unchanged replay once revision 1 exists", async () => {
+    const database = await migratedDatabase()
+    const bundle = seedBundle()
+    bundle.eventId = "evt-concurrent-create"
+    bundle.event = { ...bundle.event!, id: "evt-concurrent-create" }
+
+    const results = await Promise.allSettled([
+      withClient(database.url, (client) => writeEventBundle(client, bundle)),
+      withClient(database.url, (client) => writeEventBundle(client, bundle)),
+    ])
+    expect(results.every((result) => result.status === "fulfilled")).toBe(true)
+
+    const history = await withClient(database.url, (client) =>
+      readEventRevisionHistory(client, "evt-concurrent-create"),
+    )
+    expect(history.map((revision) => revision.version)).toEqual([1])
+    const { rows } = await withClient(database.url, (client) =>
+      client.query("SELECT count(*)::int AS count FROM events WHERE id = 'evt-concurrent-create'"),
+    )
+    expect(rows[0].count).toBe(1)
+  })
+})
+
 describe("explicit database failures", () => {
   afterEach(() => {
     vi.unstubAllEnvs()
@@ -646,12 +960,12 @@ describe("explicit database failures", () => {
   it("rejects reads when the schema version does not match this build", async () => {
     const database = await migratedDatabase()
     await withClient(database.url, (client) =>
-      client.query("INSERT INTO omen_schema_migrations (version, name, checksum) VALUES (2, 'future', 'x')"),
+      client.query("INSERT INTO omen_schema_migrations (version, name, checksum) VALUES (99, 'future', 'x')"),
     )
     const pool = new Pool({ connectionString: database.url })
     try {
       await expect(new PostgresIntelligenceRepository(pool).getEvent("evt-boc-cut")).rejects.toThrow(
-        `PostgreSQL storage schema is at version 2; this build expects ${EXPECTED_SCHEMA_VERSION}.`,
+        `PostgreSQL storage schema is at version 99; this build expects ${EXPECTED_SCHEMA_VERSION}.`,
       )
     } finally {
       await pool.end()
