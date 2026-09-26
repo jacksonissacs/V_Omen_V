@@ -45,17 +45,32 @@ Browser verification of the running app was **not** performed in either audit pa
 
 ## What exists but remains unverified
 
-| Item | Where | Why unverified |
+### 2026-09-25 list — recheck on `main` @ `d044ead` (2026-09-26)
+
+The first audit recorded these gaps against `main` @ `9c1aace` and/or open PR #6 @ `8afd1ed`. None were assumed; each was re-checked after PR #6 merged.
+
+| Item | Why (2026-09-25 audit) | Recheck disposition |
 | --- | --- | --- |
-| `npm run test:db` in this pod | `src/lib/db/postgres.db.test.ts` | **BLOCKED:** no `OMEN_TEST_DATABASE_ADMIN_URL` / local PostgreSQL admin in the 2026-09-26 recheck environment |
-| `test:db` on every developer machine | same | Depends on local Postgres setup (`docs/database.md`) |
-| Application CI on every open PR | `.github/workflows/application-ci.yml` | Verified historically on PR #6; not re-run here for PR #7/#8 heads |
-| GitHub Pages as product host | https://jacksonissacs.github.io/V_Omen_V/ | Deployed **README**, not the Next.js app; `/pulse` not on that host |
-| Database mode in a running dev server | `OMEN_STORAGE_MODE=database` | Not started in this audit; no database in pod |
-| Following after refresh | workspace provider | In-memory only |
-| Archive reconstruction | `archive-screen.tsx` | Scripted demo; honest label; no stored as-of query |
-| Task 04A temporal storage | PR #8 | Open; not on `main`; `test:db` not run in this pod |
-| End-user click-through | — | No manual browser pass recorded |
+| PR #6 `npm test` as a gate | 145 tests reported pass; process **exits 1** (`scrollIntoView` is not a function in jsdom) | **Resolved on `main`.** Optional chaining on `scrollIntoView` / `focus` (`event-intelligence-view.tsx`); `70ece6c`. Recheck: **146** tests, **exit 0**. |
+| PR #6 `npm run test:db` | **BLOCKED:** `OMEN_TEST_DATABASE_ADMIN_URL` unset; no local PostgreSQL in that environment | **Still blocked in this pod** (same env constraint). **Resolved on GitHub CI:** Application workflow runs `test:db` with a Postgres service; PR #6 checks **application pass** before merge. |
+| GitHub CI on PR #6 | `gh pr checks 6` → no checks | **Resolved.** `.github/workflows/application-ci.yml` on `main`; `gh pr checks 6` shows **application pass** (2026-09-26). |
+| `npm ci` on `main` | Lockfile out of sync (`picomatch` 2.3.2 vs 4.0.7) | **Resolved on `main` @ `d044ead`.** Recheck: `npm ci` exit 0. |
+| `npm run typecheck` / `test:db` on `main` | Scripts absent; ad hoc `npx tsc --noEmit` exited 0 | **Resolved on `main`.** Scripts in `package.json`; recheck: `npm run typecheck` exit 0. `npm run test:db` script exists; pod still **BLOCKED** without admin URL. |
+| GitHub Pages | Deployed README at https://jacksonissacs.github.io/V_Omen_V/, not the app | **Still true.** Not the Next.js workspace; `/pulse` is not on that host. |
+| Database mode, Following after refresh, Archive reconstruction | Not exercised against a store | **Still unverified / absent.** No running server with `OMEN_STORAGE_MODE=database` in audit; Following remains in-memory; Archive is an honest scripted demo with no stored as-of read (Task 04A / reconstruction UI still open). |
+
+### Still unverified in the 2026-09-26 recheck (this pod)
+
+| Item | Why |
+| --- | --- |
+| `npm run test:db` locally | **BLOCKED:** `OMEN_TEST_DATABASE_ADMIN_URL` unset; no disposable PostgreSQL admin here (see `docs/database.md`) |
+| GitHub Pages as product host | README site only |
+| Database mode in a running dev server | Not started; no database in pod |
+| Following after refresh | In-memory only; not a persistence defect, but not exercised against PostgreSQL |
+| Archive / point-in-time reconstruction | Scripted demo; no as-of query against stored rows |
+| Task 04A (PR #8) | Open; not on `main`; `test:db` not run in this pod |
+| Browser click-through | Not performed |
+| Application CI on PR #7 / #8 heads | Not re-run in this audit pass (workflow exists on `main`) |
 
 ## MVP blockers
 

@@ -208,6 +208,10 @@ This cloud pod has **no** `OMEN_TEST_DATABASE_ADMIN_URL` / local PostgreSQL admi
 
 Browser click-through of the running app was **not** performed in either audit pass.
 
+### 2026-09-25 “unverified” rows — recheck summary
+
+See [launch-progress.md — 2026-09-25 list](launch-progress.md#2026-09-25-list--recheck-on-main--d044ead-2026-09-26). In short: PR #6 unit exit 1, empty `gh pr checks`, lockfile `npm ci` failure, and missing `typecheck` / `test:db` scripts on **`main` @ `9c1aace`** are **resolved** on **`main` @ `d044ead`**. **`npm run test:db` in a pod without `OMEN_TEST_DATABASE_ADMIN_URL`**, **GitHub Pages (README only)**, and **database mode / Following / Archive against a live store** remain **unverified or unchanged**.
+
 ### Prior audit snapshot (`main` @ `9c1aace`, 2026-09-25)
 
 Kept for history: 75 unit tests; `npm ci` **BLOCKED** on lockfile; no `typecheck` / `test:db` scripts; PR #6 worktree 145 tests with exit 1 (`scrollIntoView`).
