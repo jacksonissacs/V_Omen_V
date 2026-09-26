@@ -98,6 +98,8 @@ npm start         # production server after build
 
 npm run test:db   # PostgreSQL integration tests (needs OMEN_TEST_DATABASE_ADMIN_URL)
 npm run db:migrate | db:status | db:upsert | db:show   # nonproduction database command
+npm run intake -- refresh   # manual CISA KEV review queue; see docs/source-intake.md
+npm run intake:check        # one live read of that feed; not part of npm test
 ```
 
 ### Internal API
@@ -123,7 +125,8 @@ The core workspace (Pulse, Events, event detail, Watchlists, ⌘K event search) 
 - Payments and entitlements
 - Production authentication / SSO
 - Paid market-data or model APIs
-- A public write path or multi-user workspaces (the only write path is the nonproduction `npm run db:upsert` command)
+- A public write path or multi-user workspaces (the only database write path is the nonproduction `npm run db:upsert` command)
+- Scheduled or unattended fetching. `npm run intake` is a manual review queue for one official feed and does not publish evidence. See [docs/source-intake.md](docs/source-intake.md).
 
 See the [roadmap](docs/roadmap.md) for the order those appear.
 

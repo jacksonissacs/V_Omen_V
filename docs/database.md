@@ -145,3 +145,4 @@ The integration suite covers:
 - No public write endpoint, auth, per-user watchlists, or billing. "Followed by default" is a column on the event.
 - No revision history for mutable event fields (title, question, status, deadline, criteria). Upserts overwrite them. History is preserved for observations, evidence and Move Logs.
 - Legacy demo-only screens (Markets, Signals and others listed in `docs/architecture.md`) still read the in-process demo book in both modes.
+- Source intake ([source-intake.md](source-intake.md)) writes a gitignored local review queue. It does not insert events, observations, evidence, or Move Log rows.
