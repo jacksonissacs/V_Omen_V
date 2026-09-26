@@ -65,11 +65,12 @@ describe("GET /api/events/:id", () => {
       params("evt-sourced"),
     )
     expect(response.status).toBe(422)
-    expect(await response.json()).toEqual({
+    const body = await response.json()
+    expect(body).toMatchObject({
       storage: "database",
-      error: "Checkpoint ck-early cannot be reconstructed. This build has no recorded history checkpoints.",
       historical: { available: false, kind: "checkpoint", value: "ck-early", eventId: "evt-sourced" },
     })
+    expect(body.error).toMatch(/cannot be reconstructed/)
   })
 })
 
@@ -82,16 +83,16 @@ describe("GET /api/events/:id/history/:checkpointId", () => {
     __resetRepositoryForTests(fakeRepository([demo], { storage: "database" }))
     expect(
       (await getEventHistory(new Request("http://omen.test"), historyParams("evt-nope", "ck-1"))).status,
-    ).toBe(404)
+    ).toBe(400)
 
     const response = await getEventHistory(
       new Request("http://omen.test"),
       historyParams("evt-demo", "ck-1"),
     )
-    expect(response.status).toBe(422)
+    expect(response.status).toBe(400)
     const body = await response.json()
     expect(body.event).toBeUndefined()
-    expect(body.error).toMatch(/Checkpoint ck-1 cannot be reconstructed/)
+    expect(body.outcome).toBe("invalid_request")
   })
 
   it("returns 503 without demo data when storage fails", async () => {
@@ -99,9 +100,13 @@ describe("GET /api/events/:id/history/:checkpointId", () => {
     __resetRepositoryForTests(failingRepository("connection refused", "database"))
     const response = await getEventHistory(
       new Request("http://omen.test"),
-      historyParams("evt-demo", "ck-1"),
+      historyParams("evt-demo", "1"),
     )
     expect(response.status).toBe(503)
-    expect(await response.json()).toEqual({ storage: "database", error: "Event storage is unavailable" })
+    expect(await response.json()).toMatchObject({
+      storage: "database",
+      outcome: "unavailable",
+      error: "Event storage is unavailable",
+    })
   })
 })

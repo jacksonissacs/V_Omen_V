@@ -144,11 +144,11 @@ These screens are outside the V0 core boundary and were **not migrated** to the 
 | `/signals` | Client component imports `@/data/events` directly |
 | `/agents` | Hard-coded ledger and ranking fixtures in `src/data/workspace.ts` |
 | `/research` | Hard-coded forecast history in `src/data/workspace.ts` |
-| `/archive` | Content inline in `archive-screen.tsx` |
+| `/archive` | Stored checkpoint reconstruction via `IntelligenceRepository` (database mode) |
 | `/relations` | Content inline in `relations-screen.tsx` (does not use `getGraph()`) |
 | `/alerts`, `/api-access`, `/team`, `/settings` | Static rows in the page or screen component |
 
-`/archive` is labelled as a demo on screen: its date, time and replay controls do not query stored records.
+`/archive` replays published checkpoints in database mode. Demo storage reports that stored reconstruction is unsupported. Arbitrary `?at=` and `?cutoff=` queries are refused.
 
 Also demo-only inside migrated screens: the ⌘K "Ask", "Rewind" and "Create" commands (fixed copy and links), and the Pulse card figures that are not computed from records (σ, "Data quality", the explained/unexplained bar). These need to be sourced or removed under the build contract in a later task. The Make a call modal is no longer reachable from any screen.
 

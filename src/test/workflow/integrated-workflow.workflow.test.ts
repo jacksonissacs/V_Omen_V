@@ -45,6 +45,17 @@ let outage: RunningServer
 let browser: Browser
 let page: Page
 let laterWriteApplied = false
+let earlyCheckpointId = ""
+let latestCheckpointId = ""
+
+async function syncTemporalCheckpoints(): Promise<void> {
+  const { status, body } = await fetchJson(server, "/api/events/evt-test-temporal/history?limit=50")
+  expect(status).toBe(200)
+  const checkpoints = body.checkpoints as Array<{ id: string; sequence: number }>
+  expect(checkpoints.length).toBeGreaterThan(0)
+  latestCheckpointId = checkpoints[0]!.id
+  earlyCheckpointId = checkpoints[checkpoints.length - 1]!.id
+}
 
 beforeAll(async () => {
   chromePath()
@@ -70,6 +81,7 @@ beforeAll(async () => {
   browser = await launchWorkflowBrowser()
   page = await browser.newPage()
   await page.setViewport({ width: 1280, height: 800 })
+  await syncTemporalCheckpoints()
 
   writeFileSync(
     path.join(artifactDir(), "tested-sha.txt"),
@@ -137,21 +149,34 @@ describe("production HTTP payloads", () => {
     expect(body.event).toBeUndefined()
   })
 
-  it("returns 422 without current text for unknown checkpoint ids and historical queries", async () => {
+  it("refuses malformed checkpoint ids and unknown checkpoints without current text", async () => {
     const query = await fetchJson(server, "/api/events/evt-test-temporal?checkpoint=ck-early")
     expect(query.status).toBe(422)
     expect(query.body.event).toBeUndefined()
     expect(JSON.stringify(query.body)).not.toContain(CURRENT_TITLE)
-    expect(query.body.error).toMatch(/Checkpoint ck-early cannot be reconstructed/)
 
-    const path = await fetchJson(server, "/api/events/evt-test-temporal/history/ck-early")
-    expect(path.status).toBe(422)
-    expect(path.body.event).toBeUndefined()
-    expect(JSON.stringify(path.body)).not.toContain("55.25")
+    const malformed = await fetchJson(server, `/api/events/evt-test-temporal/history/ck-early`)
+    expect(malformed.status).toBe(400)
+    expect(malformed.body.outcome).toBe("invalid_request")
+    expect(JSON.stringify(malformed.body)).not.toContain("55.25")
 
-    const unknownEvent = await fetchJson(server, "/api/events/evt-does-not-exist/history/ck-early")
+    const missing = await fetchJson(server, "/api/events/evt-test-temporal/history/999999999999")
+    expect(missing.status).toBe(422)
+    expect(missing.body.outcome).toBe("missing_checkpoint")
+    expect(missing.body.event).toBeUndefined()
+
+    const unknownEvent = await fetchJson(server, "/api/events/evt-does-not-exist/history/1")
     expect(unknownEvent.status).toBe(404)
     expect(unknownEvent.body.event).toBeUndefined()
+  })
+
+  it("replays a stored checkpoint without returning the current AionEvent projection", async () => {
+    const replay = await fetchJson(server, `/api/events/evt-test-temporal/history/${earlyCheckpointId}`)
+    expect(replay.status).toBe(200)
+    expect(replay.body.outcome).toBe("reconstruction")
+    expect(replay.body.event).toBeUndefined()
+    expect(JSON.stringify(replay.body)).not.toContain(LATER_TITLE)
+    expect((replay.body.moveLogs as Array<{ version: number }> | undefined)?.[0]?.version).toBe(1)
   })
 
   it("fails visibly on a database outage without serving demo events", async () => {
@@ -164,9 +189,12 @@ describe("production HTTP payloads", () => {
     expect(one.status).toBe(503)
     expect(one.body.event).toBeUndefined()
 
-    const history = await fetchJson(outage, "/api/events/evt-test-temporal/history/ck-early")
+    const history = await fetchJson(outage, `/api/events/evt-test-temporal/history/${earlyCheckpointId}`)
     expect(history.status).toBe(503)
     expect(history.body.event).toBeUndefined()
+
+    const archive = visibleHtml((await fetchText(outage, `/archive?event=evt-test-temporal&checkpoint=${earlyCheckpointId}`)).text)
+    expect(archive).toContain("Archive storage is unavailable")
 
     const html = visibleHtml((await fetchText(outage, "/pulse")).text)
     expect(html).toMatch(/Workspace data unavailable|Data unavailable/)
@@ -227,23 +255,26 @@ describe("production rendered content", () => {
     expect(html.replace(/not a live [a-z]+/gi, "")).not.toMatch(/\b(live|real-time|streaming)\b/i)
   })
 
-  it("does not fall back to current text on shareable historical URLs", async () => {
-    const query = await fetchText(server, "/events/evt-test-temporal?checkpoint=ck-early")
-    const queryText = visibleHtml(query.text)
-    expect(queryText).toContain("Historical view unavailable")
-    expect(queryText).not.toContain(CURRENT_TITLE)
-    expect(queryText).toContain("Return to present")
-
-    const path = await fetchText(server, "/events/evt-test-temporal/history/ck-early")
+  it("serves shareable checkpoint URLs from archive and the event history route", async () => {
+    const path = await fetchText(server, `/events/evt-test-temporal/history/${earlyCheckpointId}`)
     const pathText = visibleHtml(path.text)
-    expect(pathText).toContain("Checkpoint ck-early cannot be reconstructed")
-    expect(pathText).not.toContain("55.3%")
+    expect(pathText).toContain("Historical checkpoint view")
+    expect(pathText).toContain("Move Log revisions in this checkpoint")
     expect(pathText).not.toContain(LATER_TITLE)
 
-    const archive = await fetchText(server, "/archive?checkpoint=ck-early")
+    const archive = await fetchText(
+      server,
+      `/archive?event=evt-test-temporal&checkpoint=${earlyCheckpointId}`,
+    )
     const archiveText = visibleHtml(archive.text)
-    expect(archiveText).toContain("Historical view unavailable")
+    expect(archiveText).toContain("Historical checkpoint view")
     expect(archiveText).not.toContain("Show point-in-time demo")
+    expect(archiveText).not.toContain(LATER_TITLE)
+
+    const malformedArchive = visibleHtml(
+      (await fetchText(server, "/archive?event=evt-test-temporal&checkpoint=ck-early")).text,
+    )
+    expect(malformedArchive).toContain("not valid")
   })
 })
 
@@ -289,13 +320,14 @@ describe("browser workflow", () => {
   })
 
   it("opens a checkpoint URL, keeps current text out, and returns to present", async () => {
-    await page.goto(new URL("/events/evt-test-temporal/history/ck-early", server.url).toString(), {
-      waitUntil: "networkidle0",
-    })
-    const unavailable = await page.evaluate(() => document.body.innerText)
-    expect(unavailable).toContain("Historical view unavailable")
-    expect(unavailable).not.toContain(CURRENT_TITLE)
-    expect(unavailable).not.toContain(LATER_TITLE)
+    await page.goto(
+      new URL(`/events/evt-test-temporal/history/${earlyCheckpointId}`, server.url).toString(),
+      { waitUntil: "networkidle0" },
+    )
+    const historical = await page.evaluate(() => document.body.innerText)
+    expect(historical).toContain("Stored reconstruction")
+    expect(historical).not.toContain(LATER_TITLE)
+    expect(historical).toContain("version 1")
 
     await Promise.all([
       page.waitForNavigation({ waitUntil: "networkidle0" }),
@@ -304,6 +336,20 @@ describe("browser workflow", () => {
     expect(page.url()).toMatch(/\/events\/evt-test-temporal$/)
     expect(await page.evaluate(() => document.body.innerText)).toContain(CURRENT_TITLE)
     await saveScreenshot(page, "03_return_to_present")
+  })
+
+  it("reloads archive checkpoint URLs and navigates checkpoints with the URL", async () => {
+    const archiveUrl = new URL(
+      `/archive?event=evt-test-temporal&checkpoint=${earlyCheckpointId}`,
+      server.url,
+    )
+    await page.goto(archiveUrl.toString(), { waitUntil: "networkidle0" })
+    expect(await page.evaluate(() => document.body.innerText)).toContain("Historical checkpoint view")
+
+    await page.reload({ waitUntil: "networkidle0" })
+    expect(page.url()).toBe(archiveUrl.toString())
+    expect(await page.evaluate(() => document.body.innerText)).toContain("Historical checkpoint view")
+
   })
 
   it("keeps mobile layout inside the viewport", async () => {
@@ -404,6 +450,7 @@ describe("validated write path and later current state", () => {
     const written = await upsert(database.url, TEMPORAL_LATER)
     expect(written.stdout).toMatch(/appended|updated|unchanged/)
     laterWriteApplied = true
+    await syncTemporalCheckpoints()
 
     const { body } = await fetchJson(server, "/api/events/evt-test-temporal")
     const event = body.event as {
@@ -431,25 +478,31 @@ describe("validated write path and later current state", () => {
     expect(html).toContain("SYNTHETIC TEST later correction note")
     expect(html).toContain("3 evidence records")
 
-    const historical = await fetchJson(server, "/api/events/evt-test-temporal?checkpoint=ck-early")
-    expect(historical.status).toBe(422)
-    expect(JSON.stringify(historical.body)).not.toContain(LATER_TITLE)
-    expect(JSON.stringify(historical.body)).not.toContain(CURRENT_TITLE)
-    expect(historical.body.event).toBeUndefined()
+    const earlyReplay = await fetchJson(server, `/api/events/evt-test-temporal/history/${earlyCheckpointId}`)
+    expect(earlyReplay.status).toBe(200)
+    expect(JSON.stringify(earlyReplay.body)).not.toContain(LATER_TITLE)
+    expect(JSON.stringify(earlyReplay.body)).not.toContain("SYNTHETIC TEST correction")
+    expect((earlyReplay.body.moveLogs as Array<{ version: number }> | undefined)?.[0]?.version).toBe(1)
 
-    await page.goto(new URL("/events/evt-test-temporal?checkpoint=ck-early", server.url).toString(), {
-      waitUntil: "networkidle0",
-    })
+    const latestReplay = await fetchJson(server, `/api/events/evt-test-temporal/history/${latestCheckpointId}`)
+    expect(latestReplay.status).toBe(200)
+    expect(JSON.stringify(latestReplay.body)).toContain(LATER_TITLE)
+    expect((latestReplay.body.moveLogs as Array<{ version: number }> | undefined)?.[0]?.version).toBe(2)
+
+    await page.goto(
+      new URL(`/archive?event=evt-test-temporal&checkpoint=${earlyCheckpointId}`, server.url).toString(),
+      { waitUntil: "networkidle0" },
+    )
     const rendered = await page.evaluate(() => document.body.innerText)
-    expect(rendered).toContain("Historical view unavailable")
+    expect(rendered).toContain("Historical checkpoint view")
     expect(rendered).not.toContain(LATER_TITLE)
     expect(rendered).not.toContain("SYNTHETIC TEST correction")
-    await saveScreenshot(page, "05_later_write_checkpoint_refused")
+    await saveScreenshot(page, "05_earlier_checkpoint_after_later_write")
   })
 })
 
-describe("blocked reconstruction claims on this SHA", () => {
-  it("records that verified earlier-snapshot membership is not stored on this SHA", () => {
+describe("stored reconstruction coverage notes", () => {
+  it("records remaining blocked checks that need dedicated fixtures", () => {
     expect(laterWriteApplied).toBe(true)
     writeFileSync(
       path.join(ARTIFACTS, "blocked-checks.json"),
@@ -459,24 +512,9 @@ describe("blocked reconstruction claims on this SHA", () => {
           laterWriteApplied,
           blocked: [
             {
-              id: "earlier-checkpoint-excludes-later-members",
-              reason:
-                "main has no history_checkpoints table or observed-snapshot publisher (draft PR #8 / #11). The suite proves historical URLs omit current text, not that a stored ck-early contains only v1 members.",
-            },
-            {
-              id: "title-status-preserved-on-older-checkpoint",
-              reason:
-                "Event title and status are overwritten in place. There is no event_revisions history on this SHA, so an older checkpoint cannot replay the earlier title.",
-            },
-            {
               id: "delayed-commit-excluded-from-earlier-checkpoint",
               reason:
-                "No checkpoint visibility contract is stored on this SHA, so a delayed commit cannot be shown to stay out of an earlier observed snapshot.",
-            },
-            {
-              id: "shareable-checkpoint-replays-same-historical-members",
-              reason:
-                "Shareable checkpoint URLs consistently refuse reconstruction. They do not replay a stored historical member set.",
+                "Needs a dedicated delayed-commit fixture in the workflow harness; temporal db tests cover the visibility contract.",
             },
             {
               id: "zero-observation-database-row",

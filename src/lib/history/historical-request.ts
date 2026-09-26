@@ -13,16 +13,22 @@ export function firstQueryValue(value: string | string[] | undefined | null): st
   return trimmed ? trimmed : undefined
 }
 
+export interface HistoricalRequestOptions {
+  /** Archive serves checkpoint replay itself; only arbitrary-time queries are refused at the page gate. */
+  route?: "archive" | "workspace"
+}
+
 /**
- * Detects a request for a recorded checkpoint or an arbitrary past instant.
- * V0 on this SHA has no verified checkpoint store, so callers must refuse
- * to render or return the current record.
+ * Detects a request for a recorded checkpoint or an arbitrary past instant on
+ * workspace routes. Archive handles checkpoint replay; it still refuses `at` and
+ * `cutoff`.
  */
 export function requestedHistoricalView(
   searchParams:
     | { [key: string]: string | string[] | undefined }
     | URLSearchParams
     | undefined,
+  options: HistoricalRequestOptions = {},
 ): HistoricalRequest | undefined {
   if (!searchParams) return undefined
   const read = (key: string) =>
@@ -30,6 +36,7 @@ export function requestedHistoricalView(
       ? firstQueryValue(searchParams.get(key))
       : firstQueryValue(searchParams[key])
   for (const kind of HISTORICAL_QUERY_KEYS) {
+    if (options.route === "archive" && kind === "checkpoint") continue
     const value = read(kind)
     if (value) return { kind, value }
   }
@@ -37,7 +44,7 @@ export function requestedHistoricalView(
 
 export function historicalViewUnavailableMessage(request: HistoricalRequest): string {
   if (request.kind === "checkpoint") {
-    return `Checkpoint ${request.value} cannot be reconstructed. This build has no recorded history checkpoints.`
+    return `Checkpoint ${request.value} cannot be reconstructed from this URL. Use a stored checkpoint id on /archive or /events/:id/history/:checkpointId.`
   }
-  return `Historical ${request.kind}=${request.value} cannot be reconstructed. This build does not replay arbitrary times.`
+  return `Historical ${request.kind}=${request.value} cannot be reconstructed. Replay a stored checkpoint id instead of an arbitrary time.`
 }

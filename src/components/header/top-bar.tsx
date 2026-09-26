@@ -11,16 +11,20 @@ export function TopBar() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const { setPaletteOpen, findEventSummary, storage } = useWorkspace()
+  const onArchive = pathname === "/archive"
+  const archiveCheckpoint = onArchive ? searchParams.get("checkpoint") : null
   const historical = requestedHistoricalView(searchParams)
   const historyMatch = pathname.match(/^\/events\/([^/]+)\/history\/([^/]+)$/)
   const eventMatch = pathname.match(/^\/events\/([^/]+)$/)
   const event =
     !historical && !historyMatch && eventMatch ? findEventSummary(eventMatch[1]) : undefined
-  const heading = historical || historyMatch
+  const heading = historical
     ? "Historical view unavailable"
-    : event
-      ? event.title
-      : (routeHeadings[pathname] ?? "OMEN")
+    : historyMatch || archiveCheckpoint
+      ? "Historical checkpoint view"
+      : event
+        ? event.title
+        : (routeHeadings[pathname] ?? "OMEN")
   const readsStore = CORE_ROUTE.test(pathname)
 
   return (
@@ -57,7 +61,7 @@ export function TopBar() {
 }
 
 /** Routes whose data comes from the repository. Every other workspace screen is static demo content. */
-const CORE_ROUTE = /^\/(pulse|events|watchlists)(\/|$)/
+const CORE_ROUTE = /^\/(pulse|events|watchlists|archive)(\/|$)/
 
 const PROVENANCE_CHIP = {
   demo: {

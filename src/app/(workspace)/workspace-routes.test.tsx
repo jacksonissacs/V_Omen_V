@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs"
 import path from "node:path"
 
-import { render, screen, within } from "@testing-library/react"
+import { cleanup, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type { ReactElement, ReactNode } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
@@ -11,6 +11,7 @@ import { mockPathname, mockPush, mockSearchParams, NotFoundError } from "@/test/
 import WorkspaceError from "@/app/(workspace)/error"
 import EventsLoading from "@/app/(workspace)/events/(book)/loading"
 import EventsPage from "@/app/(workspace)/events/(book)/page"
+import ArchivePage from "@/app/(workspace)/archive/page"
 import EventCheckpointPage from "@/app/(workspace)/events/[id]/history/[checkpointId]/page"
 import EventIntelligencePage, { generateMetadata } from "@/app/(workspace)/events/[id]/page"
 import WorkspaceLayout from "@/app/(workspace)/layout"
@@ -80,6 +81,7 @@ function rowTitles(container: HTMLElement) {
 }
 
 afterEach(() => {
+  cleanup()
   __resetRepositoryForTests()
   __resetFollowingStoresForTests()
   window.localStorage.clear()
@@ -261,7 +263,7 @@ describe("Event detail route", () => {
     expect(await generateMetadata(params("evt-alpha"))).toEqual({ title: "Alpha rate decision" })
   })
 
-  it("refuses a checkpoint or cutoff query instead of rendering the current event", async () => {
+  it("refuses a malformed checkpoint query instead of rendering the current event", async () => {
     useRepository(fakeRepository(book))
     mockPathname.mockReturnValue("/events/evt-alpha")
     mockSearchParams.mockReturnValue(new URLSearchParams("checkpoint=ck-early"))
@@ -271,16 +273,26 @@ describe("Event detail route", () => {
         searchParams: Promise.resolve({ checkpoint: "ck-early" }),
       }),
     )
-
-    expect(screen.getByTestId("historical-unavailable")).toHaveTextContent(
-      "Checkpoint ck-early cannot be reconstructed",
-    )
+    expect(screen.getByTestId("historical-unavailable")).toHaveTextContent(/positive decimal bigint/)
     expect(screen.getByRole("link", { name: "Return to present" })).toHaveAttribute(
       "href",
       "/events/evt-alpha",
     )
     expect(screen.queryByRole("heading", { name: "Alpha rate decision", level: 1 })).not.toBeInTheDocument()
     expect(within(document.querySelector(".aion-crumb")!).getByText("Historical view unavailable")).toBeInTheDocument()
+  })
+
+  it("refuses a cutoff query instead of rendering the current event", async () => {
+    useRepository(fakeRepository(book))
+    mockPathname.mockReturnValue("/events/evt-alpha")
+    mockSearchParams.mockReturnValue(new URLSearchParams("cutoff=2026-09-01T00:00:00.000Z"))
+    await renderRoute(
+      EventIntelligencePage({
+        ...params("evt-alpha"),
+        searchParams: Promise.resolve({ cutoff: "2026-09-01T00:00:00.000Z" }),
+      }),
+    )
+    expect(screen.getByTestId("historical-unavailable")).toHaveTextContent(/cannot be reconstructed/)
     expect(await generateMetadata({
       ...params("evt-alpha"),
       searchParams: Promise.resolve({ cutoff: "2026-09-01T00:00:00.000Z" }),
@@ -301,9 +313,6 @@ describe("Event detail route", () => {
       "href",
       "/events/evt-alpha",
     )
-    await expect(
-      EventCheckpointPage({ params: Promise.resolve({ id: "evt-nope", checkpointId: "ck-early" }) }),
-    ).rejects.toBeInstanceOf(NotFoundError)
   })
 })
 

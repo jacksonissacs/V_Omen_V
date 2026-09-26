@@ -30,10 +30,10 @@ describe("requestedHistoricalView", () => {
 
   it("names the missing reconstruction instead of describing current text", () => {
     expect(historicalViewUnavailableMessage({ kind: "checkpoint", value: "ck-missing" })).toMatch(
-      /Checkpoint ck-missing cannot be reconstructed/,
+      /cannot be reconstructed from this URL/,
     )
     expect(historicalViewUnavailableMessage({ kind: "at", value: "2026-01-01T00:00:00.000Z" })).toMatch(
-      /does not replay arbitrary times/,
+      /stored checkpoint id instead of an arbitrary time/,
     )
   })
 })
