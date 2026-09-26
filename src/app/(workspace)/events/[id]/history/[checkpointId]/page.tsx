@@ -1,8 +1,6 @@
 import type { Metadata } from "next"
-import { notFound } from "next/navigation"
 
-import { HistoricalUnavailable } from "@/components/history/historical-unavailable"
-import { getRepository } from "@/lib/data/repository"
+import { renderHistoricalCheckpointPage } from "@/lib/history/render-historical-checkpoint"
 
 export async function generateMetadata({
   params,
@@ -10,7 +8,7 @@ export async function generateMetadata({
   params: Promise<{ id: string; checkpointId: string }>
 }): Promise<Metadata> {
   const { checkpointId } = await params
-  return { title: `Checkpoint ${checkpointId} unavailable` }
+  return { title: `Checkpoint ${checkpointId}` }
 }
 
 export default async function EventCheckpointPage({
@@ -19,7 +17,5 @@ export default async function EventCheckpointPage({
   params: Promise<{ id: string; checkpointId: string }>
 }) {
   const { id, checkpointId } = await params
-  const event = await getRepository().getEvent(id)
-  if (!event) notFound()
-  return <HistoricalUnavailable eventId={id} request={{ kind: "checkpoint", value: checkpointId }} />
+  return renderHistoricalCheckpointPage(id, checkpointId)
 }

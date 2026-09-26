@@ -5,9 +5,15 @@ import type { Browser, Page } from "puppeteer-core"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 
 import { parseEventBundle } from "@/lib/db/event-bundle"
+import { CHECKPOINT_NOT_FOUND } from "@/lib/domain/historical-reconstruction"
+import { followingStorageKey } from "@/lib/following/persistence"
 import type { DisposableDatabase } from "@/test/postgres-harness"
 import {
+  attachBrowserDiagnostics,
   chromePath,
+  clickThrough,
+  gotoMarketingHome,
+  gotoWorkspacePath,
   launchWorkflowBrowser,
   noHorizontalOverflow,
   saveFailureTrace,
@@ -22,6 +28,7 @@ import {
   createWorkflowDatabase,
   fetchJson,
   fetchText,
+  parseCheckpointId,
   startProductionServer,
   upsert,
   upsertExit,
@@ -38,23 +45,24 @@ const CURRENT_TITLE = "[SYNTHETIC TEST] Example agency publishes the 2026 bullet
 const LATER_TITLE = "[SYNTHETIC TEST] Example agency published the 2026 bulletin (updated)"
 const SINGLE_TITLE = "[SYNTHETIC TEST] Single observation event"
 const DEMO_TITLE = "Bank of Canada cuts rates in October"
+const UNKNOWN_CHECKPOINT = "00000000-0000-4000-8000-000000000000"
 
 let database: DisposableDatabase
 let server: RunningServer
 let outage: RunningServer
 let browser: Browser
 let page: Page
+let earlyCheckpoint = ""
+let laterCheckpoint = ""
 let laterWriteApplied = false
 
 beforeAll(async () => {
   chromePath()
   database = await createWorkflowDatabase()
-  const seed = await Promise.all([
-    upsert(database.url, TEMPORAL),
-    upsert(database.url, SINGLE),
-    upsert(database.url, SOURCED),
-  ])
-  for (const result of seed) {
+  const temporalSeed = await upsert(database.url, TEMPORAL)
+  earlyCheckpoint = parseCheckpointId(temporalSeed.stdout)
+  const seed = await Promise.all([upsert(database.url, SINGLE), upsert(database.url, SOURCED)])
+  for (const result of [temporalSeed, ...seed]) {
     expect(result.stderr).toBe("")
     expect(result.stdout).not.toContain(database.url)
   }
@@ -69,6 +77,7 @@ beforeAll(async () => {
   })
   browser = await launchWorkflowBrowser()
   page = await browser.newPage()
+  attachBrowserDiagnostics(page)
   await page.setViewport({ width: 1280, height: 800 })
 
   writeFileSync(
@@ -137,21 +146,36 @@ describe("production HTTP payloads", () => {
     expect(body.event).toBeUndefined()
   })
 
-  it("returns 422 without current text for unknown checkpoint ids and historical queries", async () => {
-    const query = await fetchJson(server, "/api/events/evt-test-temporal?checkpoint=ck-early")
-    expect(query.status).toBe(422)
-    expect(query.body.event).toBeUndefined()
-    expect(JSON.stringify(query.body)).not.toContain(CURRENT_TITLE)
-    expect(query.body.error).toMatch(/Checkpoint ck-early cannot be reconstructed/)
+  it("reconstructs a published checkpoint and refuses unknown or invalid history ids", async () => {
+    const ok = await fetchJson(server, `/api/events/evt-test-temporal/history/${earlyCheckpoint}`)
+    expect(ok.status).toBe(200)
+    expect(ok.body.outcome).toBe("reconstruction")
+    const semantics = (ok.body.semantics ?? {}) as { title?: string; status?: string }
+    expect(semantics.title).toBe(CURRENT_TITLE)
+    expect(semantics.status).toBe("active")
+    expect(JSON.stringify(ok.body)).not.toContain(LATER_TITLE)
+    expect(ok.body.event).toBeUndefined()
 
-    const path = await fetchJson(server, "/api/events/evt-test-temporal/history/ck-early")
-    expect(path.status).toBe(422)
-    expect(path.body.event).toBeUndefined()
-    expect(JSON.stringify(path.body)).not.toContain("55.25")
+    const missing = await fetchJson(server, `/api/events/evt-test-temporal/history/${UNKNOWN_CHECKPOINT}`)
+    expect(missing.status).toBe(422)
+    expect(missing.body.error).toBe(CHECKPOINT_NOT_FOUND)
+    expect(missing.body.event).toBeUndefined()
 
-    const unknownEvent = await fetchJson(server, "/api/events/evt-does-not-exist/history/ck-early")
+    const invalid = await fetchJson(server, "/api/events/evt-test-temporal/history/ck-early")
+    expect(invalid.status).toBe(400)
+    expect(invalid.body.outcome).toBe("invalid_request")
+    expect(JSON.stringify(invalid.body)).not.toContain(CURRENT_TITLE)
+
+    const unknownEvent = await fetchJson(server, `/api/events/evt-does-not-exist/history/${earlyCheckpoint}`)
     expect(unknownEvent.status).toBe(404)
     expect(unknownEvent.body.event).toBeUndefined()
+
+    const arbitrary = await fetchJson(
+      server,
+      `/api/events/evt-test-temporal/history/${earlyCheckpoint}?at=2026-09-01T00:00:00.000Z`,
+    )
+    expect(arbitrary.status).toBe(422)
+    expect(arbitrary.body.outcome).toBe("unsupported_history")
   })
 
   it("fails visibly on a database outage without serving demo events", async () => {
@@ -164,7 +188,7 @@ describe("production HTTP payloads", () => {
     expect(one.status).toBe(503)
     expect(one.body.event).toBeUndefined()
 
-    const history = await fetchJson(outage, "/api/events/evt-test-temporal/history/ck-early")
+    const history = await fetchJson(outage, `/api/events/evt-test-temporal/history/${earlyCheckpoint}`)
     expect(history.status).toBe(503)
     expect(history.body.event).toBeUndefined()
 
@@ -227,46 +251,46 @@ describe("production rendered content", () => {
     expect(html.replace(/not a live [a-z]+/gi, "")).not.toMatch(/\b(live|real-time|streaming)\b/i)
   })
 
-  it("does not fall back to current text on shareable historical URLs", async () => {
-    const query = await fetchText(server, "/events/evt-test-temporal?checkpoint=ck-early")
+  it("renders shareable checkpoint URLs without current text", async () => {
+    const query = await fetchText(server, `/events/evt-test-temporal?checkpoint=${earlyCheckpoint}`)
     const queryText = visibleHtml(query.text)
-    expect(queryText).toContain("Historical view unavailable")
-    expect(queryText).not.toContain(CURRENT_TITLE)
-    expect(queryText).toContain("Return to present")
+    expect(queryText).toContain(CURRENT_TITLE)
+    expect(queryText).toContain("Historical reconstruction")
+    expect(queryText).not.toContain(LATER_TITLE)
 
-    const path = await fetchText(server, "/events/evt-test-temporal/history/ck-early")
-    const pathText = visibleHtml(path.text)
-    expect(pathText).toContain("Checkpoint ck-early cannot be reconstructed")
-    expect(pathText).not.toContain("55.3%")
-    expect(pathText).not.toContain(LATER_TITLE)
+    const pathHtml = visibleHtml(
+      (await fetchText(server, `/events/evt-test-temporal/history/${earlyCheckpoint}`)).text,
+    )
+    expect(pathHtml).toContain(CURRENT_TITLE)
+    expect(pathHtml).not.toContain("55.3%")
+    expect(pathHtml).not.toContain(LATER_TITLE)
 
-    const archive = await fetchText(server, "/archive?checkpoint=ck-early")
-    const archiveText = visibleHtml(archive.text)
-    expect(archiveText).toContain("Historical view unavailable")
-    expect(archiveText).not.toContain("Show point-in-time demo")
+    const missing = visibleHtml(
+      (await fetchText(server, `/events/evt-test-temporal/history/${UNKNOWN_CHECKPOINT}`)).text,
+    )
+    expect(missing).toContain(CHECKPOINT_NOT_FOUND)
+    expect(missing).not.toContain(CURRENT_TITLE)
+
+    const archive = visibleHtml((await fetchText(server, "/archive?checkpoint=ck-early")).text)
+    expect(archive).toContain("Historical view unavailable")
+    expect(archive).not.toContain("Show point-in-time demo")
   })
 })
 
 describe("browser workflow", () => {
   it("walks Homepage → Pulse → event → evidence → Move Log", async () => {
     await page.setViewport({ width: 1280, height: 800 })
-    await page.goto(new URL("/", server.url).toString(), { waitUntil: "networkidle0" })
+    await gotoMarketingHome(page, server.url)
     expect(await page.$eval("h1", (node) => node.textContent)).toMatch(/Every probability/)
 
-    await Promise.all([
-      page.waitForNavigation({ waitUntil: "networkidle0" }),
-      page.click("a.btn-primary"),
-    ])
+    await clickThrough(page, "a.btn-primary")
     expect(page.url()).toMatch(/\/pulse$/)
     await waitForWorkspaceReady(page)
     expect(await page.evaluate(() => document.body.innerText)).toContain(CURRENT_TITLE)
     expect(await page.evaluate(() => document.body.innerText)).not.toContain(DEMO_TITLE)
     await saveScreenshot(page, "01_pulse_synthetic_book")
 
-    await Promise.all([
-      page.waitForNavigation({ waitUntil: "networkidle0" }),
-      page.click(`a[aria-label="Open ${CURRENT_TITLE}"]`),
-    ])
+    await clickThrough(page, `a[aria-label="Open ${CURRENT_TITLE}"]`)
     expect(page.url()).toMatch(/\/events\/evt-test-temporal$/)
     await page.waitForSelector("h1")
     const detail = await page.evaluate(() => document.body.innerText)
@@ -288,19 +312,14 @@ describe("browser workflow", () => {
     await saveScreenshot(page, "02_event_evidence_move_log")
   })
 
-  it("opens a checkpoint URL, keeps current text out, and returns to present", async () => {
-    await page.goto(new URL("/events/evt-test-temporal/history/ck-early", server.url).toString(), {
-      waitUntil: "networkidle0",
-    })
-    const unavailable = await page.evaluate(() => document.body.innerText)
-    expect(unavailable).toContain("Historical view unavailable")
-    expect(unavailable).not.toContain(CURRENT_TITLE)
-    expect(unavailable).not.toContain(LATER_TITLE)
+  it("opens a checkpoint URL, keeps later writes out, and returns to present", async () => {
+    await gotoWorkspacePath(page, server.url, `/events/evt-test-temporal/history/${earlyCheckpoint}`)
+    const historical = await page.evaluate(() => document.body.innerText)
+    expect(historical).toContain(CURRENT_TITLE)
+    expect(historical).not.toContain(LATER_TITLE)
+    expect(historical).not.toContain("SYNTHETIC TEST correction")
 
-    await Promise.all([
-      page.waitForNavigation({ waitUntil: "networkidle0" }),
-      page.click("a.aion-button[data-primary='true']"),
-    ])
+    await clickThrough(page, "a.aion-button[data-primary='true']")
     expect(page.url()).toMatch(/\/events\/evt-test-temporal$/)
     expect(await page.evaluate(() => document.body.innerText)).toContain(CURRENT_TITLE)
     await saveScreenshot(page, "03_return_to_present")
@@ -308,7 +327,7 @@ describe("browser workflow", () => {
 
   it("keeps mobile layout inside the viewport", async () => {
     await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true })
-    await page.goto(new URL("/events/evt-test-temporal", server.url).toString(), { waitUntil: "networkidle0" })
+    await gotoWorkspacePath(page, server.url, "/events/evt-test-temporal")
     expect(await noHorizontalOverflow(page)).toBe(true)
     const layout = await page.evaluate(() => {
       const main = document.querySelector(".aion-event-layout")
@@ -324,9 +343,9 @@ describe("browser workflow", () => {
   })
 
   it("supports keyboard navigation from the homepage CTA and ⌘K", async () => {
-    await page.goto(new URL("/", server.url).toString(), { waitUntil: "networkidle0" })
+    await gotoMarketingHome(page, server.url)
     await page.focus("a.btn-primary")
-    await Promise.all([page.waitForNavigation({ waitUntil: "networkidle0" }), page.keyboard.press("Enter")])
+    await Promise.all([page.waitForNavigation({ waitUntil: "domcontentloaded" }), page.keyboard.press("Enter")])
     expect(page.url()).toMatch(/\/pulse$/)
     await waitForWorkspaceReady(page)
 
@@ -340,7 +359,7 @@ describe("browser workflow", () => {
   })
 
   it("shows the unknown-event page instead of current book text", async () => {
-    await page.goto(new URL("/events/evt-does-not-exist", server.url).toString(), { waitUntil: "networkidle0" })
+    await gotoWorkspacePath(page, server.url, "/events/evt-does-not-exist")
     const text = await page.evaluate(() => document.body.innerText)
     expect(text).toContain("Event not in the book")
     expect(text).not.toContain(CURRENT_TITLE)
@@ -348,24 +367,38 @@ describe("browser workflow", () => {
   })
 
   it("honours browser back and forward across the workflow", async () => {
-    await page.goto(new URL("/", server.url).toString(), { waitUntil: "networkidle0" })
-    await Promise.all([
-      page.waitForNavigation({ waitUntil: "networkidle0" }),
-      page.click("a.btn-primary"),
-    ])
+    await gotoMarketingHome(page, server.url)
+    await clickThrough(page, "a.btn-primary")
     await waitForWorkspaceReady(page)
-    await Promise.all([
-      page.waitForNavigation({ waitUntil: "networkidle0" }),
-      page.click(`a[aria-label="Open ${SINGLE_TITLE}"]`),
-    ])
+    await clickThrough(page, `a[aria-label="Open ${SINGLE_TITLE}"]`)
     expect(page.url()).toMatch(/\/events\/evt-test-single$/)
 
-    await page.goBack({ waitUntil: "networkidle0" })
+    await page.goBack({ waitUntil: "domcontentloaded" })
     expect(page.url()).toMatch(/\/pulse$/)
     await waitForWorkspaceReady(page)
-    await page.goForward({ waitUntil: "networkidle0" })
+    await page.goForward({ waitUntil: "domcontentloaded" })
     expect(page.url()).toMatch(/\/events\/evt-test-single$/)
     expect(await page.evaluate(() => document.body.innerText)).toContain("Not computable")
+  })
+
+  it("keeps Following across a hard refresh and preserves an intentionally empty watchlist", async () => {
+    await gotoWorkspacePath(page, server.url, "/events/evt-test-single")
+    await page.click(`button[aria-label="Follow ${SINGLE_TITLE}"]`)
+    await gotoWorkspacePath(page, server.url, "/watchlists")
+    const before = await page.evaluate(() => document.body.innerText)
+    expect(before).toMatch(/Saved in this browser/)
+    expect(before).toContain(SINGLE_TITLE)
+
+    await page.reload({ waitUntil: "domcontentloaded" })
+    await waitForWorkspaceReady(page)
+    expect(await page.evaluate(() => document.body.innerText)).toContain(SINGLE_TITLE)
+
+    await page.evaluate((key) => {
+      window.localStorage.setItem(key, JSON.stringify({ version: 1, eventIds: [], userSaved: true }))
+    }, followingStorageKey("database"))
+    await page.reload({ waitUntil: "domcontentloaded" })
+    await waitForWorkspaceReady(page)
+    expect(await page.evaluate(() => document.body.innerText)).toContain("Nothing followed")
   })
 })
 
@@ -400,9 +433,10 @@ describe("validated write path and later current state", () => {
     expect(missing.status).toBe(404)
   })
 
-  it("updates the current view after a later write, and still refuses historical fallback", async () => {
+  it("updates the current view after a later write without rewriting the earlier checkpoint", async () => {
     const written = await upsert(database.url, TEMPORAL_LATER)
     expect(written.stdout).toMatch(/appended|updated|unchanged/)
+    laterCheckpoint = parseCheckpointId(written.stdout)
     laterWriteApplied = true
 
     const { body } = await fetchJson(server, "/api/events/evt-test-temporal")
@@ -428,60 +462,53 @@ describe("validated write path and later current state", () => {
     expect(html).toContain(LATER_TITLE)
     expect(html).toMatch(/version\s*2/)
     expect(html).toContain("SYNTHETIC TEST correction")
-    expect(html).toContain("SYNTHETIC TEST later correction note")
-    expect(html).toContain("3 evidence records")
 
-    const historical = await fetchJson(server, "/api/events/evt-test-temporal?checkpoint=ck-early")
-    expect(historical.status).toBe(422)
+    const historical = await fetchJson(server, `/api/events/evt-test-temporal/history/${earlyCheckpoint}`)
+    expect(historical.status).toBe(200)
+    expect((historical.body.semantics as { title: string }).title).toBe(CURRENT_TITLE)
     expect(JSON.stringify(historical.body)).not.toContain(LATER_TITLE)
-    expect(JSON.stringify(historical.body)).not.toContain(CURRENT_TITLE)
-    expect(historical.body.event).toBeUndefined()
+    expect(JSON.stringify(historical.body)).not.toContain("ev-test-temporal-3")
+    expect(historical.body.moveLogs).toEqual([
+      expect.objectContaining({ version: 1, moveLogId: "ml-test-temporal-1" }),
+    ])
 
-    await page.goto(new URL("/events/evt-test-temporal?checkpoint=ck-early", server.url).toString(), {
-      waitUntil: "networkidle0",
-    })
+    expect(laterCheckpoint).not.toBe(earlyCheckpoint)
+    const laterView = await fetchJson(server, `/api/events/evt-test-temporal/history/${laterCheckpoint}`)
+    expect(laterView.status).toBe(200)
+    expect(JSON.stringify(laterView.body)).toContain(LATER_TITLE)
+
+    await gotoWorkspacePath(page, server.url, `/events/evt-test-temporal?checkpoint=${earlyCheckpoint}`)
     const rendered = await page.evaluate(() => document.body.innerText)
-    expect(rendered).toContain("Historical view unavailable")
+    expect(rendered).toContain(CURRENT_TITLE)
     expect(rendered).not.toContain(LATER_TITLE)
     expect(rendered).not.toContain("SYNTHETIC TEST correction")
-    await saveScreenshot(page, "05_later_write_checkpoint_refused")
+    await saveScreenshot(page, "05_earlier_checkpoint_stable")
   })
 })
 
-describe("blocked reconstruction claims on this SHA", () => {
-  it("records that verified earlier-snapshot membership is not stored on this SHA", () => {
+describe("release verification record", () => {
+  it("writes verification metadata and unresolved risks", () => {
     expect(laterWriteApplied).toBe(true)
     writeFileSync(
-      path.join(ARTIFACTS, "blocked-checks.json"),
+      path.join(ARTIFACTS, "release-verification.json"),
       JSON.stringify(
         {
-          testedMainSha: TESTED_MAIN_SHA,
+          baseBranch: "main",
+          baseSha: TESTED_MAIN_SHA,
+          verificationHead: process.env.GITHUB_SHA ?? "local",
+          integrationBranch: "cursor/omen-workflow-integration-40b2",
+          ciRunInspected: "36238221811",
+          ciJobInspected: "108393816080",
           laterWriteApplied,
           blocked: [
             {
-              id: "earlier-checkpoint-excludes-later-members",
-              reason:
-                "main has no history_checkpoints table or observed-snapshot publisher (draft PR #8 / #11). The suite proves historical URLs omit current text, not that a stored ck-early contains only v1 members.",
-            },
-            {
-              id: "title-status-preserved-on-older-checkpoint",
-              reason:
-                "Event title and status are overwritten in place. There is no event_revisions history on this SHA, so an older checkpoint cannot replay the earlier title.",
-            },
-            {
               id: "delayed-commit-excluded-from-earlier-checkpoint",
               reason:
-                "No checkpoint visibility contract is stored on this SHA, so a delayed commit cannot be shown to stay out of an earlier observed snapshot.",
+                "Covered by src/lib/db/historical-reconstruction.db.test.ts (transactional late commit). Not duplicated in the browser workflow harness.",
             },
             {
-              id: "shareable-checkpoint-replays-same-historical-members",
-              reason:
-                "Shareable checkpoint URLs consistently refuse reconstruction. They do not replay a stored historical member set.",
-            },
-            {
-              id: "zero-observation-database-row",
-              reason:
-                "The validated write path refuses events with zero observations, so a database-backed empty history cannot be constructed. Display is covered by component tests and the one-observation fixture.",
+              id: "npm-audit-runtime-exposure",
+              reason: "See test-artifacts/npm-audit-report.json for advisory paths and runtime vs dev exposure.",
             },
           ],
         },

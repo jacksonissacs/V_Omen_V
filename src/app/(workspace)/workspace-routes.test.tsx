@@ -272,9 +272,7 @@ describe("Event detail route", () => {
       }),
     )
 
-    expect(screen.getByTestId("historical-unavailable")).toHaveTextContent(
-      "Checkpoint ck-early cannot be reconstructed",
-    )
+    expect(screen.getByTestId("historical-unavailable")).toHaveTextContent(/Checkpoint id must be a UUID/)
     expect(screen.getByRole("link", { name: "Return to present" })).toHaveAttribute(
       "href",
       "/events/evt-alpha",
@@ -284,7 +282,7 @@ describe("Event detail route", () => {
     expect(await generateMetadata({
       ...params("evt-alpha"),
       searchParams: Promise.resolve({ cutoff: "2026-09-01T00:00:00.000Z" }),
-    })).toEqual({ title: "Historical view unavailable" })
+    })).toEqual({ title: "Historical view" })
   })
 
   it("renders a shareable checkpoint path without current title or status", async () => {
@@ -295,7 +293,7 @@ describe("Event detail route", () => {
         params: Promise.resolve({ id: "evt-alpha", checkpointId: "ck-early" }),
       }),
     )
-    expect(screen.getByTestId("historical-unavailable")).toHaveTextContent("ck-early")
+    expect(screen.getByTestId("historical-unavailable")).toHaveTextContent(/UUID/)
     expect(screen.queryByRole("heading", { name: "Alpha rate decision" })).not.toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Return to present" })).toHaveAttribute(
       "href",

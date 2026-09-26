@@ -33,7 +33,7 @@ describe("requestedHistoricalView", () => {
       /Checkpoint ck-missing cannot be reconstructed/,
     )
     expect(historicalViewUnavailableMessage({ kind: "at", value: "2026-01-01T00:00:00.000Z" })).toMatch(
-      /does not replay arbitrary times/,
+      /cannot be reconstructed/,
     )
   })
 })

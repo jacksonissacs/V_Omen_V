@@ -13,11 +13,7 @@ export function firstQueryValue(value: string | string[] | undefined | null): st
   return trimmed ? trimmed : undefined
 }
 
-/**
- * Detects a request for a recorded checkpoint or an arbitrary past instant.
- * V0 on this SHA has no verified checkpoint store, so callers must refuse
- * to render or return the current record.
- */
+/** Detects a request for a recorded checkpoint or an arbitrary past instant. */
 export function requestedHistoricalView(
   searchParams:
     | { [key: string]: string | string[] | undefined }
@@ -37,7 +33,7 @@ export function requestedHistoricalView(
 
 export function historicalViewUnavailableMessage(request: HistoricalRequest): string {
   if (request.kind === "checkpoint") {
-    return `Checkpoint ${request.value} cannot be reconstructed. This build has no recorded history checkpoints.`
+    return `Checkpoint ${request.value} cannot be reconstructed.`
   }
-  return `Historical ${request.kind}=${request.value} cannot be reconstructed. This build does not replay arbitrary times.`
+  return `Historical ${request.kind}=${request.value} cannot be reconstructed.`
 }

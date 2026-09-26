@@ -8,18 +8,20 @@ import {
 export function HistoricalUnavailable({
   eventId,
   request,
+  detail,
 }: {
   eventId?: string
   request: HistoricalRequest
+  detail?: string
 }) {
+  const message = detail ?? historicalViewUnavailableMessage(request)
   return (
     <section className="aion-screen" data-testid="historical-unavailable">
       <p className="aion-label">422</p>
       <h1>Historical view unavailable</h1>
-      <p>{historicalViewUnavailableMessage(request)}</p>
+      <p>{message}</p>
       <p className="aion-note">
-        This URL asked for a recorded checkpoint or a past instant. This build has no verified history
-        checkpoints, so the current event text is not shown.
+        This URL asked for a recorded checkpoint or a past instant. The current event text is not shown.
       </p>
       {eventId ? (
         <Link className="aion-button" data-primary="true" href={`/events/${eventId}`}>

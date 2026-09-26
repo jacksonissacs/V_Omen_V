@@ -13,6 +13,7 @@
     "tags": ["SYNTHETIC-TEST", "workflow", "later-write"],
     "relatedEventIds": ["evt-test-single"],
     "provenance": "demo",
+    "correctionNote": "SYNTHETIC TEST semantic revision: title and status updated after the first checkpoint.",
     "followedByDefault": true,
     "catalogPosition": 1,
     "display": {

@@ -11,6 +11,7 @@ const demo = testEvent({ id: "evt-demo", title: "Demo decision" })
 const sourced = { ...testEvent({ id: "evt-sourced", title: "Sourced decision" }), provenance: "sourced" as const }
 
 const params = (id: string) => ({ params: Promise.resolve({ id }) })
+const CHECKPOINT = "11111111-1111-4111-8111-111111111111"
 
 afterEach(() => {
   __resetRepositoryForTests()
@@ -58,19 +59,6 @@ describe("GET /api/events/:id", () => {
     expect((await getEvent(new Request("http://omen.test"), params("evt-demo"))).status).toBe(503)
   })
 
-  it("returns 422 without the current event when a checkpoint is requested", async () => {
-    __resetRepositoryForTests(fakeRepository([sourced], { storage: "database" }))
-    const response = await getEvent(
-      new Request("http://omen.test/api/events/evt-sourced?checkpoint=ck-early"),
-      params("evt-sourced"),
-    )
-    expect(response.status).toBe(422)
-    expect(await response.json()).toEqual({
-      storage: "database",
-      error: "Checkpoint ck-early cannot be reconstructed. This build has no recorded history checkpoints.",
-      historical: { available: false, kind: "checkpoint", value: "ck-early", eventId: "evt-sourced" },
-    })
-  })
 })
 
 describe("GET /api/events/:id/history/:checkpointId", () => {
@@ -78,20 +66,20 @@ describe("GET /api/events/:id/history/:checkpointId", () => {
     params: Promise.resolve({ id, checkpointId }),
   })
 
-  it("returns 404 for an unknown event and 422 without current text for a known event", async () => {
+  it("returns 404 for an unknown event and 400 for an invalid checkpoint id", async () => {
     __resetRepositoryForTests(fakeRepository([demo], { storage: "database" }))
     expect(
-      (await getEventHistory(new Request("http://omen.test"), historyParams("evt-nope", "ck-1"))).status,
+      (await getEventHistory(new Request("http://omen.test"), historyParams("evt-nope", CHECKPOINT))).status,
     ).toBe(404)
 
     const response = await getEventHistory(
       new Request("http://omen.test"),
       historyParams("evt-demo", "ck-1"),
     )
-    expect(response.status).toBe(422)
+    expect(response.status).toBe(400)
     const body = await response.json()
-    expect(body.event).toBeUndefined()
-    expect(body.error).toMatch(/Checkpoint ck-1 cannot be reconstructed/)
+    expect(body.outcome).toBe("invalid_request")
+    expect(body.error).toMatch(/UUID/)
   })
 
   it("returns 503 without demo data when storage fails", async () => {
@@ -99,9 +87,13 @@ describe("GET /api/events/:id/history/:checkpointId", () => {
     __resetRepositoryForTests(failingRepository("connection refused", "database"))
     const response = await getEventHistory(
       new Request("http://omen.test"),
-      historyParams("evt-demo", "ck-1"),
+      historyParams("evt-demo", CHECKPOINT),
     )
     expect(response.status).toBe(503)
-    expect(await response.json()).toEqual({ storage: "database", error: "Event storage is unavailable" })
+    expect(await response.json()).toEqual({
+      storage: "database",
+      outcome: "unavailable",
+      error: "Event storage is unavailable",
+    })
   })
 })

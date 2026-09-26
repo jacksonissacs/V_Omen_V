@@ -22,6 +22,7 @@ const NEXT = path.join(ROOT, "node_modules/.bin/next")
 export interface RunningServer {
   url: string
   port: number
+  logs: string[]
   stop(): Promise<void>
 }
 
@@ -41,6 +42,14 @@ export function requireProductionBuild(): void {
   if (!existsSync(path.join(ROOT, ".next", "BUILD_ID"))) {
     throw new Error("BLOCKED: production build is missing. Run `npm run build` before `npm run test:workflow`.")
   }
+}
+
+export function parseCheckpointId(stdout: string): string {
+  const match = stdout.match(/Checkpoint ([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i)
+  if (!match) {
+    throw new Error(`Could not parse checkpoint id from upsert output:\n${stdout}`)
+  }
+  return match[1]!
 }
 
 export async function upsert(databaseUrl: string, file: string): Promise<{ stdout: string; stderr: string }> {
@@ -106,7 +115,6 @@ export async function startProductionServer(env: Record<string, string>): Promis
   const logs: string[] = []
   child.stdout?.on("data", (chunk) => logs.push(String(chunk)))
   child.stderr?.on("data", (chunk) => logs.push(String(chunk)))
-
   const url = `http://127.0.0.1:${port}`
   const deadline = Date.now() + 60_000
   let lastError = ""
@@ -120,6 +128,7 @@ export async function startProductionServer(env: Record<string, string>): Promis
         return {
           url,
           port,
+          logs,
           stop: async () => {
             child.kill("SIGTERM")
             await new Promise<void>((resolve) => {

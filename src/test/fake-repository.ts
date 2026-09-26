@@ -62,6 +62,7 @@ export function fakeRepository(
       (async (eventId, checkpointId) => {
         const invalid = validateReconstructionRequest(eventId, checkpointId)
         if (invalid) return invalid
+        if (!byId.has(eventId)) return { outcome: "unknown_event" }
         return { outcome: "unsupported_history", message: DEMO_RECONSTRUCTION_UNSUPPORTED }
       }),
   }
