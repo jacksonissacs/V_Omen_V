@@ -326,6 +326,7 @@ export function ArchiveView({
       const requestKey = historyRequestKey(nextEventId, checkpointId)
       setLoading(true)
       setNeighborDiscoveryDegraded(false)
+      setReconstruction((current) => (current?.checkpoint.id === checkpointId ? current : null))
       let listApplied = false
       try {
         const [listedSettled, replaySettled] = await Promise.allSettled([
@@ -744,6 +745,7 @@ export function ArchiveView({
 
       {viewReconstruction ? (
         <HistoricalReconstructionPanel
+          key={viewReconstruction.checkpoint.id}
           reconstruction={viewReconstruction}
           preCoverage={viewStatus === "pre_coverage"}
         />
