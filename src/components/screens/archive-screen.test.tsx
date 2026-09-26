@@ -172,46 +172,176 @@ describe("ArchiveView", () => {
   it("deep-links a checkpoint outside the first discovery page for navigation", async () => {
     mockPush.mockClear()
     mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a&checkpoint=21"))
-    const firstPage = Array.from({ length: 20 }, (_, index) => summary(String(25 - index), 25 - index))
+    vi.stubGlobal("fetch", vi.fn((input: RequestInfo) => archiveFetch(input)))
+    const user = userEvent.setup()
+    render(<ArchiveView {...archiveProps()} />)
+    const firstDiscoveryPage = checkpointPageFromQuery(
+      "/api/events/evt-a/history?limit=20",
+    ).checkpoints
+    expect(firstDiscoveryPage.some((item) => item.id === "21")).toBe(false)
+    await waitFor(() => {
+      expect(screen.getByText("DEEP_LINK_TITLE")).toBeInTheDocument()
+    })
+    expect(screen.getByRole("button", { name: /#100 · id 100/ })).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /#21 · id 21/ })).toBeInTheDocument()
+    })
+    expect(screen.getByRole("button", { name: /#20 · id 20/ })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /#22 · id 22/ })).toBeInTheDocument()
+    const previous = screen.getByRole("button", { name: "Previous checkpoint" })
+    const next = screen.getByRole("button", { name: "Next checkpoint" })
+    expect(previous).toBeEnabled()
+    expect(next).toBeEnabled()
+    await user.click(previous)
+    expect(mockPush).toHaveBeenCalledWith("/archive?event=evt-a&checkpoint=20", { scroll: false })
+    await user.click(next)
+    expect(mockPush).toHaveBeenLastCalledWith("/archive?event=evt-a&checkpoint=22", { scroll: false })
+  })
+
+  it("keeps replay when neighbor discovery requests fail", async () => {
+    mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a&checkpoint=21"))
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input: RequestInfo) => {
         const url = String(input)
         if (url.match(/\/history\/21$/)) {
-          return json(replayBody("evt-a", "21", "DEEP_LINK_TITLE"))
+          return json(replayBody("evt-a", "21", "REPLAY_OK_NEIGHBORS_FAIL"))
         }
-        if (url.includes("beforeSequence=22")) {
-          return json({
-            outcome: "checkpoints",
-            eventId: "evt-a",
-            hasMore: true,
-            checkpoints: [summary("21", 21), summary("20", 20)],
-          })
+        if (url.includes("beforeSequence=")) {
+          return json({ outcome: "unavailable", error: "Event storage is unavailable" }, 503)
         }
-        if (url.includes("/history?")) {
-          return json({
-            outcome: "checkpoints",
-            eventId: "evt-a",
-            hasMore: true,
-            checkpoints: firstPage,
-          })
+        return archiveFetch(input)
+      }),
+    )
+    render(<ArchiveView {...archiveProps()} />)
+    await waitFor(() => {
+      expect(screen.getByText("REPLAY_OK_NEIGHBORS_FAIL")).toBeInTheDocument()
+    })
+    await waitFor(() => {
+      expect(screen.getByTestId("archive-neighbor-retry")).toBeInTheDocument()
+    })
+    expect(screen.getByRole("button", { name: /#21 · id 21/ })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Previous checkpoint" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Next checkpoint" })).toBeDisabled()
+    expect(screen.queryByTestId("archive-replay-unavailable")).not.toBeInTheDocument()
+  })
+
+  it("keeps replay when neighbor discovery returns malformed JSON", async () => {
+    mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a&checkpoint=21"))
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo) => {
+        const url = String(input)
+        if (url.match(/\/history\/21$/)) {
+          return json(replayBody("evt-a", "21", "REPLAY_OK_NEIGHBORS_JSON"))
+        }
+        if (url.includes("beforeSequence=")) {
+          return new Response("not-json", { status: 200, headers: { "content-type": "application/json" } })
+        }
+        return archiveFetch(input)
+      }),
+    )
+    render(<ArchiveView {...archiveProps()} />)
+    await waitFor(() => {
+      expect(screen.getByText("REPLAY_OK_NEIGHBORS_JSON")).toBeInTheDocument()
+    })
+    expect(screen.getByTestId("archive-neighbor-retry")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /#21 · id 21/ })).toBeInTheDocument()
+  })
+
+  it("drops late neighbor augmentation after the operator changes checkpoints", async () => {
+    const neighborGate = deferred<Response>()
+    mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a&checkpoint=21"))
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo) => {
+        const url = String(input)
+        if (url.match(/\/history\/21$/)) {
+          return json(replayBody("evt-a", "21", "CHECKPOINT_21"))
         }
         if (url.match(/\/history\/22$/)) {
-          return json(replayBody("evt-a", "22", "NEWER_CHECKPOINT_TITLE"))
+          return json(replayBody("evt-a", "22", "CHECKPOINT_22"))
         }
-        throw new Error(`Unexpected fetch: ${url}`)
+        if (url.includes("beforeSequence=23")) {
+          return neighborGate.promise
+        }
+        return archiveFetch(input)
+      }),
+    )
+    const view = render(<ArchiveView {...archiveProps()} />)
+    await waitFor(() => {
+      expect(screen.getByText("CHECKPOINT_21")).toBeInTheDocument()
+    })
+
+    mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a&checkpoint=22"))
+    view.rerender(<ArchiveView {...archiveProps()} />)
+    await waitFor(() => {
+      expect(screen.getByText("CHECKPOINT_22")).toBeInTheDocument()
+    })
+
+    neighborGate.resolve(
+      json({
+        outcome: "checkpoints",
+        eventId: "evt-a",
+        hasMore: false,
+        checkpoints: [summary("999", 999)],
+      }),
+    )
+    await waitFor(() => {
+      expect(screen.getByText("CHECKPOINT_22")).toBeInTheDocument()
+    })
+    expect(screen.queryByRole("button", { name: /id 999/ })).not.toBeInTheDocument()
+  })
+
+  it("drops late neighbor augmentation after the operator changes events", async () => {
+    const neighborGate = deferred<Response>()
+    mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a&checkpoint=21"))
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo) => {
+        const url = String(input)
+        if (url.match(/\/history\/21$/)) {
+          return json(replayBody("evt-a", "21", "EVENT_A_REPLAY"))
+        }
+        if (url.includes("/api/events/evt-b/")) {
+          return json({
+            outcome: "checkpoints",
+            eventId: "evt-b",
+            hasMore: false,
+            checkpoints: [summary("300", 1)],
+          })
+        }
+        if (url.includes("beforeSequence=23")) {
+          return neighborGate.promise
+        }
+        return archiveFetch(input)
       }),
     )
     const user = userEvent.setup()
-    render(<ArchiveView {...archiveProps()} />)
+    const view = render(<ArchiveView {...archiveProps()} />)
     await waitFor(() => {
-      expect(screen.getByText("DEEP_LINK_TITLE")).toBeInTheDocument()
+      expect(screen.getByText("EVENT_A_REPLAY")).toBeInTheDocument()
     })
-    expect(screen.getByRole("button", { name: /#21 · id 21/ })).toBeInTheDocument()
-    const next = screen.getByRole("button", { name: "Next checkpoint" })
-    expect(next).toBeEnabled()
-    await user.click(next)
-    expect(mockPush).toHaveBeenCalledWith("/archive?event=evt-a&checkpoint=22", { scroll: false })
+
+    mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-b"))
+    view.rerender(<ArchiveView {...archiveProps()} />)
+    await user.selectOptions(screen.getByLabelText("Event"), "evt-b")
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /id 300/ })).toBeInTheDocument()
+    })
+
+    neighborGate.resolve(
+      json({
+        outcome: "checkpoints",
+        eventId: "evt-a",
+        hasMore: false,
+        checkpoints: [summary("999", 999)],
+      }),
+    )
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /id 300/ })).toBeInTheDocument()
+    })
+    expect(screen.queryByRole("button", { name: /id 999/ })).not.toBeInTheDocument()
   })
 
   it("drops a late older-page response after the operator changes events", async () => {
@@ -349,6 +479,42 @@ function archiveProps(): ArchiveViewProps {
     provenance: "demo",
     initialEventId: "evt-a",
   }
+}
+
+const OFF_PAGE_NEWEST_SEQUENCE = 100
+const OFF_PAGE_PAGE_SIZE = 20
+
+function checkpointPageFromQuery(url: string): { checkpoints: HistoryCheckpointSummary[]; hasMore: boolean } {
+  const parsed = new URL(url, "http://omen.test")
+  const limit = Number(parsed.searchParams.get("limit") ?? OFF_PAGE_PAGE_SIZE)
+  const beforeRaw = parsed.searchParams.get("beforeSequence")
+  const upper = beforeRaw === null ? OFF_PAGE_NEWEST_SEQUENCE : Number(beforeRaw) - 1
+  const checkpoints: HistoryCheckpointSummary[] = []
+  for (let sequence = upper; checkpoints.length < limit && sequence >= 1; sequence -= 1) {
+    checkpoints.push(summary(String(sequence), sequence))
+  }
+  const lowestListed = checkpoints.at(-1)?.sequence ?? upper
+  return { checkpoints, hasMore: lowestListed > 1 }
+}
+
+async function archiveFetch(input: RequestInfo): Promise<Response> {
+  const url = String(input)
+  if (url.match(/\/history\/21$/)) {
+    return json(replayBody("evt-a", "21", "DEEP_LINK_TITLE"))
+  }
+  if (url.match(/\/history\/22$/)) {
+    return json(replayBody("evt-a", "22", "NEWER_CHECKPOINT_TITLE"))
+  }
+  if (url.includes("/history?")) {
+    const page = checkpointPageFromQuery(url)
+    return json({
+      outcome: "checkpoints",
+      eventId: "evt-a",
+      hasMore: page.hasMore,
+      checkpoints: page.checkpoints,
+    })
+  }
+  throw new Error(`Unexpected fetch: ${url}`)
 }
 
 afterEach(() => {

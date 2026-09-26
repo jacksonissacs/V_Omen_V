@@ -31,21 +31,38 @@ describe("loadArchivePageData", () => {
       moveLogs: [],
     }
     const replay: ReconstructionOutcome = { outcome: "reconstruction", reconstruction }
+    const firstPage = Array.from({ length: 20 }, (_, index) => ({
+      id: String(100 - index),
+      sequence: 100 - index,
+      contentMd5: "ab".repeat(16),
+      memberCount: 1,
+      semanticHistory: "recorded" as const,
+    }))
+    expect(firstPage.some((item) => item.id === "21")).toBe(false)
     getRepository.mockReturnValue(
       fakeRepository([testEvent({ id: "evt-a", title: "Alpha" })], {
-        listHistoryCheckpoints: async () => ({
-          outcome: "checkpoints",
-          eventId: "evt-a",
-          limit: 20,
-          hasMore: true,
-          checkpoints: Array.from({ length: 20 }, (_, index) => ({
-            id: String(25 - index),
-            sequence: 25 - index,
-            contentMd5: "ab".repeat(16),
-            memberCount: 1,
-            semanticHistory: "recorded" as const,
-          })),
-        }),
+        listHistoryCheckpoints: async (_eventId, query) => {
+          const limit = query?.limit ?? 20
+          const upper = query?.beforeSequence === undefined ? 100 : query.beforeSequence - 1
+          const checkpoints = []
+          for (let sequence = upper; checkpoints.length < limit && sequence >= 1; sequence -= 1) {
+            checkpoints.push({
+              id: String(sequence),
+              sequence,
+              contentMd5: "ab".repeat(16),
+              memberCount: 1,
+              semanticHistory: "recorded" as const,
+            })
+          }
+          const lowest = checkpoints.at(-1)?.sequence ?? upper
+          return {
+            outcome: "checkpoints",
+            eventId: "evt-a",
+            limit,
+            hasMore: lowest > 1,
+            checkpoints,
+          }
+        },
         reconstructEvent: async () => replay,
       }),
     )
@@ -53,6 +70,7 @@ describe("loadArchivePageData", () => {
     const loaded = await loadArchivePageData({ event: "evt-a", checkpoint: "21" })
     expect(loaded.initialStatus).toBe("ok")
     expect(loaded.initialCheckpoints.some((item) => item.id === "21")).toBe(true)
+    expect(loaded.initialCheckpoints.some((item) => item.id === "100")).toBe(true)
     expect(loaded.initialReconstruction?.checkpoint.id).toBe("21")
   })
 
