@@ -1,25 +1,15 @@
 import type { LedgerCard, NavItem } from "@/types/workspace"
 
+/** Destinations that read recorded events. Unfinished screens stay routable but are not linked. */
 export const primaryNav: NavItem[] = [
   { href: "/pulse", label: "Intelligence", icon: "pulse" },
   { href: "/events", label: "Events", icon: "events" },
-  { href: "/markets", label: "Markets", icon: "markets" },
-  { href: "/signals", label: "Signals", icon: "signals" },
-  { href: "/agents", label: "Agents", icon: "agents" },
   { href: "/watchlists", label: "Watchlists", icon: "watchlists" },
-  { href: "/research", label: "Research", icon: "research" },
 ]
 
-export const workspaceNav: NavItem[] = [
-  { href: "/archive", label: "Archive", icon: "archive" },
-  { href: "/relations", label: "Relations", icon: "relations" },
-  { href: "/alerts", label: "Alerts", icon: "alerts" },
-]
+export const workspaceNav: NavItem[] = []
 
-export const footerNav: NavItem[] = [
-  { href: "/research", label: "Alan · 1,847", icon: "research" },
-  { href: "/settings", label: "Settings", icon: "settings" },
-]
+export const footerNav: NavItem[] = [{ href: "/settings", label: "Settings", icon: "settings" }]
 
 export const routeHeadings: Record<string, string> = {
   "/pulse": "Pulse",

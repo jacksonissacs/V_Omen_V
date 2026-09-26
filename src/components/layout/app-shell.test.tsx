@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it } from "vitest"
 
@@ -23,19 +23,19 @@ async function renderPulse() {
 }
 
 describe("AppShell", () => {
-  it("renders routed navigation for the major product areas", async () => {
+  it("links the recorded workspace and does not offer unfinished destinations", async () => {
     await renderPulse()
 
     expect(screen.getByRole("heading", { name: "Pulse", level: 1 })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "OMEN workspace home" })).toHaveAttribute("href", "/pulse")
     expect(screen.getByRole("link", { name: "Intelligence" })).toHaveAttribute("href", "/pulse")
     expect(screen.getByRole("link", { name: "Events" })).toHaveAttribute("href", "/events")
-    expect(screen.getByRole("link", { name: "Markets" })).toHaveAttribute("href", "/markets")
-    expect(screen.getByRole("link", { name: "Signals" })).toHaveAttribute("href", "/signals")
-    expect(screen.getByRole("link", { name: "Agents" })).toHaveAttribute("href", "/agents")
     expect(screen.getByRole("link", { name: "Watchlists" })).toHaveAttribute("href", "/watchlists")
-    expect(screen.getByRole("link", { name: "Research" })).toHaveAttribute("href", "/research")
     expect(screen.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings")
+    for (const label of ["Markets", "Signals", "Agents", "Research", "Archive", "Relations", "Alerts"]) {
+      expect(screen.queryByRole("link", { name: label })).not.toBeInTheDocument()
+    }
+    expect(screen.queryByText(/Alan/)).not.toBeInTheDocument()
     expect(screen.getByText("Demo data")).toBeInTheDocument()
   })
 
@@ -47,7 +47,12 @@ describe("AppShell", () => {
     expect(screen.getByText("Frontier model released before December 1")).toBeInTheDocument()
     expect(screen.queryByText("Bank of Canada cuts rates in October")).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole("button", { name: "Ask OMEN" }))
-    expect(screen.getByRole("dialog", { name: "Command palette" })).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Search" }))
+    const palette = screen.getByRole("dialog", { name: "Command palette" })
+    expect(palette).toBeInTheDocument()
+    expect(within(palette).queryByRole("button", { name: "Why did rate-cut odds move today?" })).not.toBeInTheDocument()
+    expect(within(palette).queryByRole("button", { name: "Alert if BoC October cut exceeds 70%" })).not.toBeInTheDocument()
+    expect(within(palette).queryByRole("button", { name: "Agents" })).not.toBeInTheDocument()
+    expect(within(palette).getByRole("button", { name: "Events" })).toBeInTheDocument()
   })
 })

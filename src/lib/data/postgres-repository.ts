@@ -7,7 +7,6 @@ import type { IntelligenceRepository } from "@/lib/data/repository"
 import { RepositoryUnavailableError } from "@/lib/data/repository-errors"
 import { readEvents, type StoredEvents } from "@/lib/db/event-reader"
 import { EXPECTED_SCHEMA_VERSION, MIGRATIONS_TABLE } from "@/lib/db/schema-version"
-import { probabilityDelta } from "@/lib/domain/scoring"
 import type {
   EventFilter,
   IntelligenceItem,
@@ -89,11 +88,10 @@ export class PostgresIntelligenceRepository implements IntelligenceRepository {
 
   async getFeaturedAnomaly(): Promise<AionEvent | undefined> {
     const withAnomaly = (await this.snapshot()).events.filter((event) => event.anomaly)
-    return withAnomaly.sort(
-      (a, b) =>
-        Math.abs(probabilityDelta(b.probability, b.previousProbability)) -
-        Math.abs(probabilityDelta(a.probability, a.previousProbability)),
-    )[0]
+    return withAnomaly.sort((a, b) => {
+      const magnitude = (event: AionEvent) => (event.change === null ? -1 : Math.abs(event.change))
+      return magnitude(b) - magnitude(a)
+    })[0]
   }
 
   async listFollowedEventIds(): Promise<string[]> {

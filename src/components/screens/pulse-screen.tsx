@@ -7,12 +7,10 @@ import { ScreenHead } from "@/components/common/screen-head"
 import { EventCard } from "@/components/events/event-card"
 import { filterEvents, sortEvents } from "@/lib/events"
 import { useWorkspace } from "@/components/layout/workspace-provider"
-import { EVENT_CATEGORIES, type AionEvent, type EventCategory, type EventSort } from "@/types/event"
+import { EVENT_CATEGORIES, type AionEvent, type EventCategory } from "@/types/event"
 
-const SORTS: { label: string; value: EventSort | "watchlist" }[] = [
+const SORTS: { label: string; value: "change" | "watchlist" }[] = [
   { label: "Largest move", value: "change" },
-  { label: "Most unusual", value: "sigma" },
-  { label: "Unexplained", value: "unexplained" },
   { label: "My watchlist", value: "watchlist" },
 ]
 
@@ -112,10 +110,12 @@ export function PulseScreen({
                 <span key={item}>Possible: {item}</span>
               ))}
             </div>
+            <p className="aion-note">
+              {anomaly.provenance === "demo"
+                ? "Illustrative note. Not a measured relationship."
+                : "Stored note. Not a measured relationship."}
+            </p>
             <div className="aion-card-actions">
-              <Link className="aion-button" data-quiet="true" href="/relations">
-                View relationship
-              </Link>
               <Link className="aion-button" data-quiet="true" href={`/events/${anomaly.id}`}>
                 Open event
               </Link>

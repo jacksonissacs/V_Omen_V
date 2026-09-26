@@ -142,7 +142,7 @@ These screens are outside the V0 core boundary and were **not migrated** to the 
 
 `/archive` is labelled as a demo on screen: its date, time and replay controls do not query stored records.
 
-Also demo-only inside migrated screens: the ⌘K "Ask", "Rewind" and "Create" commands (fixed copy and links), and the Pulse card figures that are not computed from records (σ, "Data quality", the explained/unexplained bar). These need to be sourced or removed under the build contract in a later task. The Make a call modal is no longer reachable from any screen.
+The sidebar and ⌘K only link the recorded loop: Pulse, Events, Watchlists, and Settings. Markets, Signals, Agents, Research, Archive, Relations, and Alerts stay routable and are not offered as navigation. ⌘K has no Ask, Rewind, or Create commands. Pulse cards show the headline series (source, observed time, and capture time kept separate) and do not present σ, data quality, or an explained/unexplained bar as measurements. An attribution percentage is labelled illustrative or as the move-log author's statement. Analogue counts are the number of stored comparisons, and zero stays zero. The Make a call modal is no longer reachable from any screen.
 
 ## Event detail
 
@@ -168,7 +168,7 @@ Also demo-only inside migrated screens: the ⌘K "Ask", "Rewind" and "Create" co
 (workspace) layout (server: loads shell data) → AppShell (client)
 ├── error.tsx (unavailable state) · loading.tsx on /pulse, /events, /watchlists
 ├── Sidebar (routed product areas; logo → /pulse)
-├── TopBar (crumbs + "Demo data" chip + Ask OMEN)
+├── TopBar (crumbs + provenance chip + Search)
 ├── CommandPalette + CallModal
 └── pages
     ├── /pulse           Pulse / Intelligence (workspace home)

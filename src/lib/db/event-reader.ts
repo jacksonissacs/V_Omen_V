@@ -1,7 +1,7 @@
 import type { ClientBase, Pool } from "pg"
 
 import { buildEvent } from "../../data/build-event"
-import { groupIntoSeries } from "../domain/probability-history"
+import { groupIntoSeries, latestChange } from "../domain/probability-history"
 import type {
   AionEvent,
   EventCategory,
@@ -168,7 +168,7 @@ function recordedTimeline(evidence: EvidenceRow[], revisions: MoveLogRevisionRec
     .map((item) => ({ time: item.time, text: item.text, type: item.type }))
 }
 
-function assemble(
+export function assemble(
   row: EventRow,
   observations: ObservationRow[],
   evidence: EvidenceRow[],
@@ -188,9 +188,10 @@ function assemble(
       ...(item.note ? { note: item.note } : {}),
     })),
   )
-  const headline = probabilitySeries[0].observations
+  const headlineSeries = probabilitySeries[0]
+  const headline = headlineSeries.observations
   const current = headline[headline.length - 1]
-  const previous = headline[headline.length - 2] ?? current
+  const compared = latestChange(headlineSeries)
   const moveLog = latestMoveLog(revisions)
   const latest = moveLog?.latest
   const observedAt = new Date(current.observedAt)
@@ -226,8 +227,7 @@ function assemble(
     title: row.title,
     category: row.category,
     probability: current.probability,
-    previousProbability: previous.probability,
-    confidence: display.confidence,
+    previousProbability: compared?.from.probability ?? null,
     timestamp: observedAt.toISOString(),
     displayTime: display.displayTime ?? `${utcClock(observedAt, false)} UTC`,
     status: row.status,
@@ -237,13 +237,12 @@ function assemble(
     likelyCause: latest?.likelyCause ?? "Not yet attributed",
     unexplainedFactors: latest?.unexplainedFactors ?? [],
     significance: row.significance,
-    sourceTier: display.sourceTier ?? 2,
-    sigma: display.sigma ?? 0,
+    sourceTier: display.sourceTier,
     duration: display.duration ?? "—",
     catalystLabel: display.catalystLabel,
     catalyst: display.catalyst ?? latest?.likelyCause ?? "Not yet attributed",
     catalystTime: display.catalystTime ?? utcClock(observedAt, true),
-    explained: latest?.explainedPct ?? 0,
+    explained: latest ? latest.explainedPct : null,
     region: row.region,
     tags: row.tags,
     resolvesAt: formatDeadline(row.deadline),
