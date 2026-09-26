@@ -6,7 +6,7 @@ import { useRef, useState, type ReactNode } from "react"
 import { TabGroup } from "@/components/common/tab-group"
 import { IntelligencePanel, type InspectorTab } from "@/components/intelligence/intelligence-panel"
 import { ProbabilityChart } from "@/components/intelligence/probability-chart"
-import { useWorkspace } from "@/components/layout/workspace-provider"
+import { FollowEventButton } from "@/components/events/follow-event-button"
 import { formatDateTime } from "@/lib/format"
 import { recordedChronology } from "@/lib/domain/event-chronology"
 import {
@@ -35,7 +35,6 @@ export function EventIntelligenceView({
   event: AionEvent
   related: AionEvent[]
 }) {
-  const { isWatched, toggleWatch } = useWorkspace()
   const [range, setRange] = useState<ChartRange>("ALL")
   const [seriesId, setSeriesId] = useState(event.probabilitySeries[0]?.id)
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("Evidence")
@@ -102,14 +101,7 @@ export function EventIntelligenceView({
             <button type="button" className="aion-button" data-primary="true" onClick={inspectEvidence}>
               Inspect evidence
             </button>
-            <button
-              type="button"
-              className="aion-button"
-              aria-pressed={isWatched(event.id)}
-              onClick={() => toggleWatch(event.id)}
-            >
-              {isWatched(event.id) ? "Following" : "Follow"}
-            </button>
+            <FollowEventButton eventId={event.id} eventTitle={event.title} quiet={false} />
           </div>
         </div>
         <dl className="aion-event-record" data-testid="event-record">
