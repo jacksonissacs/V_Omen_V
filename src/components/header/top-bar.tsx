@@ -1,17 +1,32 @@
 "use client"
 
 import { Search } from "lucide-react"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 
 import { useWorkspace } from "@/components/layout/workspace-provider"
 import { routeHeadings } from "@/data/workspace"
+import { requestedHistoricalView } from "@/lib/history/historical-request"
 
 export function TopBar() {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { setPaletteOpen, findEventSummary, storage } = useWorkspace()
+  const onArchive = pathname === "/archive"
+  const archiveCheckpoint = onArchive ? searchParams.get("checkpoint") : null
+  const historical = requestedHistoricalView(searchParams, {
+    route: onArchive ? "archive" : "workspace",
+  })
+  const historyMatch = pathname.match(/^\/events\/([^/]+)\/history\/([^/]+)$/)
   const eventMatch = pathname.match(/^\/events\/([^/]+)$/)
-  const event = eventMatch ? findEventSummary(eventMatch[1]) : undefined
-  const heading = event ? event.title : (routeHeadings[pathname] ?? "OMEN")
+  const event =
+    !historical && !historyMatch && eventMatch ? findEventSummary(eventMatch[1]) : undefined
+  const heading = historical
+    ? "Historical view unavailable"
+    : historyMatch || archiveCheckpoint
+      ? "Historical checkpoint view"
+      : event
+        ? event.title
+        : (routeHeadings[pathname] ?? "OMEN")
   const readsStore = CORE_ROUTE.test(pathname)
 
   return (
@@ -37,10 +52,10 @@ export function TopBar() {
         type="button"
         className="aion-ask"
         onClick={() => setPaletteOpen(true)}
-        aria-label="Ask OMEN"
+        aria-label="Search"
       >
         <Search size={13} />
-        Ask OMEN…
+        Search
         <span className="aion-kbd">⌘K</span>
       </button>
     </header>
@@ -48,7 +63,7 @@ export function TopBar() {
 }
 
 /** Routes whose data comes from the repository. Every other workspace screen is static demo content. */
-const CORE_ROUTE = /^\/(pulse|events|watchlists)(\/|$)/
+const CORE_ROUTE = /^\/(pulse|events|watchlists|archive)(\/|$)/
 
 const PROVENANCE_CHIP = {
   demo: {

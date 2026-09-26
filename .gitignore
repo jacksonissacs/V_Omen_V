@@ -13,6 +13,7 @@
 # testing
 /coverage
 /test-results
+/test-artifacts
 
 # next.js
 /.next/
@@ -41,3 +42,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# operator source-intake review queue (local only; not published history)
+.omen/

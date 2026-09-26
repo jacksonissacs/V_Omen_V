@@ -1,20 +1,30 @@
 import { buildEvent, type EventDraft } from "@/data/build-event"
 import type { IntelligenceRepository } from "@/lib/data/repository"
+import {
+  DEMO_RECONSTRUCTION_UNSUPPORTED,
+  invalidEventId,
+  resolveCheckpointListQuery,
+  validateReconstructionRequest,
+  type CheckpointListOutcome,
+  type ReconstructionOutcome,
+} from "@/lib/domain/historical-reconstruction"
 import type { AionEvent } from "@/types/event"
 
 export function testEvent(overrides: Partial<EventDraft> & Pick<EventDraft, "id" | "title">): AionEvent {
+  const probability = overrides.probability ?? 50
+  const previousProbability = overrides.previousProbability ?? 40
+  const timestamp = overrides.timestamp ?? "2026-09-01T12:00:00.000Z"
   return buildEvent({
     category: "Economics",
-    probability: 50,
-    previousProbability: 40,
-    timestamp: "2026-09-01T12:00:00.000Z",
+    probability,
+    previousProbability,
+    timestamp,
     displayTime: "08:00 EDT",
     summary: `${overrides.title} summary`,
     question: `Will ${overrides.title}?`,
     whatChanged: "Test move",
     likelyCause: "Test catalyst",
     unexplainedFactors: ["Test residual"],
-    sigma: 1,
     duration: "1 hr",
     catalyst: "Test catalyst",
     catalystTime: "08:00:00",
@@ -23,7 +33,10 @@ export function testEvent(overrides: Partial<EventDraft> & Pick<EventDraft, "id"
     tags: [],
     entities: [],
     evidence: [],
-    expectationHistory: [{ at: "2026-09-01T12:00:00.000Z", probability: 50 }],
+    expectationHistory: [
+      { at: "2026-08-01T12:00:00.000Z", probability: previousProbability },
+      { at: timestamp, probability },
+    ],
     ...overrides,
   })
 }
@@ -31,7 +44,13 @@ export function testEvent(overrides: Partial<EventDraft> & Pick<EventDraft, "id"
 /** A repository over caller-supplied events, so tests prove screens read the port, not fixtures. */
 export function fakeRepository(
   events: AionEvent[],
-  options: { followed?: string[]; anomalyId?: string; storage?: IntelligenceRepository["storage"] } = {},
+  options: {
+    followed?: string[]
+    anomalyId?: string
+    storage?: IntelligenceRepository["storage"]
+    listHistoryCheckpoints?: IntelligenceRepository["listHistoryCheckpoints"]
+    reconstructEvent?: IntelligenceRepository["reconstructEvent"]
+  } = {},
 ): IntelligenceRepository {
   const byId = new Map(events.map((event) => [event.id, event]))
   return {
@@ -47,6 +66,20 @@ export function fakeRepository(
     listFeed: async () => [],
     getGraph: async () => ({ nodes: [], edges: [] }),
     search: async () => [],
+    listHistoryCheckpoints:
+      options.listHistoryCheckpoints ??
+      (async (eventId, query): Promise<CheckpointListOutcome> => {
+        const invalid = invalidEventId(eventId) ?? resolveCheckpointListQuery(query)
+        if ("outcome" in invalid) return invalid
+        return { outcome: "unsupported_history", message: DEMO_RECONSTRUCTION_UNSUPPORTED }
+      }),
+    reconstructEvent:
+      options.reconstructEvent ??
+      (async (eventId, checkpointId): Promise<ReconstructionOutcome> => {
+        const invalid = validateReconstructionRequest(eventId, checkpointId)
+        if (invalid) return invalid
+        return { outcome: "unsupported_history", message: DEMO_RECONSTRUCTION_UNSUPPORTED }
+      }),
   }
 }
 
@@ -67,5 +100,7 @@ export function failingRepository(
     listFeed: fail,
     getGraph: fail,
     search: fail,
+    listHistoryCheckpoints: fail,
+    reconstructEvent: fail,
   }
 }

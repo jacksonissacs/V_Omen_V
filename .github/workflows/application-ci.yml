@@ -13,7 +13,7 @@ permissions:
 jobs:
   application:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     env:
       NEXT_TELEMETRY_DISABLED: '1'
       OMEN_STORAGE_MODE: demo
@@ -45,3 +45,45 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm run test:db
+      - uses: browser-actions/setup-chrome@v1
+        id: setup-chrome
+      - name: Deterministic production workflow
+        run: npm run test:workflow
+        env:
+          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
+      - name: Record dependency audit
+        if: always()
+        run: |
+          mkdir -p test-artifacts
+          npm audit --json > test-artifacts/npm-audit-report.json || true
+          npm audit > test-artifacts/npm-audit.txt || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: workflow-test-artifacts
+          path: test-artifacts/
+          if-no-files-found: ignore
+
+  external-source-smoke:
+    name: External source smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: CISA KEV reachability
+        run: |
+          mkdir -p test-artifacts/external-source-smoke
+          npm run intake:check > test-artifacts/external-source-smoke/intake-check.txt 2>&1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: external-source-smoke
+          path: test-artifacts/external-source-smoke/
+          if-no-files-found: ignore

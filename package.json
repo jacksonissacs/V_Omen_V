@@ -12,10 +12,14 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "test:db": "vitest run --config vitest.db.config.ts",
+    "test:workflow": "vitest run --config vitest.workflow.config.ts",
     "db:migrate": "tsx scripts/omen-db.ts migrate",
     "db:status": "tsx scripts/omen-db.ts status",
     "db:upsert": "tsx scripts/omen-db.ts upsert",
-    "db:show": "tsx scripts/omen-db.ts show"
+    "db:show": "tsx scripts/omen-db.ts show",
+    "operator": "tsx scripts/omen-operator.ts",
+    "intake": "tsx scripts/omen-intake.ts",
+    "intake:check": "tsx scripts/omen-intake.ts check"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -43,9 +47,10 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
     "jsdom": "^29.1.1",
+    "puppeteer-core": "^24.22.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.7"
   }
 }

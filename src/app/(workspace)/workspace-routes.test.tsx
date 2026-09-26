@@ -17,6 +17,7 @@ import PulseLoading from "@/app/(workspace)/pulse/loading"
 import PulsePage from "@/app/(workspace)/pulse/page"
 import WatchlistsLoading from "@/app/(workspace)/watchlists/loading"
 import WatchlistsPage from "@/app/(workspace)/watchlists/page"
+import { __resetFollowingStoresForTests } from "@/lib/following/following-store"
 import { __resetRepositoryForTests, type IntelligenceRepository } from "@/lib/data/repository"
 import { failingRepository, fakeRepository, testEvent } from "@/test/fake-repository"
 
@@ -79,6 +80,8 @@ function rowTitles(container: HTMLElement) {
 
 afterEach(() => {
   __resetRepositoryForTests()
+  __resetFollowingStoresForTests()
+  window.localStorage.clear()
   mockPush.mockClear()
   mockPathname.mockReset()
   mockPathname.mockReturnValue("/")
@@ -98,6 +101,8 @@ describe("Pulse route", () => {
       "Gamma housing lull",
     ])
     expect(screen.getByText("△ Expected reaction missing")).toBeInTheDocument()
+    expect(screen.getByText("Illustrative note. Not a measured relationship.")).toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: "View relationship" })).not.toBeInTheDocument()
     expect(screen.queryByText("Bank of Canada cuts rates in October")).not.toBeInTheDocument()
   })
 
@@ -105,8 +110,9 @@ describe("Pulse route", () => {
     useRepository(fakeRepository(book, { followed: ["evt-beta"] }))
     const { user } = await renderRoute(PulsePage())
 
-    await user.click(screen.getByRole("button", { name: "Most unusual" }))
-    expect(cardTitles()).toEqual(["Beta model launch", "Gamma housing lull", "Alpha rate decision"])
+    expect(screen.queryByRole("button", { name: "Most unusual" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Unexplained" })).not.toBeInTheDocument()
+    expect(cardTitles()).toEqual(["Alpha rate decision", "Beta model launch", "Gamma housing lull"])
 
     await user.click(screen.getByRole("button", { name: "My watchlist" }))
     expect(cardTitles()).toEqual(["Beta model launch"])
@@ -147,6 +153,7 @@ describe("Events route", () => {
     const { user, container } = await renderRoute(EventsPage())
 
     expect(rowTitles(container)).toEqual(["Alpha rate decision", "Beta model launch", "Gamma housing lull"])
+    expect(screen.queryByRole("button", { name: "Significance" })).not.toBeInTheDocument()
     expect(screen.getByText("3 events in view · 3 in the book")).toBeInTheDocument()
 
     await user.click(screen.getByRole("button", { name: "Probability" }))
@@ -265,14 +272,13 @@ describe("Watchlists route", () => {
     expect(screen.getByText("Gamma housing lull")).toBeInTheDocument()
     expect(screen.queryByText("Beta model launch")).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole("button", { name: /Gamma housing lull/ }))
+    await user.click(screen.getByRole("button", { name: /^Gamma housing lull/ }))
     expect(mockPush).toHaveBeenCalledWith("/events/evt-gamma")
 
-    const [firstUnfollow] = screen.getAllByRole("button", { name: "Unfollow" })
-    await user.click(firstUnfollow!)
+    await user.click(screen.getByRole("button", { name: "Unfollow Alpha rate decision" }))
     expect(screen.queryByText("Alpha rate decision")).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole("button", { name: "Unfollow" }))
+    await user.click(screen.getByRole("button", { name: "Unfollow Gamma housing lull" }))
     expect(screen.getByText("Nothing followed")).toBeInTheDocument()
   })
 })
@@ -282,8 +288,8 @@ describe("Workspace shell", () => {
     useRepository(fakeRepository(book))
     const { user } = await renderRoute(Promise.resolve(<div>child</div>))
 
-    await user.click(screen.getByRole("button", { name: "Ask OMEN" }))
-    await user.type(screen.getByRole("textbox", { name: "Ask OMEN" }), "beta")
+    await user.click(screen.getByRole("button", { name: "Search" }))
+    await user.type(screen.getByRole("textbox", { name: "Search events" }), "beta")
     const palette = screen.getByRole("dialog", { name: "Command palette" })
     expect(within(palette).queryByText("Alpha rate decision")).not.toBeInTheDocument()
     await user.click(within(palette).getByRole("button", { name: "Beta model launch" }))
@@ -296,8 +302,10 @@ describe("Workspace shell", () => {
     const { user } = await renderRoute(Promise.resolve(<div>child</div>))
 
     expect(screen.getByText("child")).toBeInTheDocument()
-    await user.click(screen.getByRole("button", { name: "Ask OMEN" }))
+    await user.click(screen.getByRole("button", { name: "Search" }))
     expect(screen.getByText("Event search is unavailable right now. Navigation still works.")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Why did rate-cut odds move today?" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Alert if BoC October cut exceeds 70%" })).not.toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Events" })).toBeInTheDocument()
   })
 })

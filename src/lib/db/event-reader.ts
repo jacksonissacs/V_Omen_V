@@ -1,7 +1,7 @@
 import type { ClientBase, Pool } from "pg"
 
 import { buildEvent } from "../../data/build-event"
-import { groupIntoSeries } from "../domain/probability-history"
+import { groupIntoSeries, latestChange } from "../domain/probability-history"
 import type {
   AionEvent,
   EventCategory,
@@ -68,14 +68,40 @@ export interface MoveLogRevisionRecord {
   version: number
   publishedAt: string
   recordedAt: string
+  recordAvailableAt: string
   author: string
   whatChanged: string
   likelyCause: string
-  explainedPct: number
+  explainedPct: number | null
   unexplainedFactors: string[]
   evidenceIds: string[]
   correctionNote: string | null
   provenance: Provenance
+}
+
+export interface EventRevisionRecord {
+  eventId: string
+  version: number
+  title: string
+  question: string
+  status: AionEvent["status"]
+  deadline: string
+  resolutionCriteria: string
+  category: EventCategory
+  significance: Significance
+  region: string
+  summary: string
+  tags: string[]
+  relatedEventIds: string[]
+  provenance: Provenance
+  correctionNote: string | null
+  recordedAt: string
+  recordAvailableAt: string
+}
+
+export interface HistoryCoverage {
+  semanticEventFieldsFrom: string
+  recordAvailabilityRealignedAt: string
 }
 
 interface RevisionRow {
@@ -84,14 +110,35 @@ interface RevisionRow {
   version: number
   published_at: Date
   recorded_at: Date
+  record_available_at: Date
   author: string
   what_changed: string
   likely_cause: string
-  explained_pct: number
+  explained_pct: number | null
   unexplained_factors: string[]
   evidence_ids: string[]
   correction_note: string | null
   provenance: Provenance
+}
+
+interface EventRevisionRow {
+  event_id: string
+  version: number
+  title: string
+  question: string
+  status: AionEvent["status"]
+  deadline: Date
+  resolution_criteria: string
+  category: EventCategory
+  significance: Significance
+  region: string
+  summary: string
+  tags: string[]
+  related_event_ids: string[]
+  provenance: Provenance
+  correction_note: string | null
+  recorded_at: Date
+  record_available_at: Date
 }
 
 const DEADLINE_FORMAT = new Intl.DateTimeFormat("en-US", {
@@ -109,6 +156,28 @@ function utcClock(date: Date, withSeconds: boolean): string {
   return date.toISOString().slice(11, withSeconds ? 19 : 16)
 }
 
+function toEventRevision(row: EventRevisionRow): EventRevisionRecord {
+  return {
+    eventId: row.event_id,
+    version: row.version,
+    title: row.title,
+    question: row.question,
+    status: row.status,
+    deadline: row.deadline.toISOString(),
+    resolutionCriteria: row.resolution_criteria,
+    category: row.category,
+    significance: row.significance,
+    region: row.region,
+    summary: row.summary,
+    tags: row.tags,
+    relatedEventIds: row.related_event_ids,
+    provenance: row.provenance,
+    correctionNote: row.correction_note,
+    recordedAt: row.recorded_at.toISOString(),
+    recordAvailableAt: row.record_available_at.toISOString(),
+  }
+}
+
 function toRevision(row: RevisionRow): MoveLogRevisionRecord {
   return {
     moveLogId: row.move_log_id,
@@ -116,6 +185,7 @@ function toRevision(row: RevisionRow): MoveLogRevisionRecord {
     version: row.version,
     publishedAt: row.published_at.toISOString(),
     recordedAt: row.recorded_at.toISOString(),
+    recordAvailableAt: row.record_available_at.toISOString(),
     author: row.author,
     whatChanged: row.what_changed,
     likelyCause: row.likely_cause,
@@ -168,7 +238,7 @@ function recordedTimeline(evidence: EvidenceRow[], revisions: MoveLogRevisionRec
     .map((item) => ({ time: item.time, text: item.text, type: item.type }))
 }
 
-function assemble(
+export function assemble(
   row: EventRow,
   observations: ObservationRow[],
   evidence: EvidenceRow[],
@@ -188,9 +258,10 @@ function assemble(
       ...(item.note ? { note: item.note } : {}),
     })),
   )
-  const headline = probabilitySeries[0].observations
+  const headlineSeries = probabilitySeries[0]
+  const headline = headlineSeries.observations
   const current = headline[headline.length - 1]
-  const previous = headline[headline.length - 2] ?? current
+  const compared = latestChange(headlineSeries)
   const moveLog = latestMoveLog(revisions)
   const latest = moveLog?.latest
   const observedAt = new Date(current.observedAt)
@@ -226,8 +297,7 @@ function assemble(
     title: row.title,
     category: row.category,
     probability: current.probability,
-    previousProbability: previous.probability,
-    confidence: display.confidence,
+    previousProbability: compared?.from.probability ?? null,
     timestamp: observedAt.toISOString(),
     displayTime: display.displayTime ?? `${utcClock(observedAt, false)} UTC`,
     status: row.status,
@@ -237,13 +307,12 @@ function assemble(
     likelyCause: latest?.likelyCause ?? "Not yet attributed",
     unexplainedFactors: latest?.unexplainedFactors ?? [],
     significance: row.significance,
-    sourceTier: display.sourceTier ?? 2,
-    sigma: display.sigma ?? 0,
+    sourceTier: display.sourceTier,
     duration: display.duration ?? "—",
     catalystLabel: display.catalystLabel,
     catalyst: display.catalyst ?? latest?.likelyCause ?? "Not yet attributed",
     catalystTime: display.catalystTime ?? utcClock(observedAt, true),
-    explained: latest?.explainedPct ?? 0,
+    explained: latest ? latest.explainedPct : null,
     region: row.region,
     tags: row.tags,
     resolvesAt: formatDeadline(row.deadline),
@@ -314,7 +383,7 @@ export async function readEvents(db: Queryable, ids?: string[]): Promise<StoredE
     [filter],
   )
   const revisionRows = await db.query<RevisionRow>(
-    `SELECT r.move_log_id, m.event_id, r.version, r.published_at, r.recorded_at, r.author,
+    `SELECT r.move_log_id, m.event_id, r.version, r.published_at, r.recorded_at, r.record_available_at, r.author,
             r.what_changed, r.likely_cause, r.explained_pct::float8 AS explained_pct,
             r.unexplained_factors, r.evidence_ids, r.correction_note, r.provenance
        FROM move_log_revisions r
@@ -349,7 +418,7 @@ export async function readEvents(db: Queryable, ids?: string[]): Promise<StoredE
 /** Every published revision of every move log on an event, oldest first. */
 export async function readMoveLogHistory(db: Queryable, eventId: string): Promise<MoveLogRevisionRecord[]> {
   const { rows } = await db.query<RevisionRow>(
-    `SELECT r.move_log_id, m.event_id, r.version, r.published_at, r.recorded_at, r.author,
+    `SELECT r.move_log_id, m.event_id, r.version, r.published_at, r.recorded_at, r.record_available_at, r.author,
             r.what_changed, r.likely_cause, r.explained_pct::float8 AS explained_pct,
             r.unexplained_factors, r.evidence_ids, r.correction_note, r.provenance
        FROM move_log_revisions r
@@ -359,4 +428,34 @@ export async function readMoveLogHistory(db: Queryable, eventId: string): Promis
     [eventId],
   )
   return rows.map(toRevision)
+}
+
+/** Append-only semantic event metadata revisions, oldest first. */
+export async function readEventRevisionHistory(db: Queryable, eventId: string): Promise<EventRevisionRecord[]> {
+  const { rows } = await db.query<EventRevisionRow>(
+    `SELECT event_id, version, title, question, status, deadline, resolution_criteria, category,
+            significance, region, summary, tags, related_event_ids, provenance, correction_note,
+            recorded_at, record_available_at
+       FROM event_revisions
+      WHERE event_id = $1
+      ORDER BY version`,
+    [eventId],
+  )
+  return rows.map(toEventRevision)
+}
+
+export async function readHistoryCoverage(db: Queryable): Promise<HistoryCoverage> {
+  const { rows } = await db.query<{
+    semantic_event_fields_from: Date
+    record_availability_realigned_at: Date
+  }>(
+    `SELECT semantic_event_fields_from, record_availability_realigned_at
+       FROM omen_history_coverage
+      WHERE singleton`,
+  )
+  const row = rows[0]
+  return {
+    semanticEventFieldsFrom: row.semantic_event_fields_from.toISOString(),
+    recordAvailabilityRealignedAt: row.record_availability_realigned_at.toISOString(),
+  }
 }

@@ -1,5 +1,6 @@
 import { Kv } from "@/components/common/kv"
 import { formatDateTime } from "@/lib/format"
+import { navigableHttpUrl } from "@/lib/http-url"
 import { BASIS_LABEL, latestCompleteForecast, probabilityBasis } from "@/lib/domain/probability-history"
 import type { AionEvent } from "@/types/event"
 
@@ -40,7 +41,9 @@ export function IntelligencePanel({ event, tab }: { event: AionEvent; tab: Inspe
     <div className="aion-inspector-body" id="event-evidence">
       <div className="aion-inspector-title">Evidence on record</div>
       {event.evidence.length === 0 ? <p>No evidence is recorded for this event.</p> : null}
-      {event.evidence.map((item) => (
+      {event.evidence.map((item) => {
+        const sourceHref = navigableHttpUrl(item.url)
+        return (
         <div key={item.id} className="aion-evidence-block" data-testid="evidence-item">
           <div className="aion-inspector-section">{item.name}</div>
           <p>{item.summary}</p>
@@ -53,13 +56,14 @@ export function IntelligencePanel({ event, tab }: { event: AionEvent; tab: Inspe
           />
           <Kv label="Captured by OMEN" value={item.capturedAt ? formatDateTime(item.capturedAt) : "Not recorded"} />
           <Kv label="Recorder's reliability rating" value={`${item.reliability.toFixed(2)} of 1`} />
-          {item.url ? (
-            <a className="aion-evidence-link" href={item.url} target="_blank" rel="noreferrer">
+          {sourceHref ? (
+            <a className="aion-evidence-link" href={sourceHref} target="_blank" rel="noreferrer">
               Open source ↗
             </a>
           ) : null}
         </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

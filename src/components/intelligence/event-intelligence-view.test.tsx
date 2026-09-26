@@ -235,6 +235,14 @@ describe("EventIntelligenceView", () => {
     expect(chronology).not.toHaveTextContent("+4.2")
   })
 
+  it("links to Archive for stored checkpoint replay without embedding current text in the URL", async () => {
+    const { event } = await loadEvent("evt-boc-cut")
+    renderView(event)
+    const link = screen.getByTestId("event-archive-link")
+    expect(link).toHaveAttribute("href", "/archive?event=evt-boc-cut")
+    expect(link).toHaveTextContent("Open recorded history")
+  })
+
   it("puts Inspect evidence first and offers no prediction entry", async () => {
     const { event } = await loadEvent("evt-boc-cut")
     const { user } = renderView(event)
@@ -294,8 +302,8 @@ describe("EventIntelligenceView", () => {
   it("toggles the watchlist from the intelligence view", async () => {
     const { event, related } = await loadEvent("evt-gpu-export")
     const { user } = renderView(event, related)
-    await user.click(screen.getByRole("button", { name: "Follow" }))
-    expect(screen.getByRole("button", { name: "Following" })).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: `Follow ${event.title}` }))
+    expect(screen.getByRole("button", { name: `Unfollow ${event.title}` })).toBeInTheDocument()
   })
 
   it("links only the related events it is given", async () => {

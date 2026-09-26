@@ -77,6 +77,8 @@ Significance on an event is curated in the catalog for the MVP. Scoring helpers 
 | `listFeed(filter?)` | Not used by a screen yet |
 | `getGraph()` | Not used by a screen yet (`/relations` is still static) |
 | `search(query)` | Not used by a screen yet (⌘K uses the event index below) |
+| `listHistoryCheckpoints(id, query?)` | `GET /api/events/:id/history`. Bounded checkpoint discovery, not member rows |
+| `reconstructEvent(id, checkpointId)` | `GET /api/events/:id/history/:checkpointId`. Historical checkpoint replay, not the current `AionEvent` |
 
 `EventFilter.order` selects `"move"` (default: largest absolute move first) or `"catalog"` (curated book order). Screens request catalog order and apply their own client-side sort, so tie-breaking matches the pre-repository behavior.
 
@@ -100,7 +102,7 @@ Significance on an event is curated in the catalog for the MVP. Scoring helpers 
 
 - `EventSummary` (`src/lib/events.ts`) is the serializable slice the shell needs: id, title, category, and a precomputed search string. The full event objects do not ship to every route.
 - Filtering, sorting, and search helpers (`filterEvents`, `sortEvents`, `summaryMatchesQuery`, `watchlistRows` in `src/lib/watchlist.ts`) are pure and take explicit data.
-- The follow list is client state seeded from `listFollowedEventIds()`. Follow/unfollow is not persisted (there is no write path).
+- The follow list is client state. The first visit in a storage mode seeds it from `listFollowedEventIds()`. Later visits read the versioned browser `localStorage` record for that mode (`demo`, `database`, or `misconfigured`), including an intentionally empty list. There is no server write path and no account sync.
 - `src/test/data-boundary.test.ts` fails if a client module imports `@/lib/data/*`, `@/lib/db/*` or `pg`, mentions `DATABASE_URL`, or if a client module other than the listed legacy screens imports `@/data/events`. It also fails if any source file exposes a database URL through a `NEXT_PUBLIC_` variable.
 
 ### Loading, unavailable, and empty states
@@ -121,8 +123,12 @@ Internal JSON routes exist so the UI is not the only consumer:
 
 - `GET /api/events`
 - `GET /api/events/:id`
+- `GET /api/events/:id/history`
+- `GET /api/events/:id/history/:checkpointId`
 
-Both return `storage` and, on success, `provenance` alongside the data. A storage failure returns `503` with no data, and an unknown id returns `404`.
+The first two return `storage` and, on success, `provenance` alongside the current projection. A storage failure returns `503` with no data, and an unknown id returns `404`.
+
+The history routes replay stored checkpoints. Checkpoint and other bigint ids are decimal strings. The list is bounded and does not include member rows. The checkpoint route returns a historical record, not an `AionEvent`, and does not accept a UTC cutoff. Invalid input is `400`, an unknown event is `404`, a missing checkpoint is `422`, a checkpoint with no semantic revision is `409` pre-coverage, verification failure is `422`, demo storage is `422`, and database failure is `503`. None of those substitute current or demo rows.
 
 The App Router pages read the repository in-process in server components (no extra HTTP hop). The routes are the contract for later clients and for tests that want HTTP semantics.
 
@@ -136,13 +142,11 @@ These screens are outside the V0 core boundary and were **not migrated** to the 
 | `/signals` | Client component imports `@/data/events` directly |
 | `/agents` | Hard-coded ledger and ranking fixtures in `src/data/workspace.ts` |
 | `/research` | Hard-coded forecast history in `src/data/workspace.ts` |
-| `/archive` | Content inline in `archive-screen.tsx` |
+| `/archive` | Server-loaded event index; client replays checkpoints via `/api/events/:id/history` |
 | `/relations` | Content inline in `relations-screen.tsx` (does not use `getGraph()`) |
 | `/alerts`, `/api-access`, `/team`, `/settings` | Static rows in the page or screen component |
 
-`/archive` is labelled as a demo on screen: its date, time and replay controls do not query stored records.
-
-Also demo-only inside migrated screens: the ⌘K "Ask", "Rewind" and "Create" commands (fixed copy and links), and the Pulse card figures that are not computed from records (σ, "Data quality", the explained/unexplained bar). These need to be sourced or removed under the build contract in a later task. The Make a call modal is no longer reachable from any screen.
+The sidebar and ⌘K link the recorded loop: Pulse, Events, Watchlists, Archive, and Settings. Markets, Signals, Agents, Research, Relations, and Alerts stay routable and are not offered as navigation. ⌘K has no Ask, Rewind, or Create commands. Pulse cards show the headline series (source, observed time, and capture time kept separate) and do not present σ, data quality, or an explained/unexplained bar as measurements. An attribution percentage is labelled illustrative or as the move-log author's statement. Analogue counts are the number of stored comparisons, and zero stays zero. The Make a call modal is no longer reachable from any screen.
 
 ## Event detail
 
@@ -168,7 +172,7 @@ Also demo-only inside migrated screens: the ⌘K "Ask", "Rewind" and "Create" co
 (workspace) layout (server: loads shell data) → AppShell (client)
 ├── error.tsx (unavailable state) · loading.tsx on /pulse, /events, /watchlists
 ├── Sidebar (routed product areas; logo → /pulse)
-├── TopBar (crumbs + "Demo data" chip + Ask OMEN)
+├── TopBar (crumbs + provenance chip + Search)
 ├── CommandPalette + CallModal
 └── pages
     ├── /pulse           Pulse / Intelligence (workspace home)
@@ -209,12 +213,12 @@ in `design-reference/README.md`.
 | Payments / entitlements | Not the founding surface. |
 | Paid market-data or LLM APIs | Cost, licenses, and nondeterminism do not belong in the core loop. |
 | Write path / collaboration | Read-only fixtures first; writes need persistence. |
-| Streaming ingest | Requires a worker and a store. Designed as a later adapter. |
+| Unattended ingest | A manual one-source review queue exists ([source-intake.md](source-intake.md)). Importing it stages a database review item. It does not publish evidence or run on a schedule. |
 
 ## Extending the system
 
 1. **Persistence** — PostgreSQL storage for events, observations, evidence and Move Log revisions exists ([database.md](database.md)). Object storage for evidence blobs is still to come.
-2. **Ingest** — workers write normalized `EvidenceItem`s; a scoring job proposes probability revisions.
+2. **Ingest** — `npm run intake` stages the CISA Known Exploited Vulnerabilities catalog in a local review queue ([source-intake.md](source-intake.md)). `npm run operator -- intake import` copies a selected version into the database review queue and does not publish it or propose a probability. A worker that does either is still later.
 3. **Agents** — same repository port, plus a job table (`proposed_change`, `rationale`, `human_decision`).
 4. **Live markets** — a `MarketAdapter` behind the existing `RelatedMarket` shape. The UI should not change.
 5. **Auth** — wrap the App Router and API with a session boundary once there is more than one tenant.

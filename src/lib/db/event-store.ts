@@ -2,10 +2,12 @@ import type { ClientBase } from "pg"
 
 import type {
   EventBundle,
+  EventRecordInput,
   EvidenceInput,
   MoveLogRevisionInput,
   ObservationInput,
 } from "./event-bundle"
+import { publishHistoryCheckpoint, type HistoryCheckpointPublication } from "./history-checkpoint"
 
 /** A bundle tried to change a record that history already holds. */
 export class HistoryConflictError extends Error {
@@ -23,15 +25,285 @@ export interface AppendCounts {
 export interface WriteSummary {
   eventId: string
   event: "inserted" | "updated" | "not provided"
+  eventRevisions: AppendCounts
   observations: AppendCounts
   evidence: AppendCounts
   moveLogRevisions: AppendCounts
+  /** Verified snapshot of the event after the bundle transaction committed. */
+  checkpoint: HistoryCheckpointPublication
 }
 
 const sameArray = (a: readonly string[], b: readonly string[]) =>
   a.length === b.length && a.every((value, index) => value === b[index])
 
 const iso = (value: Date | null) => (value ? value.toISOString() : null)
+
+interface EventSemanticSnapshot {
+  title: string
+  question: string
+  status: string
+  deadline: string
+  resolutionCriteria: string
+  category: string
+  significance: string
+  region: string
+  summary: string
+  tags: string[]
+  relatedEventIds: string[]
+  provenance: string
+}
+
+function semanticFromInput(event: EventRecordInput): EventSemanticSnapshot {
+  return {
+    title: event.title,
+    question: event.question,
+    status: event.status,
+    deadline: event.deadline,
+    resolutionCriteria: event.resolutionCriteria,
+    category: event.category,
+    significance: event.significance,
+    region: event.region,
+    summary: event.summary,
+    tags: event.tags,
+    relatedEventIds: event.relatedEventIds,
+    provenance: event.provenance,
+  }
+}
+
+function sameSemantic(a: EventSemanticSnapshot, b: EventSemanticSnapshot): boolean {
+  return (
+    a.title === b.title &&
+    a.question === b.question &&
+    a.status === b.status &&
+    a.deadline === b.deadline &&
+    a.resolutionCriteria === b.resolutionCriteria &&
+    a.category === b.category &&
+    a.significance === b.significance &&
+    a.region === b.region &&
+    a.summary === b.summary &&
+    sameArray(a.tags, b.tags) &&
+    sameArray(a.relatedEventIds, b.relatedEventIds) &&
+    a.provenance === b.provenance
+  )
+}
+
+function rowToSemantic(row: {
+  title: string
+  question: string
+  status: string
+  deadline: Date
+  resolution_criteria: string
+  category: string
+  significance: string
+  region: string
+  summary: string
+  tags: string[]
+  related_event_ids: string[]
+  provenance: string
+}): EventSemanticSnapshot {
+  return {
+    title: row.title,
+    question: row.question,
+    status: row.status,
+    deadline: row.deadline.toISOString(),
+    resolutionCriteria: row.resolution_criteria,
+    category: row.category,
+    significance: row.significance,
+    region: row.region,
+    summary: row.summary,
+    tags: row.tags,
+    relatedEventIds: row.related_event_ids,
+    provenance: row.provenance,
+  }
+}
+
+async function loadLatestSemanticSnapshot(
+  client: ClientBase,
+  eventId: string,
+): Promise<{ snapshot: EventSemanticSnapshot; fromRevision: boolean; latestVersion: number } | undefined> {
+  const { rows: revisionRows } = await client.query<{
+    version: number
+    title: string
+    question: string
+    status: string
+    deadline: Date
+    resolution_criteria: string
+    category: string
+    significance: string
+    region: string
+    summary: string
+    tags: string[]
+    related_event_ids: string[]
+    provenance: string
+  }>(
+    `SELECT version, title, question, status, deadline, resolution_criteria, category, significance,
+            region, summary, tags, related_event_ids, provenance
+       FROM event_revisions
+      WHERE event_id = $1
+      ORDER BY version DESC
+      LIMIT 1`,
+    [eventId],
+  )
+  const revision = revisionRows[0]
+  if (revision) {
+    return {
+      snapshot: rowToSemantic(revision),
+      fromRevision: true,
+      latestVersion: revision.version,
+    }
+  }
+  const { rows: eventRows } = await client.query<{
+    title: string
+    question: string
+    status: string
+    deadline: Date
+    resolution_criteria: string
+    category: string
+    significance: string
+    region: string
+    summary: string
+    tags: string[]
+    related_event_ids: string[]
+    provenance: string
+  }>(
+    `SELECT title, question, status, deadline, resolution_criteria, category, significance,
+            region, summary, tags, related_event_ids, provenance
+       FROM events
+      WHERE id = $1`,
+    [eventId],
+  )
+  const event = eventRows[0]
+  if (!event) return undefined
+  return { snapshot: rowToSemantic(event), fromRevision: false, latestVersion: 0 }
+}
+
+async function insertEventRevision(
+  client: ClientBase,
+  eventId: string,
+  event: EventRecordInput,
+  version: number,
+  correctionNote: string | null,
+): Promise<boolean> {
+  const inserted = await client.query(
+    `INSERT INTO event_revisions (
+       event_id, version, title, question, status, deadline, resolution_criteria, category,
+       significance, region, summary, tags, related_event_ids, provenance, correction_note
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+     ON CONFLICT ON CONSTRAINT event_revisions_unique_version DO NOTHING
+     RETURNING id`,
+    [
+      eventId,
+      version,
+      event.title,
+      event.question,
+      event.status,
+      event.deadline,
+      event.resolutionCriteria,
+      event.category,
+      event.significance,
+      event.region,
+      event.summary,
+      event.tags,
+      event.relatedEventIds,
+      event.provenance,
+      correctionNote,
+    ],
+  )
+  if (inserted.rowCount) return true
+
+  const { rows } = await client.query<{
+    title: string
+    question: string
+    status: string
+    deadline: Date
+    resolution_criteria: string
+    category: string
+    significance: string
+    region: string
+    summary: string
+    tags: string[]
+    related_event_ids: string[]
+    provenance: string
+    correction_note: string | null
+  }>(
+    `SELECT title, question, status, deadline, resolution_criteria, category, significance,
+            region, summary, tags, related_event_ids, provenance, correction_note
+       FROM event_revisions
+      WHERE event_id = $1 AND version = $2`,
+    [eventId, version],
+  )
+  const existing = rows[0]
+  const incoming = semanticFromInput(event)
+  const same =
+    sameSemantic(rowToSemantic(existing), incoming) &&
+    existing.correction_note === correctionNote
+  if (!same) {
+    const next = await client.query<{ next: number }>(
+      "SELECT max(version) + 1 AS next FROM event_revisions WHERE event_id = $1",
+      [eventId],
+    )
+    throw new HistoryConflictError(
+      `Event ${eventId} revision ${version} is already recorded with different values. Publish the correction as version ${next.rows[0].next} with an event.correctionNote.`,
+    )
+  }
+  return false
+}
+
+async function appendEventRevisionIfChanged(client: ClientBase, bundle: EventBundle): Promise<AppendCounts> {
+  const event = bundle.event
+  if (!event) return { appended: 0, unchanged: 0 }
+
+  await client.query("SELECT 1 FROM events WHERE id = $1 FOR UPDATE", [bundle.eventId])
+
+  const incoming = semanticFromInput(event)
+  const latest = await loadLatestSemanticSnapshot(client, bundle.eventId)
+  if (!latest) {
+    throw new HistoryConflictError(`Event ${bundle.eventId} does not exist; include bundle.event to create it.`)
+  }
+
+  if (sameSemantic(latest.snapshot, incoming)) {
+    return { appended: 0, unchanged: 1 }
+  }
+
+  const nextVersion = latest.latestVersion + 1
+  const correctionNote = event.correctionNote?.trim()
+  if (nextVersion > 1 && !correctionNote) {
+    throw new HistoryConflictError(
+      `Event ${bundle.eventId} metadata changed after revision ${latest.latestVersion}. Include event.correctionNote to publish revision ${nextVersion}.`,
+    )
+  }
+  const appended = await insertEventRevision(
+    client,
+    bundle.eventId,
+    event,
+    nextVersion,
+    nextVersion > 1 ? correctionNote! : null,
+  )
+  return { appended: appended ? 1 : 0, unchanged: appended ? 0 : 1 }
+}
+
+async function appendInitialEventRevision(client: ClientBase, bundle: EventBundle): Promise<AppendCounts> {
+  const event = bundle.event
+  if (!event) return { appended: 0, unchanged: 0 }
+
+  await client.query("SELECT 1 FROM events WHERE id = $1 FOR UPDATE", [bundle.eventId])
+  const incoming = semanticFromInput(event)
+  const latest = await loadLatestSemanticSnapshot(client, bundle.eventId)
+  if (!latest) {
+    throw new HistoryConflictError(`Event ${bundle.eventId} does not exist; include bundle.event to create it.`)
+  }
+  if (latest.fromRevision && latest.latestVersion >= 1) {
+    if (sameSemantic(latest.snapshot, incoming)) {
+      return { appended: 0, unchanged: 1 }
+    }
+    throw new HistoryConflictError(
+      `Event ${bundle.eventId} revision 1 is already recorded with different values. Publish corrections with event.correctionNote.`,
+    )
+  }
+
+  const appended = await insertEventRevision(client, bundle.eventId, event, 1, null)
+  return { appended: appended ? 1 : 0, unchanged: appended ? 0 : 1 }
+}
 
 async function upsertEvent(client: ClientBase, bundle: EventBundle): Promise<WriteSummary["event"]> {
   const event = bundle.event
@@ -202,7 +474,7 @@ async function appendRevision(client: ClientBase, eventId: string, item: MoveLog
     author: string
     what_changed: string
     likely_cause: string
-    explained_pct: number
+    explained_pct: number | null
     unexplained_factors: string[]
     evidence_ids: string[]
     correction_note: string | null
@@ -220,7 +492,7 @@ async function appendRevision(client: ClientBase, eventId: string, item: MoveLog
       existing.author === item.author &&
       existing.what_changed === item.whatChanged &&
       existing.likely_cause === item.likelyCause &&
-      existing.explained_pct === item.explainedPct &&
+      (existing.explained_pct ?? null) === (item.explainedPct ?? null) &&
       sameArray(existing.unexplained_factors, item.unexplainedFactors) &&
       sameArray(existing.evidence_ids, item.evidenceIds) &&
       existing.correction_note === (item.correctionNote ?? null) &&
@@ -249,7 +521,7 @@ async function appendRevision(client: ClientBase, eventId: string, item: MoveLog
       item.author,
       item.whatChanged,
       item.likelyCause,
-      item.explainedPct,
+      item.explainedPct ?? null,
       item.unexplainedFactors,
       item.evidenceIds,
       item.correctionNote ?? null,
@@ -269,23 +541,45 @@ async function count<T>(items: T[], write: (item: T) => Promise<boolean>): Promi
 }
 
 /**
- * Writes one validated bundle in a single transaction: upserts the event and
- * appends observations, evidence and move log revisions. Re-running an
- * identical bundle changes nothing; changing recorded history is refused.
- * Callers must check the target with `assertWritableDatabase` first.
+ * Writes one validated bundle, then publishes a visibility checkpoint.
+ *
+ * The history rows commit in one transaction. A second transaction publishes
+ * `history_checkpoints` for the event, after those rows are visible. Re-running
+ * an identical bundle changes nothing and does not append another checkpoint.
+ * Changing recorded history is refused. If the data commit succeeds and
+ * publishing fails, the rows stay committed; retrying the bundle publishes the
+ * checkpoint. Callers must check the target with `assertWritableDatabase` first.
  */
 export async function writeEventBundle(client: ClientBase, bundle: EventBundle): Promise<WriteSummary> {
   await client.query("BEGIN")
+  let eventRevisions: AppendCounts = { appended: 0, unchanged: 0 }
+  let event: WriteSummary["event"]
+  let observations: AppendCounts
+  let evidence: AppendCounts
+  let moveLogRevisions: AppendCounts
   try {
-    const event = await upsertEvent(client, bundle)
-    const observations = await count(bundle.observations, (item) => appendObservation(client, bundle.eventId, item))
-    const evidence = await count(bundle.evidence, (item) => appendEvidence(client, bundle.eventId, item))
+    await client.query("SET LOCAL omen.allow_event_projection = true")
+    if (bundle.event) {
+      const { rowCount: exists } = await client.query("SELECT 1 FROM events WHERE id = $1", [bundle.eventId])
+      if (exists) {
+        eventRevisions = await appendEventRevisionIfChanged(client, bundle)
+        event = await upsertEvent(client, bundle)
+      } else {
+        event = await upsertEvent(client, bundle)
+        eventRevisions = await appendInitialEventRevision(client, bundle)
+      }
+    } else {
+      event = await upsertEvent(client, bundle)
+    }
+    observations = await count(bundle.observations, (item) => appendObservation(client, bundle.eventId, item))
+    evidence = await count(bundle.evidence, (item) => appendEvidence(client, bundle.eventId, item))
     const revisions = [...bundle.moveLogRevisions].sort((a, b) => a.version - b.version)
-    const moveLogRevisions = await count(revisions, (item) => appendRevision(client, bundle.eventId, item))
+    moveLogRevisions = await count(revisions, (item) => appendRevision(client, bundle.eventId, item))
     await client.query("COMMIT")
-    return { eventId: bundle.eventId, event, observations, evidence, moveLogRevisions }
   } catch (error) {
     await client.query("ROLLBACK").catch(() => undefined)
     throw error
   }
+  const checkpoint = await publishHistoryCheckpoint(client, bundle.eventId)
+  return { eventId: bundle.eventId, event, eventRevisions, observations, evidence, moveLogRevisions, checkpoint }
 }

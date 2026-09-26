@@ -6,8 +6,14 @@ import { applyEventFilter, buildFeed, eventGraph } from "@/lib/data/event-query"
 import type { IntelligenceRepository } from "@/lib/data/repository"
 import { RepositoryUnavailableError } from "@/lib/data/repository-errors"
 import { readEvents, type StoredEvents } from "@/lib/db/event-reader"
+import { readHistoryCheckpointPage, readStoredReconstruction } from "@/lib/db/historical-reader"
 import { EXPECTED_SCHEMA_VERSION, MIGRATIONS_TABLE } from "@/lib/db/schema-version"
-import { probabilityDelta } from "@/lib/domain/scoring"
+import {
+  resolveCheckpointListQuery,
+  validateReconstructionRequest,
+  type CheckpointListOutcome,
+  type ReconstructionOutcome,
+} from "@/lib/domain/historical-reconstruction"
 import type {
   EventFilter,
   IntelligenceItem,
@@ -48,7 +54,7 @@ export class PostgresIntelligenceRepository implements IntelligenceRepository {
     this.schemaVerified = true
   }
 
-  private async snapshot(ids?: string[]): Promise<StoredEvents> {
+  private async withSnapshot<T>(read: (client: PoolClient) => Promise<T>): Promise<T> {
     let client: PoolClient
     try {
       client = await this.pool.connect()
@@ -58,9 +64,9 @@ export class PostgresIntelligenceRepository implements IntelligenceRepository {
     try {
       await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY")
       await this.verifySchema(client)
-      const stored = await readEvents(client, ids)
+      const result = await read(client)
       await client.query("COMMIT")
-      return stored
+      return result
     } catch (error) {
       await client.query("ROLLBACK").catch(() => undefined)
       if (error instanceof RepositoryUnavailableError) throw error
@@ -68,6 +74,10 @@ export class PostgresIntelligenceRepository implements IntelligenceRepository {
     } finally {
       client.release()
     }
+  }
+
+  private snapshot(ids?: string[]): Promise<StoredEvents> {
+    return this.withSnapshot((client) => readEvents(client, ids))
   }
 
   async listEvents(filter?: EventFilter): Promise<AionEvent[]> {
@@ -89,11 +99,10 @@ export class PostgresIntelligenceRepository implements IntelligenceRepository {
 
   async getFeaturedAnomaly(): Promise<AionEvent | undefined> {
     const withAnomaly = (await this.snapshot()).events.filter((event) => event.anomaly)
-    return withAnomaly.sort(
-      (a, b) =>
-        Math.abs(probabilityDelta(b.probability, b.previousProbability)) -
-        Math.abs(probabilityDelta(a.probability, a.previousProbability)),
-    )[0]
+    return withAnomaly.sort((a, b) => {
+      const magnitude = (event: AionEvent) => (event.change === null ? -1 : Math.abs(event.change))
+      return magnitude(b) - magnitude(a)
+    })[0]
   }
 
   async listFollowedEventIds(): Promise<string[]> {
@@ -110,5 +119,20 @@ export class PostgresIntelligenceRepository implements IntelligenceRepository {
 
   async search(query: string): Promise<SearchHit[]> {
     return searchCatalog(query, (await this.snapshot()).events)
+  }
+
+  async listHistoryCheckpoints(
+    eventId: string,
+    query?: { limit?: number; beforeSequence?: number },
+  ): Promise<CheckpointListOutcome> {
+    const resolved = resolveCheckpointListQuery(query)
+    if ("outcome" in resolved) return resolved
+    return this.withSnapshot((client) => readHistoryCheckpointPage(client, eventId, resolved))
+  }
+
+  async reconstructEvent(eventId: string, checkpointId: string): Promise<ReconstructionOutcome> {
+    const invalid = validateReconstructionRequest(eventId, checkpointId)
+    if (invalid) return invalid
+    return this.withSnapshot((client) => readStoredReconstruction(client, eventId, checkpointId))
   }
 }
