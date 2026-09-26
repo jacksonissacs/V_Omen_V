@@ -97,7 +97,7 @@ Repository-managed Cloud Agent setup lives in [`.cursor/environment.json`](../.c
 - Installs Node dependencies with **`npm ci`** (idempotent).
 - Starts **PostgreSQL 16** on each boot with the same disposable test admin URL as CI:
   - `OMEN_TEST_DATABASE_ADMIN_URL=postgresql://omen_test:local_ci_only@127.0.0.1:5432/postgres`
-- Exports that variable for interactive shells via `/etc/profile.d/omen-test-database.sh` (test-only; override locally if needed).
+- Exports test URLs via `/etc/profile.d/omen-cloud-agent-env.sh` (login shells) and [`.cursor/scripts/cloud-agent-env.sh`](../.cursor/scripts/cloud-agent-env.sh) (source from install/start/smoke and non-login agent commands).
 - Sets **`chromeExecutablePath`** for workflow tests (Chromium in the image; default Cursor images may use `/usr/local/bin/google-chrome`).
 
 Never commit production secrets. `DATABASE_URL` and admin URLs are for **local / test** databases only.

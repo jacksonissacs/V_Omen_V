@@ -30,10 +30,12 @@ RUN PG_CONF="/etc/postgresql/16/main/pg_hba.conf" \
   && service postgresql stop
 
 RUN printf '%s\n' \
-  '# OMEN disposable PostgreSQL admin URL (test-only; matches Application CI)' \
+  '# OMEN Cloud Agent test-only env (matches .cursor/scripts/cloud-agent-env.sh)' \
   'export OMEN_TEST_DATABASE_ADMIN_URL="${OMEN_TEST_DATABASE_ADMIN_URL:-postgresql://omen_test:local_ci_only@127.0.0.1:5432/postgres}"' \
-  > /etc/profile.d/omen-test-database.sh \
-  && chmod 644 /etc/profile.d/omen-test-database.sh
+  'export PGPASSWORD="${PGPASSWORD:-local_ci_only}"' \
+  'export CHROME_PATH="${CHROME_PATH:-/usr/bin/chromium}"' \
+  > /etc/profile.d/omen-cloud-agent-env.sh \
+  && chmod 644 /etc/profile.d/omen-cloud-agent-env.sh
 
 # Cloud Agent runtime user (environment.json user=ubuntu). node:22-bookworm-slim ships `node` at uid 1000.
 RUN if id -u node >/dev/null 2>&1; then \

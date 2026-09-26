@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-export OMEN_TEST_DATABASE_ADMIN_URL="${OMEN_TEST_DATABASE_ADMIN_URL:-postgresql://omen_test:local_ci_only@127.0.0.1:5432/postgres}"
-export PGPASSWORD="${PGPASSWORD:-local_ci_only}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=/dev/null
+source "${SCRIPT_DIR}/cloud-agent-env.sh"
 
 if command -v pg_isready >/dev/null 2>&1 \
   && pg_isready -h 127.0.0.1 -p 5432 -U omen_test -d postgres >/dev/null 2>&1; then

@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd "$(dirname "$0")/../.."
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=/dev/null
+source "${SCRIPT_DIR}/cloud-agent-env.sh"
+
+cd "${SCRIPT_DIR}/../.."
 
 if [[ ! -f package-lock.json ]]; then
   echo "BLOCKED: package-lock.json is missing; npm ci cannot run." >&2
