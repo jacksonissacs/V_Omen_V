@@ -13,6 +13,8 @@ export default function ApiAccessPage() {
         { label: "List events", value: "GET /api/events" },
         { label: "Filter domain", value: "GET /api/events?domain=finance" },
         { label: "Get event", value: "GET /api/events/:id" },
+        { label: "List checkpoints", value: "GET /api/events/:id/history" },
+        { label: "Replay checkpoint", value: "GET /api/events/:id/history/:checkpointId" },
       ]}
     />
   )

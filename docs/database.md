@@ -105,6 +105,35 @@ A checkpoint does not cover other events. A committed state that no publishing t
 
 `move_logs` is the parent of move log revisions and is not itself a checkpoint member. The revision row carries the publication.
 
+`writeEventBundle` is the only publication path. It commits history, then calls `omen_publish_history_checkpoint` in a later transaction. `npm run db:upsert` prints that checkpoint. It does not publish a second time. Migration `0003` is unchanged by the historical reader: there is no competing checkpoint migration, and checksums of applied migrations are not rewritten.
+
+### Stored reconstruction
+
+Historical reads use checkpoint membership. They do not filter on `record_available_at`, capture time, source publication time, or the current `events` row.
+
+`GET /api/events/:id/history` lists published checkpoints for one event, newest sequence first. The page is bounded (`limit` defaults to 20 and cannot exceed 50; `beforeSequence` requests the next older page). The list does not include member rows and does not verify them. `GET /api/events/:id/history/:checkpointId` reads one checkpoint through `IntelligenceRepository.reconstructEvent` inside one repeatable-read snapshot. Member rows are loaded by primary key. `history_checkpoints.id` and other bigint row ids are decimal strings in TypeScript and JSON, so values past `Number.MAX_SAFE_INTEGER` stay exact. The digest field is `contentMd5`.
+
+The read response is a historical record, not an `AionEvent`:
+
+- event semantics are the highest **member** `event_revisions` version;
+- observations, evidence and Move Log revisions are the member rows only. Each Move Log contributes its highest member version;
+- `display`, catalog position and follow flags are omitted;
+- when `semantic_history` is `unavailable`, the response is **pre-coverage**: `semantics` is null and the current projection is not copied in.
+
+`?at=` and `?cutoff=` return `422` and do not query storage. Outcomes stay distinct:
+
+| Situation | Outcome | HTTP |
+| --- | --- | --- |
+| Malformed event or checkpoint id, or a limit outside 1–50 | `invalid_request` | 400 |
+| Event is not stored | `unknown_event` | 404 |
+| Checkpoint id is absent, or belongs to another event | `missing_checkpoint` | 422 |
+| Checkpoint has no semantic revision | `pre_coverage` | 409 |
+| `omen_verify_history_checkpoint` is not `ok`, or members do not form a coherent view | `verification_failed` | 422 |
+| Demo storage, or a wall-clock cutoff | `unsupported_history` | 422 |
+| Database connection, schema, or query failure | `unavailable` | 503 |
+
+Database mode does not fall back to current or demo rows. A checkpoint that fails verification does not make the rest of storage unavailable.
+
 ### History coverage baseline (migration 0002)
 
 Migration `0002_trustworthy_temporal_storage.sql` does **not** backfill `event_revisions` from existing `events` rows. Semantic event history before the first revision recorded after migration is **unavailable**. The migration stores `omen_history_coverage.semantic_event_fields_from` as the baseline from which append-only event metadata history exists. Migration 0003 makes that row immutable.
@@ -207,6 +236,7 @@ The integration suite covers:
 - correction as a new version with v1 preserved (move logs and event metadata);
 - recording-time `record_available_at` (not a visibility predicate), coverage baseline, backdated source and capture input, and concurrent revision allocation;
 - verified checkpoints: delayed commits, lock-waiting writers, an open event revision that must not stall publication, multi-table bundles, legacy events with no semantic revision, consistent multi-table reads, and rejection of uncommitted or cross-event members;
+- stored reconstruction from checkpoint membership: later corrections, backdated evidence, late commits, missing semantic revisions, cross-event checkpoint ids, verification failure, retries, bounded checkpoint listing, and lossless bigint ids;
 - persistence across processes: separate `tsx scripts/omen-db.ts` processes write, the test reads over a fresh pool, and a third process reads the data back;
 - explicit failures for a missing schema, schema version drift, bad credentials and a missing database in database mode.
 
@@ -214,5 +244,5 @@ The integration suite covers:
 
 - No hosted database provisioning, production migrations or production writes (owner approval required).
 - No public write endpoint, auth, per-user watchlists, or billing. "Followed by default" is a column on the event.
-- No Archive / workspace UI for checkpoint reconstruction yet (`/archive` remains a demo shell). Latest-projection reads are unchanged. Arbitrary-time reconstruction is not provided; verified history is the checkpoint sequence only.
+- No Archive / workspace UI for checkpoint reconstruction yet (`/archive` remains a demo shell). Latest-projection reads are unchanged. Stored reconstruction is `GET /api/events/:id/history` and `GET /api/events/:id/history/:checkpointId`. Arbitrary-time reconstruction is not provided.
 - Legacy demo-only screens (Markets, Signals and others listed in `docs/architecture.md`) still read the in-process demo book in both modes.

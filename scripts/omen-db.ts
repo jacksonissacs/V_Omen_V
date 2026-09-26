@@ -105,6 +105,7 @@ async function runUpsert(client: Client, file: string | undefined) {
   }
   const bundle = parseEventBundle(raw)
   const identity = await assertWritableDatabase(client)
+  // writeEventBundle publishes the checkpoint after the data commit. Do not publish again.
   const summary = await writeEventBundle(client, bundle)
   console.log(`Target: ${identity.environment} (${identity.label})`)
   console.log(`Event ${summary.eventId}: ${summary.event}`)
@@ -115,7 +116,7 @@ async function runUpsert(client: Client, file: string | undefined) {
     console.log(`  ${key}: ${summary[key].appended} appended, ${summary[key].unchanged} already recorded`)
   }
   console.log(
-    `  checkpoint: sequence ${summary.checkpoint.sequence} ${summary.checkpoint.created ? "published" : "unchanged"} (${summary.checkpoint.semanticHistory})`,
+    `  checkpoint: id ${summary.checkpoint.id} sequence ${summary.checkpoint.sequence} ${summary.checkpoint.created ? "published" : "unchanged"} (${summary.checkpoint.semanticHistory})`,
   )
 }
 

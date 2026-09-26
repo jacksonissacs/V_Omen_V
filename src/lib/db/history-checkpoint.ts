@@ -1,5 +1,7 @@
 import type { ClientBase, Pool } from "pg"
 
+import { databaseBigintText } from "@/lib/db/bigint-id"
+
 type Queryable = Pick<ClientBase | Pool, "query">
 
 /** Whether a checkpoint's snapshot includes any post-migration event revision. */
@@ -11,7 +13,8 @@ export type SemanticHistoryLabel = "recorded" | "unavailable"
  * The checkpoint does not carry a wall-clock visibility time.
  */
 export interface HistoryCheckpointPublication {
-  id: number
+  /** Decimal text of `history_checkpoints.id`. Not a JavaScript number. */
+  id: string
   sequence: number
   created: boolean
   semanticHistory: SemanticHistoryLabel
@@ -48,7 +51,7 @@ export async function publishHistoryCheckpoint(
     throw new Error(`Publishing a history checkpoint for ${eventId} returned no row.`)
   }
   return {
-    id: Number(row.checkpoint_id),
+    id: databaseBigintText(row.checkpoint_id),
     sequence: row.sequence,
     created: row.created,
     semanticHistory: asSemanticHistory(row.semantic_history),
@@ -57,10 +60,10 @@ export async function publishHistoryCheckpoint(
 }
 
 /** Recomputes a checkpoint's digest and snapshot membership. `ok` is the success result. */
-export async function verifyHistoryCheckpoint(client: Queryable, checkpointId: number): Promise<string> {
+export async function verifyHistoryCheckpoint(client: Queryable, checkpointId: string): Promise<string> {
   const { rows } = await client.query<{ result: string }>(
     "SELECT omen_verify_history_checkpoint($1::bigint) AS result",
-    [checkpointId],
+    [databaseBigintText(checkpointId)],
   )
   return rows[0]?.result ?? "missing"
 }

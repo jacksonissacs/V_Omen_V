@@ -1615,7 +1615,7 @@ describe("temporal visibility checkpoints", () => {
         "SELECT id FROM history_checkpoints WHERE event_id = 'evt-boc-cut' ORDER BY sequence",
       )
       for (const row of ids.rows) {
-        expect(await verifyHistoryCheckpoint(client, Number(row.id))).toBe("ok")
+        expect(await verifyHistoryCheckpoint(client, row.id)).toBe("ok")
       }
     })
   })
@@ -1659,7 +1659,7 @@ describe("temporal visibility checkpoints", () => {
       expect(stored.rows[0].sequence).toBe(2)
       expect(stored.rows[0].observed_snapshot).not.toBe(saved.rows[0].snap)
       expect(stored.rows[0].content_md5).not.toBe("ab".repeat(16))
-      expect(await verifyHistoryCheckpoint(client, Number(stored.rows[0].id))).toBe("ok")
+      expect(await verifyHistoryCheckpoint(client, stored.rows[0].id)).toBe("ok")
       const member = await client.query(
         `SELECT 1
            FROM history_checkpoint_members m
