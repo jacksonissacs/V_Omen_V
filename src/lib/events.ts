@@ -1,8 +1,8 @@
-import { probabilityDelta } from "@/lib/domain/scoring"
 import type { AionEvent, EventCategory, EventSort } from "@/types/event"
 
-export function eventChange(event: Pick<AionEvent, "probability" | "previousProbability">): number {
-  return probabilityDelta(event.probability, event.previousProbability)
+/** Absolute move in the headline series, or null when fewer than two observations were recorded. */
+export function eventChange(event: Pick<AionEvent, "change">): number | null {
+  return event.change
 }
 
 export function eventQueryHaystack(event: AionEvent): string {
@@ -72,6 +72,10 @@ export function filterEvents(
   })
 }
 
+function recordedMove(event: AionEvent): number {
+  return event.change === null ? Number.NEGATIVE_INFINITY : Math.abs(event.change)
+}
+
 export function sortEvents(events: AionEvent[], sort: EventSort): AionEvent[] {
   const copy = events.slice()
   switch (sort) {
@@ -79,13 +83,9 @@ export function sortEvents(events: AionEvent[], sort: EventSort): AionEvent[] {
       return copy.sort((a, b) => b.probability - a.probability)
     case "time":
       return copy.sort((a, b) => b.timestamp.localeCompare(a.timestamp))
-    case "sigma":
-      return copy.sort((a, b) => b.sigma - a.sigma)
-    case "unexplained":
-      return copy.sort((a, b) => a.explained - b.explained)
     case "change":
     default:
-      return copy.sort((a, b) => Math.abs(b.change) - Math.abs(a.change))
+      return copy.sort((a, b) => recordedMove(b) - recordedMove(a))
   }
 }
 

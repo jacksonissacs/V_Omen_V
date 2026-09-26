@@ -49,7 +49,6 @@ export function EventsScreen({ events }: { events: AionEvent[] }) {
             ["change", "Change"],
             ["probability", "Probability"],
             ["time", "Time"],
-            ["sigma", "Significance"],
           ] as const
         ).map(([value, label]) => (
           <button
@@ -69,7 +68,6 @@ export function EventsScreen({ events }: { events: AionEvent[] }) {
           <span>Probability</span>
           <span>Change</span>
           <span>Source</span>
-          <span>σ</span>
           <span />
         </div>
         {visible.map((event) => (

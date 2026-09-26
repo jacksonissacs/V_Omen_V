@@ -140,9 +140,12 @@ export interface AionEvent {
   title: string
   category: EventCategory
   probability: number
-  previousProbability: number
-  confidence: ConfidenceLevel
-  change: number
+  /** The prior point in the headline series. Null when that series has fewer than two observations. */
+  previousProbability: number | null
+  /** Not a measured data-quality score. Null unless a future measurement is stored on purpose. */
+  confidence: ConfidenceLevel | null
+  /** Percentage points between the two latest headline observations. Null when that comparison does not exist. */
+  change: number | null
   timestamp: string
   displayTime: string
   status: EventStatus
@@ -157,13 +160,16 @@ export interface AionEvent {
   question: string
   whatChanged: string
   significance: Significance
-  sourceTier: SourceTier
-  sigma: number
+  /** Presentation label from the catalog. Null when no tier was stored. Not a measured source grade. */
+  sourceTier: SourceTier | null
+  /** Null: no stored statistical measurement backs a sigma figure. */
+  sigma: number | null
   duration: string
   catalystLabel: string
   catalyst: string
   catalystTime: string
-  explained: number
+  /** Author or illustrative attribution percentage. Null when none was stored. Not a measured split. */
+  explained: number | null
   analogues: HistoricalAnalogue[]
   timeline: TimelineItem[]
   /** The headline series' points, oldest first. */
@@ -181,7 +187,7 @@ export interface AionEvent {
   moveLog?: MoveLogSummary
 }
 
-export type EventSort = "change" | "probability" | "time" | "sigma" | "unexplained"
+export type EventSort = "change" | "probability" | "time"
 
 export const CATEGORY_LABEL: Record<EventCategory, string> = {
   AI: "AI",

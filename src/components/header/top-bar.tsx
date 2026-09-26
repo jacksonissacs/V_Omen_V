@@ -37,10 +37,10 @@ export function TopBar() {
         type="button"
         className="aion-ask"
         onClick={() => setPaletteOpen(true)}
-        aria-label="Ask OMEN"
+        aria-label="Search"
       >
         <Search size={13} />
-        Ask OMEN…
+        Search
         <span className="aion-kbd">⌘K</span>
       </button>
     </header>

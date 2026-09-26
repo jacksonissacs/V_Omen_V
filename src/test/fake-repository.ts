@@ -3,18 +3,20 @@ import type { IntelligenceRepository } from "@/lib/data/repository"
 import type { AionEvent } from "@/types/event"
 
 export function testEvent(overrides: Partial<EventDraft> & Pick<EventDraft, "id" | "title">): AionEvent {
+  const probability = overrides.probability ?? 50
+  const previousProbability = overrides.previousProbability ?? 40
+  const timestamp = overrides.timestamp ?? "2026-09-01T12:00:00.000Z"
   return buildEvent({
     category: "Economics",
-    probability: 50,
-    previousProbability: 40,
-    timestamp: "2026-09-01T12:00:00.000Z",
+    probability,
+    previousProbability,
+    timestamp,
     displayTime: "08:00 EDT",
     summary: `${overrides.title} summary`,
     question: `Will ${overrides.title}?`,
     whatChanged: "Test move",
     likelyCause: "Test catalyst",
     unexplainedFactors: ["Test residual"],
-    sigma: 1,
     duration: "1 hr",
     catalyst: "Test catalyst",
     catalystTime: "08:00:00",
@@ -23,7 +25,10 @@ export function testEvent(overrides: Partial<EventDraft> & Pick<EventDraft, "id"
     tags: [],
     entities: [],
     evidence: [],
-    expectationHistory: [{ at: "2026-09-01T12:00:00.000Z", probability: 50 }],
+    expectationHistory: [
+      { at: "2026-08-01T12:00:00.000Z", probability: previousProbability },
+      { at: timestamp, probability },
+    ],
     ...overrides,
   })
 }
