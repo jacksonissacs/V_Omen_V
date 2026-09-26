@@ -54,3 +54,18 @@ export async function saveScreenshot(page: Page, name: string): Promise<string> 
 export async function noHorizontalOverflow(page: Page): Promise<boolean> {
   return page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)
 }
+
+/** Pulse/Events/Watchlists stream a loading shell before repository HTML arrives. */
+export async function waitForWorkspaceReady(page: Page): Promise<void> {
+  await page.waitForFunction(
+    () => {
+      const text = document.body.innerText
+      return (
+        text.length > 0 &&
+        !text.includes("Loading the book") &&
+        !text.includes("Reading events from the workspace repository")
+      )
+    },
+    { timeout: 20_000 },
+  )
+}

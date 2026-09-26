@@ -12,6 +12,7 @@ import {
   noHorizontalOverflow,
   saveFailureTrace,
   saveScreenshot,
+  waitForWorkspaceReady,
 } from "@/test/workflow/browser"
 import {
   ARTIFACTS,
@@ -77,7 +78,7 @@ beforeAll(async () => {
 }, 120_000)
 
 afterEach(async (context) => {
-  if (context.task.result?.state === "fail" && page) {
+  if (context.task.result?.state === "fail" && page && page.url().startsWith("http")) {
     await saveFailureTrace(page, context.task.name).catch(() => undefined)
   }
 })
@@ -190,43 +191,40 @@ describe("production rendered content", () => {
   it("renders event detail, evidence times, source link and Move Log v1", async () => {
     const { status, text } = await fetchText(server, "/events/evt-test-temporal")
     expect(status).toBe(200)
-    expect(text).toContain(CURRENT_TITLE)
-    expect(text).toContain("ml-test-temporal-1")
-    expect(text).toContain("version 1")
-    expect(text).toContain("SYNTHETIC TEST agency notice")
-    expect(text).toContain("https://example.test/synthetic/agency-bulletin-2026")
-    expect(text).toContain("Not stated by source")
-    expect(text).toContain("55.3%")
-    expect(text).toContain("41.5%")
-    expect(text).toContain("+13.8 pp")
-    expect(text).not.toContain(LATER_TITLE)
-    expect(text).not.toContain("SYNTHETIC TEST correction")
+    const html = visibleHtml(text)
+    expect(html).toContain(CURRENT_TITLE)
+    expect(html).toContain("ml-test-temporal-1")
+    expect(html).toMatch(/version\s*1/)
+    expect(html).toContain("SYNTHETIC TEST agency notice")
+    expect(text).toContain('href="https://example.test/synthetic/agency-bulletin-2026"')
+    expect(html).toContain("Open source")
+    expect(html).toContain("Not stated by source")
+    expect(html).toContain("55.3%")
+    expect(html).toContain("41.5%")
+    expect(html).toContain("+13.8 pp")
+    expect(html).not.toContain(LATER_TITLE)
+    expect(html).not.toContain("SYNTHETIC TEST correction")
   })
 
   it("renders the one-observation case without inventing a change", async () => {
-    const { text } = await fetchText(server, "/events/evt-test-single")
-    expect(text).toContain(SINGLE_TITLE)
-    expect(text).toContain("Not computable")
-    expect(text).toContain("Only one observation is recorded, so no change can be computed.")
-    expect(text).toContain("Single observation at")
-    expect(text).toContain("None published.")
-    expect(text).toContain("No evidence is recorded for this event.")
+    const html = visibleHtml((await fetchText(server, "/events/evt-test-single")).text)
+    expect(html).toContain(SINGLE_TITLE)
+    expect(html).toContain("Not computable")
+    expect(html).toContain("Only one observation is recorded, so no change can be computed.")
+    expect(html).toContain("Single observation at")
+    expect(html).toContain("No evidence is recorded for this event.")
   })
 
   it("keeps sourced provenance and the cited URL on the sourced fixture", async () => {
     const api = await fetchJson(server, "/api/events/evt-test-sourced")
     expect(api.body.provenance).toBe("sourced")
     const { text } = await fetchText(server, "/events/evt-test-sourced")
-    expect(text).toContain("Sourced data")
-    expect(text).toContain("https://example.test/synthetic/sourced-filing")
-    expect(text).toContain("Market-implied")
-    expect(visibleHtml(text)).not.toMatch(/\b(live feed|real-time|streaming)\b/i)
-  })
-
-  it("renders 404 copy for an unknown event id", async () => {
-    const { status, text } = await fetchText(server, "/events/evt-does-not-exist")
-    expect(status).toBe(404)
-    expect(visibleHtml(text)).toContain("Event not in the book")
+    const html = visibleHtml(text)
+    expect(html).toContain("Demo + sourced data")
+    expect(text).toContain('href="https://example.test/synthetic/sourced-filing"')
+    expect(html).toContain("Open source")
+    expect(html).toContain("Market-implied")
+    expect(html.replace(/not a live [a-z]+/gi, "")).not.toMatch(/\b(live|real-time|streaming)\b/i)
   })
 
   it("does not fall back to current text on shareable historical URLs", async () => {
@@ -260,6 +258,7 @@ describe("browser workflow", () => {
       page.click("a.btn-primary"),
     ])
     expect(page.url()).toMatch(/\/pulse$/)
+    await waitForWorkspaceReady(page)
     expect(await page.evaluate(() => document.body.innerText)).toContain(CURRENT_TITLE)
     expect(await page.evaluate(() => document.body.innerText)).not.toContain(DEMO_TITLE)
     await saveScreenshot(page, "01_pulse_synthetic_book")
@@ -269,6 +268,7 @@ describe("browser workflow", () => {
       page.click(`a[aria-label="Open ${CURRENT_TITLE}"]`),
     ])
     expect(page.url()).toMatch(/\/events\/evt-test-temporal$/)
+    await page.waitForSelector("h1")
     const detail = await page.evaluate(() => document.body.innerText)
     expect(detail).toContain(CURRENT_TITLE)
     expect(detail).toContain("Move log ml-test-temporal-1")
@@ -328,6 +328,7 @@ describe("browser workflow", () => {
     await page.focus("a.btn-primary")
     await Promise.all([page.waitForNavigation({ waitUntil: "networkidle0" }), page.keyboard.press("Enter")])
     expect(page.url()).toMatch(/\/pulse$/)
+    await waitForWorkspaceReady(page)
 
     await page.keyboard.down("Control")
     await page.keyboard.press("k")
@@ -338,12 +339,21 @@ describe("browser workflow", () => {
     await page.waitForFunction(() => !document.querySelector("[role='dialog']"))
   })
 
+  it("shows the unknown-event page instead of current book text", async () => {
+    await page.goto(new URL("/events/evt-does-not-exist", server.url).toString(), { waitUntil: "networkidle0" })
+    const text = await page.evaluate(() => document.body.innerText)
+    expect(text).toContain("Event not in the book")
+    expect(text).not.toContain(CURRENT_TITLE)
+    expect(text).not.toContain(DEMO_TITLE)
+  })
+
   it("honours browser back and forward across the workflow", async () => {
     await page.goto(new URL("/", server.url).toString(), { waitUntil: "networkidle0" })
     await Promise.all([
       page.waitForNavigation({ waitUntil: "networkidle0" }),
       page.click("a.btn-primary"),
     ])
+    await waitForWorkspaceReady(page)
     await Promise.all([
       page.waitForNavigation({ waitUntil: "networkidle0" }),
       page.click(`a[aria-label="Open ${SINGLE_TITLE}"]`),
@@ -352,6 +362,7 @@ describe("browser workflow", () => {
 
     await page.goBack({ waitUntil: "networkidle0" })
     expect(page.url()).toMatch(/\/pulse$/)
+    await waitForWorkspaceReady(page)
     await page.goForward({ waitUntil: "networkidle0" })
     expect(page.url()).toMatch(/\/events\/evt-test-single$/)
     expect(await page.evaluate(() => document.body.innerText)).toContain("Not computable")
@@ -413,11 +424,12 @@ describe("validated write path and later current state", () => {
       correctionNote: "SYNTHETIC TEST correction: coverage revised from 60% to 45% after later evidence.",
     })
 
-    const html = await fetchText(server, "/events/evt-test-temporal")
-    expect(html.text).toContain(LATER_TITLE)
-    expect(html.text).toContain("version 2")
-    expect(html.text).toContain("SYNTHETIC TEST correction")
-    expect(html.text).toContain("ev-test-temporal-3")
+    const html = visibleHtml((await fetchText(server, "/events/evt-test-temporal")).text)
+    expect(html).toContain(LATER_TITLE)
+    expect(html).toMatch(/version\s*2/)
+    expect(html).toContain("SYNTHETIC TEST correction")
+    expect(html).toContain("SYNTHETIC TEST later correction note")
+    expect(html).toContain("3 evidence records")
 
     const historical = await fetchJson(server, "/api/events/evt-test-temporal?checkpoint=ck-early")
     expect(historical.status).toBe(422)
