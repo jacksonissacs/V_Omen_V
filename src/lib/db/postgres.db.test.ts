@@ -30,7 +30,9 @@ import {
 const ROOT = path.resolve(__dirname, "../../..")
 const SEED_FILE = path.join(ROOT, "db/fixtures/demo-evt-boc-cut.json")
 const CORRECTION_FILE = path.join(ROOT, "db/fixtures/demo-evt-boc-cut.correction.json")
+const POPULATED_V1_FIXTURE = path.join(ROOT, "db/fixtures/test-populated-v1-evt-boc-cut.sql")
 const readJson = (file: string) => JSON.parse(readFileSync(file, "utf8"))
+const populateV1History = (client: Client) => client.query(readFileSync(POPULATED_V1_FIXTURE, "utf8"))
 const seedBundle = () => parseEventBundle(readJson(SEED_FILE))
 const correctionBundle = () => parseEventBundle(readJson(CORRECTION_FILE))
 
@@ -673,23 +675,98 @@ describe("temporal storage and record availability", () => {
   it("realigns pre-existing history rows when migration 0002 runs on a populated database", async () => {
     const database = await emptyDatabase()
     const migrations = loadMigrations()
+    let beforeCounts: {
+      observations: number
+      evidence: number
+      moveLogRevisions: number
+      latestProbability: string
+    }
     await withClient(database.url, async (client) => {
       await identifyDatabase(client, "test", `vitest ${database.name}`)
       await migrate(client, migrations.slice(0, 1))
-      await writeEventBundle(client, seedBundle())
+      await populateV1History(client)
+      const { rows: revisionTable } = await client.query(
+        "SELECT to_regclass('public.event_revisions') AS event_revisions",
+      )
+      expect(revisionTable[0].event_revisions).toBeNull()
+      const counts = await client.query<{
+        observations: number
+        evidence: number
+        move_log_revisions: number
+        latest_probability: string
+      }>(
+        `SELECT
+           (SELECT count(*)::int FROM probability_observations WHERE event_id = 'evt-boc-cut') AS observations,
+           (SELECT count(*)::int FROM evidence WHERE event_id = 'evt-boc-cut') AS evidence,
+           (SELECT count(*)::int FROM move_log_revisions r
+              JOIN move_logs m ON m.id = r.move_log_id WHERE m.event_id = 'evt-boc-cut') AS move_log_revisions,
+           (SELECT probability_pct::text FROM probability_observations
+              WHERE event_id = 'evt-boc-cut'
+              ORDER BY captured_at DESC LIMIT 1) AS latest_probability`,
+      )
+      beforeCounts = {
+        observations: counts.rows[0].observations,
+        evidence: counts.rows[0].evidence,
+        moveLogRevisions: counts.rows[0].move_log_revisions,
+        latestProbability: counts.rows[0].latest_probability,
+      }
+      expect(beforeCounts.observations).toBe(4)
     })
     await withClient(database.url, async (client) => {
       await migrate(client, migrations)
       const coverage = await readHistoryCoverage(client)
       const realignedAt = new Date(coverage.recordAvailabilityRealignedAt)
-      const { rows } = await client.query<{ captured_at: Date; record_available_at: Date }>(
-        `SELECT captured_at, record_available_at FROM probability_observations WHERE event_id = 'evt-boc-cut'`,
+      expect(coverage.semanticEventFieldsFrom).toBe(coverage.recordAvailabilityRealignedAt)
+      const { rows: revisionRows } = await client.query("SELECT count(*)::int AS count FROM event_revisions")
+      expect(revisionRows[0].count).toBe(0)
+      const afterCounts = await client.query<{
+        observations: number
+        evidence: number
+        move_log_revisions: number
+        latest_probability: string
+      }>(
+        `SELECT
+           (SELECT count(*)::int FROM probability_observations WHERE event_id = 'evt-boc-cut') AS observations,
+           (SELECT count(*)::int FROM evidence WHERE event_id = 'evt-boc-cut') AS evidence,
+           (SELECT count(*)::int FROM move_log_revisions r
+              JOIN move_logs m ON m.id = r.move_log_id WHERE m.event_id = 'evt-boc-cut') AS move_log_revisions,
+           (SELECT probability_pct::text FROM probability_observations
+              WHERE event_id = 'evt-boc-cut'
+              ORDER BY captured_at DESC LIMIT 1) AS latest_probability`,
       )
-      expect(rows.length).toBeGreaterThan(0)
+      expect(afterCounts.rows[0].observations).toBe(beforeCounts.observations)
+      expect(afterCounts.rows[0].evidence).toBe(beforeCounts.evidence)
+      expect(afterCounts.rows[0].move_log_revisions).toBe(beforeCounts.moveLogRevisions)
+      expect(afterCounts.rows[0].latest_probability).toBe(beforeCounts.latestProbability)
+      const { rows } = await client.query<{ captured_at: Date; record_available_at: Date }>(
+        `SELECT captured_at, record_available_at FROM probability_observations WHERE event_id = 'evt-boc-cut'
+         UNION ALL
+         SELECT captured_at, record_available_at FROM evidence WHERE event_id = 'evt-boc-cut'
+         UNION ALL
+         SELECT published_at AS captured_at, record_available_at
+           FROM move_log_revisions r
+           JOIN move_logs m ON m.id = r.move_log_id
+          WHERE m.event_id = 'evt-boc-cut'`,
+      )
+      expect(rows.length).toBe(
+        beforeCounts.observations + beforeCounts.evidence + beforeCounts.moveLogRevisions,
+      )
       for (const row of rows) {
         expect(row.record_available_at.toISOString()).toBe(realignedAt.toISOString())
         expect(row.record_available_at.getTime()).toBeGreaterThan(row.captured_at.getTime())
       }
+      await expect(
+        client.query(`UPDATE probability_observations SET note = 'blocked' WHERE event_id = 'evt-boc-cut'`),
+      ).rejects.toThrow(/append-only/)
+      await expect(client.query(`UPDATE evidence SET summary = 'blocked' WHERE event_id = 'evt-boc-cut'`)).rejects.toThrow(
+        /append-only/,
+      )
+      await expect(
+        client.query(
+          `UPDATE move_log_revisions SET what_changed = 'blocked'
+             WHERE move_log_id = (SELECT id FROM move_logs WHERE event_id = 'evt-boc-cut' LIMIT 1)`,
+        ),
+      ).rejects.toThrow(/append-only/)
     })
   })
 
@@ -721,7 +798,7 @@ describe("temporal storage and record availability", () => {
               firstObservedAt: "2020-01-01T00:00:30Z",
               capturedAt: "2020-01-01T00:01:00Z",
               summary: "Backdated evidence row.",
-              stance: "neutral",
+              stance: "contextual",
               reliability: 0.5,
               recordedBy: "test",
               provenance: "demo",
