@@ -42,7 +42,7 @@ Migrations live in `db/migrations/NNNN_name.sql`, numbered consecutively. They a
 | `move_logs` | One row per move on an event | Append-only |
 | `move_log_revisions` | Version, `published_at`, `recorded_at`, `record_available_at`, author, what changed, likely cause, explained %, unexplained factors, linked `evidence_ids`, correction note, provenance | Append-only |
 | `omen_history_coverage` | One row: when append-only semantic event history begins, and when pre-existing history rows received their `record_available_at` realignment marker | Set at migration 0002. Immutable afterwards |
-| `history_checkpoints` | One immutable verified reconstruction point for an event: the publishing statement's snapshot, content digest, member count, and semantic-history label | Append-only |
+| `history_checkpoints` | One immutable verified reconstruction point for an event: publishing transaction id, the publishing statement's snapshot, content digest, member count, and semantic-history label. No foreign key to `events` | Append-only |
 | `history_checkpoint_members` | History rows visible in that snapshot (`probability_observations`, `evidence`, `move_log_revisions`, `event_revisions`), with the inserting transaction id | Append-only. Written only by the publishing transaction |
 
 Every event must have at least one observation. This is a deferred constraint trigger, checked at commit.
@@ -72,7 +72,13 @@ Additional rules:
 
 **Reproduced visibility gap.** `record_available_at <= T` does not mean a row was visible at T. A committed reader can miss the row while the inserting transaction is still open, including when that transaction is waiting on a lock, at a wall-clock time later than `record_available_at`. A transaction that starts earlier can become visible later than one that starts later, so the column does not order commit visibility. Two snapshots can also overlap in wall-clock time and see different committed rows (a `REPEATABLE READ` reader keeps its snapshot; a new reader sees the later commit). Arbitrary-time reconstruction is therefore not a single state, and V0 does not implement it.
 
-**Not used.** Replacing `transaction_timestamp()` with per-row `clock_timestamp()`, a sleep, or a commit-timestamp column would still be a wall-clock value. A reading taken before commit, including `clock_timestamp()` inside the open transaction, is already earlier than a committed observation that the row is absent. V0 does not store `pg_xact_commit_timestamp` or a deferred-trigger clock; those mechanisms are not a substitute for a snapshot.
+**Reproduced checkpoint defects, fixed in migration 0003.** These were observed against an earlier draft of this migration; the checks below are what closed them.
+
+- `pg_visible_in_snapshot` returned true for the publishing transaction's own uncommitted row, including a subtransaction xid, after another transaction committed. The row's `pg_xact_status` stayed `in progress`, and a second backend's snapshot still listed that xid. A checkpoint published in the open transaction stored the row and verified as `ok`. Membership now requires `pg_xact_status` to be `committed` (or NULL when the status has been discarded). Publishing still refuses while any history row for the event is `in progress`.
+- A checkpoint insert that referenced `events` took `FOR KEY SHARE` and waited on an open `event_revisions` `FOR UPDATE`. The statement snapshot was taken before the wait, so the checkpoint committed without the revision that had just committed. `history_checkpoints` has no foreign key to `events`. The guard reads the event without a row lock.
+- In the publishing transaction, an extra `history_checkpoint_members` row for another event's observation committed. Verification then returned `member-count-mismatch`, and nothing called verification before commit. The member guard rejects a row whose event is not the checkpoint's event, and a deferred constraint rejects a member count that no longer matches when the transaction commits.
+
+**Not used.** Replacing `transaction_timestamp()` with per-row `clock_timestamp()`, a sleep, or a commit-timestamp column would still be a wall-clock value. A reading taken before commit, including `clock_timestamp()` inside the open transaction, is already earlier than a committed observation that the row is absent. V0 does not store `pg_xact_commit_timestamp` or a deferred-trigger clock; those mechanisms are not a substitute for a snapshot. `xmin::text::xid8` drops an xid epoch after wraparound; that cast is not a second visibility proof.
 
 **Transaction semantics.** Bundle rows commit in one transaction. Event projection updates set `SET LOCAL omen.allow_event_projection = true`; direct SQL updates to revision-controlled event columns are rejected otherwise. Event and move log revision version numbers are allocated under a row lock on the parent event or move log so concurrent writers cannot skip or duplicate versions. After that transaction commits, a second transaction publishes a checkpoint. Identical bundle replays change nothing and do not append a checkpoint. If the data commit succeeds and publishing fails, the rows stay committed and retrying the bundle publishes the checkpoint.
 
@@ -80,13 +86,14 @@ Additional rules:
 
 `history_checkpoints.visibility_contract` is always `observed_snapshot_members`. That is the only visibility claim V0 stores.
 
-Publishing (`omen_publish_history_checkpoint`) takes a transaction advisory lock for that event so two publishers serialise, without taking a row lock that would wait on an in-flight history insert. It refuses when the same transaction already has uncommitted history for the event. The insert trigger captures `pg_current_snapshot()` once and stores that value. A snapshot or digest supplied in the `INSERT` is not kept: two calls in one statement can observe different xid horizons once this transaction takes an xid or another transaction commits. Membership is the history visible in the captured snapshot. Triggers reject:
+Publishing (`omen_publish_history_checkpoint`) takes a transaction advisory lock for that event so two publishers serialise. It does not lock `events`. It refuses when the same transaction already has uncommitted history for the event, including history inserted in a subtransaction, judged by `pg_xact_status` rather than `pg_visible_in_snapshot`. The insert trigger captures `pg_current_snapshot()` once and stores that value, and stores the publishing transaction's top-level xid. A snapshot or digest supplied in the `INSERT` is not kept: two calls in one statement can observe different xid horizons once this transaction takes an xid or another transaction commits. Membership is history whose inserting transaction had committed and is visible in the captured snapshot. Triggers reject:
 
-- a publish attempted while the same transaction has uncommitted history for the event (those rows are invisible in the snapshot, so the checkpoint would omit them and then commit beside them);
-- a member whose inserting transaction id is not visible in the stored snapshot, or that was not written by the publishing transaction;
-- a member count other than the rows copied from that snapshot;
+- a publish attempted while the same transaction has in-progress history for the event;
+- a member whose inserting transaction is not committed, is not visible in the stored snapshot, belongs to another event, or was not written by the publishing transaction;
+- a member count other than the rows copied from that snapshot, including a count that changes before the publishing transaction commits;
 - any coverage label other than the baseline copied from `omen_history_coverage`, or any visibility contract other than `observed_snapshot_members`;
-- a sequence that is not the next one for the event.
+- a sequence that is not the next one for the event;
+- a checkpoint whose event row is absent.
 
 An insert whose digest matches the latest checkpoint writes nothing.
 
@@ -199,7 +206,7 @@ The integration suite covers:
 - repository reads and writes, idempotent re-runs and rollback on conflict;
 - correction as a new version with v1 preserved (move logs and event metadata);
 - recording-time `record_available_at` (not a visibility predicate), coverage baseline, backdated source and capture input, and concurrent revision allocation;
-- verified checkpoints: delayed commits, lock-waiting writers, multi-table bundles, legacy events with no semantic revision, and consistent multi-table reads;
+- verified checkpoints: delayed commits, lock-waiting writers, an open event revision that must not stall publication, multi-table bundles, legacy events with no semantic revision, consistent multi-table reads, and rejection of uncommitted or cross-event members;
 - persistence across processes: separate `tsx scripts/omen-db.ts` processes write, the test reads over a fresh pool, and a third process reads the data back;
 - explicit failures for a missing schema, schema version drift, bad credentials and a missing database in database mode.
 

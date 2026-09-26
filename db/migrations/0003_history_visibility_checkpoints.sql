@@ -3,7 +3,8 @@
 -- Migration 0002 comments describe record_available_at as the instant a row
 -- became available for point-in-time reconstruction. That claim is wrong:
 -- the column stores transaction_timestamp(), which is transaction start, and
--- other snapshots cannot see the row until commit. This migration does not
+-- other snapshots cannot see the row until commit. pg_visible_in_snapshot is
+-- also not commit visibility for the current transaction. This migration does not
 -- rewrite 0002 or any history row. It labels record_available_at as a recording
 -- marker and adds the only visibility claim V0 stores: a checkpoint of members
 -- that were visible together in the publishing statement's snapshot.
@@ -102,9 +103,29 @@ AS $$
   SELECT p_relation || E'\t' || p_row_key || E'\t' || p_line
 $$;
 
--- History rows for one event whose inserting transaction is visible in p_snapshot.
--- The table scan uses the statement snapshot; p_snapshot selects which of those
--- rows belong to the checkpoint. Own uncommitted inserts are not visible in it.
+-- pg_visible_in_snapshot is not commit visibility. Once some other transaction
+-- ends, the current xid can sit below xmax and outside xip, so the function
+-- returns true for this backend's own uncommitted rows. Other backends still
+-- list that xid as in progress. A discarded commit-status (NULL) is treated as
+-- committed; frozen rows are in that set.
+CREATE FUNCTION omen_xid_is_committed(p_xid xid8) RETURNS boolean
+LANGUAGE sql STABLE
+SET search_path = pg_catalog, public
+AS $$
+  SELECT coalesce(pg_xact_status(p_xid), 'committed') = 'committed'
+$$;
+
+CREATE FUNCTION omen_history_xid_visible(p_xid xid8, p_snapshot pg_snapshot) RETURNS boolean
+LANGUAGE sql STABLE
+SET search_path = pg_catalog, public
+AS $$
+  SELECT omen_xid_is_committed(p_xid)
+     AND pg_visible_in_snapshot(p_xid, p_snapshot)
+$$;
+
+-- History rows for one event whose inserting transaction committed and is
+-- visible in p_snapshot. The table scan uses the statement snapshot;
+-- p_snapshot selects which of those committed rows belong to the checkpoint.
 CREATE FUNCTION omen_visible_history_members(p_event_id text, p_snapshot pg_snapshot)
 RETURNS TABLE (relation_name text, row_key text, inserting_xid xid8, line text)
 LANGUAGE sql STABLE
@@ -113,25 +134,25 @@ AS $$
   SELECT 'event_revisions', id::text, xmin::text::xid8, omen_history_row_line('event_revisions', id::text)
     FROM event_revisions
    WHERE event_id = p_event_id
-     AND pg_visible_in_snapshot(xmin::text::xid8, p_snapshot)
+     AND omen_history_xid_visible(xmin::text::xid8, p_snapshot)
   UNION ALL
   SELECT 'probability_observations', id::text, xmin::text::xid8,
          omen_history_row_line('probability_observations', id::text)
     FROM probability_observations
    WHERE event_id = p_event_id
-     AND pg_visible_in_snapshot(xmin::text::xid8, p_snapshot)
+     AND omen_history_xid_visible(xmin::text::xid8, p_snapshot)
   UNION ALL
   SELECT 'evidence', id, xmin::text::xid8, omen_history_row_line('evidence', id)
     FROM evidence
    WHERE event_id = p_event_id
-     AND pg_visible_in_snapshot(xmin::text::xid8, p_snapshot)
+     AND omen_history_xid_visible(xmin::text::xid8, p_snapshot)
   UNION ALL
   SELECT 'move_log_revisions', r.id::text, r.xmin::text::xid8,
          omen_history_row_line('move_log_revisions', r.id::text)
     FROM move_log_revisions r
     JOIN move_logs m ON m.id = r.move_log_id
    WHERE m.event_id = p_event_id
-     AND pg_visible_in_snapshot(r.xmin::text::xid8, p_snapshot)
+     AND omen_history_xid_visible(r.xmin::text::xid8, p_snapshot)
 $$;
 
 CREATE FUNCTION omen_visible_history_members(p_event_id text)
@@ -146,35 +167,46 @@ CREATE FUNCTION omen_event_has_uncommitted_history(p_event_id text) RETURNS bool
 LANGUAGE sql STABLE
 SET search_path = pg_catalog, public
 AS $$
+  -- In-progress rows of this transaction stay visible to its own scans,
+  -- including subtransaction xids, after pg_visible_in_snapshot flips to true.
   SELECT EXISTS (
     SELECT 1 FROM probability_observations
      WHERE event_id = p_event_id
-       AND NOT pg_visible_in_snapshot(xmin::text::xid8, pg_current_snapshot())
+       AND pg_xact_status(xmin::text::xid8) = 'in progress'
   )
   OR EXISTS (
     SELECT 1 FROM evidence
      WHERE event_id = p_event_id
-       AND NOT pg_visible_in_snapshot(xmin::text::xid8, pg_current_snapshot())
+       AND pg_xact_status(xmin::text::xid8) = 'in progress'
   )
   OR EXISTS (
     SELECT 1 FROM move_log_revisions r
       JOIN move_logs m ON m.id = r.move_log_id
      WHERE m.event_id = p_event_id
-       AND NOT pg_visible_in_snapshot(r.xmin::text::xid8, pg_current_snapshot())
+       AND pg_xact_status(r.xmin::text::xid8) = 'in progress'
   )
   OR EXISTS (
     SELECT 1 FROM event_revisions
      WHERE event_id = p_event_id
-       AND NOT pg_visible_in_snapshot(xmin::text::xid8, pg_current_snapshot())
+       AND pg_xact_status(xmin::text::xid8) = 'in progress'
   );
 $$;
 
 CREATE TABLE history_checkpoints (
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  event_id text NOT NULL REFERENCES events (id) ON DELETE RESTRICT,
+  -- No foreign key to events. A foreign key takes FOR KEY SHARE, which waits
+  -- behind the FOR UPDATE held by an open event_revisions insert. The INSERT
+  -- statement's snapshot is fixed before that wait, so the checkpoint would
+  -- omit the revision that unblocked it. The guard below checks the event
+  -- with a plain read. History rows still reference events, and those rows
+  -- are append-only, so an event that has history cannot be deleted.
+  event_id text NOT NULL,
   sequence integer NOT NULL
     CONSTRAINT history_checkpoints_sequence_positive CHECK (sequence >= 1),
-  -- Snapshot capture: the publishing statement's pg_current_snapshot().
+  -- Top-level xid of the publishing transaction. Its own writes cannot be
+  -- committed-visible in the snapshot this transaction captures.
+  publisher_xid xid8 NOT NULL,
+  -- Snapshot capture: one pg_current_snapshot() from the publishing statement.
   -- Compared as text because pg_snapshot has no equality operator.
   observed_snapshot pg_snapshot NOT NULL,
   content_md5 text NOT NULL
@@ -195,7 +227,7 @@ CREATE TABLE history_checkpoints (
 );
 
 COMMENT ON TABLE history_checkpoints IS
-  'Immutable verified reconstruction points. A row asserts only that its members were visible together in observed_snapshot. It does not assert wall-clock visibility, commit time, or any instant before the checkpoint transaction committed.';
+  'Immutable verified reconstruction points. A row asserts only that its members had committed and were visible together in observed_snapshot. It does not assert wall-clock visibility, and it does not include rows whose inserting transaction was still in progress.';
 
 CREATE INDEX history_checkpoints_event_sequence ON history_checkpoints (event_id, sequence DESC);
 
@@ -226,6 +258,12 @@ DECLARE
   latest_digest text;
 BEGIN
   NEW.observed_snapshot := snap;
+  NEW.publisher_xid := pg_current_xact_id();
+
+  IF NOT EXISTS (SELECT 1 FROM events WHERE id = NEW.event_id) THEN
+    RAISE EXCEPTION 'event % does not exist', NEW.event_id
+      USING ERRCODE = 'no_data_found';
+  END IF;
 
   IF omen_event_has_uncommitted_history(NEW.event_id) THEN
     RAISE EXCEPTION 'refusing to publish a checkpoint for event % while this transaction has uncommitted history', NEW.event_id
@@ -312,30 +350,40 @@ SET search_path = pg_catalog, public
 AS $$
 DECLARE
   parent_xid xid8;
+  parent_event text;
   observed pg_snapshot;
   live_xid xid8;
+  live_event text;
 BEGIN
-  SELECT xmin::text::xid8, observed_snapshot
-    INTO parent_xid, observed
+  SELECT xmin::text::xid8, event_id, observed_snapshot
+    INTO parent_xid, parent_event, observed
     FROM history_checkpoints
    WHERE id = NEW.checkpoint_id;
   IF parent_xid IS NULL THEN
     RAISE EXCEPTION 'history checkpoint % does not exist', NEW.checkpoint_id
       USING ERRCODE = 'foreign_key_violation';
   END IF;
-  IF parent_xid IS DISTINCT FROM pg_current_xact_id() THEN
+  -- The checkpoint xmin may be a subtransaction id. pg_current_xact_id() is
+  -- only the top-level xid, so compare commit status instead of xid equality.
+  IF pg_xact_status(parent_xid) IS DISTINCT FROM 'in progress' THEN
     RAISE EXCEPTION 'history checkpoint members must be written by the publishing transaction'
       USING ERRCODE = 'restrict_violation';
   END IF;
 
   IF NEW.relation_name = 'probability_observations' THEN
-    SELECT xmin::text::xid8 INTO live_xid FROM probability_observations WHERE id = NEW.row_key::bigint;
+    SELECT xmin::text::xid8, event_id INTO live_xid, live_event
+      FROM probability_observations WHERE id = NEW.row_key::bigint;
   ELSIF NEW.relation_name = 'evidence' THEN
-    SELECT xmin::text::xid8 INTO live_xid FROM evidence WHERE id = NEW.row_key;
+    SELECT xmin::text::xid8, event_id INTO live_xid, live_event
+      FROM evidence WHERE id = NEW.row_key;
   ELSIF NEW.relation_name = 'move_log_revisions' THEN
-    SELECT xmin::text::xid8 INTO live_xid FROM move_log_revisions WHERE id = NEW.row_key::bigint;
+    SELECT r.xmin::text::xid8, m.event_id INTO live_xid, live_event
+      FROM move_log_revisions r
+      JOIN move_logs m ON m.id = r.move_log_id
+     WHERE r.id = NEW.row_key::bigint;
   ELSIF NEW.relation_name = 'event_revisions' THEN
-    SELECT xmin::text::xid8 INTO live_xid FROM event_revisions WHERE id = NEW.row_key::bigint;
+    SELECT xmin::text::xid8, event_id INTO live_xid, live_event
+      FROM event_revisions WHERE id = NEW.row_key::bigint;
   ELSE
     RAISE EXCEPTION 'unknown history relation %', NEW.relation_name
       USING ERRCODE = 'invalid_parameter_value';
@@ -345,8 +393,17 @@ BEGIN
     RAISE EXCEPTION 'history checkpoint member %.% does not exist', NEW.relation_name, NEW.row_key
       USING ERRCODE = 'foreign_key_violation';
   END IF;
+  IF live_event IS DISTINCT FROM parent_event THEN
+    RAISE EXCEPTION 'history checkpoint member %.% belongs to event %, not %',
+      NEW.relation_name, NEW.row_key, live_event, parent_event
+      USING ERRCODE = 'restrict_violation';
+  END IF;
   IF NEW.inserting_xid IS DISTINCT FROM live_xid THEN
     RAISE EXCEPTION 'history checkpoint member xid does not match %.%', NEW.relation_name, NEW.row_key
+      USING ERRCODE = 'restrict_violation';
+  END IF;
+  IF NOT omen_xid_is_committed(NEW.inserting_xid) THEN
+    RAISE EXCEPTION 'history checkpoint member %.% is not a committed row', NEW.relation_name, NEW.row_key
       USING ERRCODE = 'restrict_violation';
   END IF;
   IF NOT pg_visible_in_snapshot(NEW.inserting_xid, observed) THEN
@@ -386,6 +443,35 @@ CREATE CONSTRAINT TRIGGER history_checkpoints_members_complete
   DEFERRABLE INITIALLY IMMEDIATE
   FOR EACH ROW EXECUTE FUNCTION omen_checkpoint_member_count_matches();
 
+-- A later insert in the publishing transaction does not re-fire the trigger
+-- above. Recheck the count when the transaction commits.
+CREATE FUNCTION omen_checkpoint_member_count_at_commit() RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog, public
+AS $$
+DECLARE
+  actual integer;
+  expected integer;
+BEGIN
+  SELECT count(*)::integer INTO actual
+    FROM history_checkpoint_members
+   WHERE checkpoint_id = NEW.checkpoint_id;
+  SELECT member_count INTO expected
+    FROM history_checkpoints
+   WHERE id = NEW.checkpoint_id;
+  IF actual IS DISTINCT FROM expected THEN
+    RAISE EXCEPTION 'history checkpoint member count does not match the publishing snapshot'
+      USING ERRCODE = 'restrict_violation';
+  END IF;
+  RETURN NULL;
+END;
+$$;
+
+CREATE CONSTRAINT TRIGGER history_checkpoint_members_count_at_commit
+  AFTER INSERT ON history_checkpoint_members
+  DEFERRABLE INITIALLY DEFERRED
+  FOR EACH ROW EXECUTE FUNCTION omen_checkpoint_member_count_at_commit();
+
 CREATE TRIGGER history_checkpoints_append_only
   BEFORE UPDATE OR DELETE ON history_checkpoints
   FOR EACH ROW EXECUTE FUNCTION omen_reject_history_mutation();
@@ -406,6 +492,7 @@ SET search_path = pg_catalog, public
 AS $$
 DECLARE
   cp history_checkpoints%ROWTYPE;
+  checkpoint_xmin xid8;
   recomputed text;
   stored_count integer;
   missing integer;
@@ -418,6 +505,15 @@ BEGIN
   IF NOT FOUND THEN
     RETURN 'missing';
   END IF;
+  SELECT xmin::text::xid8 INTO checkpoint_xmin
+    FROM history_checkpoints WHERE id = p_checkpoint_id;
+  IF EXISTS (
+    SELECT 1 FROM history_checkpoint_members
+     WHERE checkpoint_id = p_checkpoint_id
+       AND (inserting_xid = cp.publisher_xid OR inserting_xid = checkpoint_xmin)
+  ) THEN
+    RETURN 'member-in-publisher-transaction';
+  END IF;
   IF cp.visibility_contract IS DISTINCT FROM 'observed_snapshot_members' THEN
     RETURN 'visibility-contract';
   END IF;
@@ -427,7 +523,7 @@ BEGIN
 
   SELECT count(*)::integer,
          count(*) FILTER (WHERE omen_history_row_line(relation_name, row_key) IS NULL)::integer,
-         count(*) FILTER (WHERE NOT pg_visible_in_snapshot(inserting_xid, cp.observed_snapshot))::integer
+         count(*) FILTER (WHERE NOT omen_history_xid_visible(inserting_xid, cp.observed_snapshot))::integer
     INTO stored_count, missing, invisible
     FROM history_checkpoint_members
    WHERE checkpoint_id = p_checkpoint_id;
@@ -490,9 +586,9 @@ SET search_path = pg_catalog, public
 AS $$
 #variable_conflict use_column
 BEGIN
-  -- Serialise publishers without FOR UPDATE. A row lock conflicts with the
-  -- KEY SHARE lock an in-flight history insert holds on events, and would
-  -- wait until that writer commits.
+  -- Serialise publishers. Do not lock the event row: FOR KEY SHARE waits on an
+  -- open event-revision FOR UPDATE, and the snapshot would stay at the start
+  -- of that wait.
   PERFORM pg_advisory_xact_lock(hashtextextended(p_event_id, 0));
   PERFORM 1 FROM events WHERE id = p_event_id;
   IF NOT FOUND THEN

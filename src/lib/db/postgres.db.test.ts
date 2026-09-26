@@ -1624,6 +1624,15 @@ describe("temporal visibility checkpoints", () => {
     const database = await migratedDatabase()
     await withClient(database.url, (client) => writeEventBundle(client, seedBundle()))
     await withClient(database.url, async (client) => {
+      await client.query(
+        `INSERT INTO probability_observations (
+           event_id, source_kind, source_name, probability_type, probability_pct,
+           observed_at, captured_at, provenance
+         ) VALUES (
+           'evt-boc-cut', 'author', 'forged snapshot probe', 'forecaster_estimate', 48,
+           '2026-09-11T00:00:00Z', '2026-09-11T00:01:00Z', 'demo'
+         )`,
+      )
       await client.query("BEGIN")
       const saved = await client.query<{ snap: string }>("SELECT pg_current_snapshot()::text AS snap")
       await client.query("SELECT pg_current_xact_id()")
@@ -1634,23 +1643,31 @@ describe("temporal visibility checkpoints", () => {
            semantic_event_fields_from, record_availability_realigned_at,
            pre_baseline_event_revisions, visibility_contract
          )
-         SELECT 'evt-boc-cut', 99, $1::pg_snapshot, repeat('ab', 16), 1, 'recorded',
+         SELECT 'evt-boc-cut', 2, $1::pg_snapshot, repeat('ab', 16), 1, 'recorded',
                 semantic_event_fields_from, record_availability_realigned_at,
                 'not_recorded', 'observed_snapshot_members'
            FROM omen_history_coverage`,
         [saved.rows[0].snap],
       )
-      const stored = await client.query<{ observed_snapshot: string; content_md5: string; sequence: number }>(
-        `SELECT observed_snapshot::text AS observed_snapshot, content_md5, sequence
+      const stored = await client.query<{ id: string; observed_snapshot: string; content_md5: string; sequence: number }>(
+        `SELECT id, observed_snapshot::text AS observed_snapshot, content_md5, sequence
            FROM history_checkpoints
           WHERE event_id = 'evt-boc-cut'
           ORDER BY sequence DESC
           LIMIT 1`,
       )
-      expect(stored.rows[0].sequence).toBe(1)
+      expect(stored.rows[0].sequence).toBe(2)
       expect(stored.rows[0].observed_snapshot).not.toBe(saved.rows[0].snap)
       expect(stored.rows[0].content_md5).not.toBe("ab".repeat(16))
-      expect(await verifyHistoryCheckpoint(client, 1)).toBe("ok")
+      expect(await verifyHistoryCheckpoint(client, Number(stored.rows[0].id))).toBe("ok")
+      const member = await client.query(
+        `SELECT 1
+           FROM history_checkpoint_members m
+           JOIN probability_observations o ON o.id::text = m.row_key
+          WHERE m.checkpoint_id = $1 AND o.source_name = 'forged snapshot probe'`,
+        [stored.rows[0].id],
+      )
+      expect(member.rowCount).toBe(1)
     })
 
     const writer = await openClient(database.url, "omen-uncommitted-publisher")
@@ -1669,6 +1686,176 @@ describe("temporal visibility checkpoints", () => {
       await writer.query("ROLLBACK")
     } finally {
       await closeClient(writer)
+    }
+  })
+
+  it("does not publish in-progress history after snapshot membership flips", async () => {
+    const database = await migratedDatabase()
+    await withClient(database.url, (client) => writeEventBundle(client, seedBundle()))
+    const writer = await openClient(database.url, "omen-flip-writer")
+    const other = await openClient(database.url, "omen-flip-other")
+    try {
+      await writer.query("BEGIN")
+      await writer.query(
+        `INSERT INTO probability_observations (
+           event_id, source_kind, source_name, probability_type, probability_pct,
+           observed_at, captured_at, provenance
+         ) VALUES (
+           'evt-boc-cut', 'author', 'flip probe', 'forecaster_estimate', 41,
+           '2026-09-12T00:00:00Z', '2026-09-12T00:01:00Z', 'demo'
+         )`,
+      )
+      await other.query("SELECT txid_current()")
+      const flags = await writer.query<{ in_snap: boolean; status: string; uncommitted: boolean }>(
+        `SELECT pg_visible_in_snapshot(xmin::text::xid8, pg_current_snapshot()) AS in_snap,
+                pg_xact_status(xmin::text::xid8) AS status,
+                omen_event_has_uncommitted_history('evt-boc-cut') AS uncommitted
+           FROM probability_observations WHERE source_name = 'flip probe'`,
+      )
+      expect(flags.rows[0]).toEqual({ in_snap: true, status: "in progress", uncommitted: true })
+      const reader = await withClient(database.url, (client) =>
+        client.query<{ visible: boolean }>(
+          `SELECT EXISTS (SELECT 1 FROM probability_observations WHERE source_name = 'flip probe') AS visible`,
+        ),
+      )
+      expect(reader.rows[0].visible).toBe(false)
+      await expect(publishHistoryCheckpoint(writer, "evt-boc-cut")).rejects.toThrow(/uncommitted history/)
+
+      await writer.query("ROLLBACK")
+      await writer.query("BEGIN")
+      await writer.query("SAVEPOINT sub_insert")
+      await writer.query(
+        `INSERT INTO probability_observations (
+           event_id, source_kind, source_name, probability_type, probability_pct,
+           observed_at, captured_at, provenance
+         ) VALUES (
+           'evt-boc-cut', 'author', 'sub flip probe', 'forecaster_estimate', 42,
+           '2026-09-13T00:00:00Z', '2026-09-13T00:01:00Z', 'demo'
+         )`,
+      )
+      await writer.query("RELEASE SAVEPOINT sub_insert")
+      await other.query("SELECT txid_current()")
+      const sub = await writer.query<{ in_snap: boolean; status: string; top_matches: boolean }>(
+        `SELECT pg_visible_in_snapshot(xmin::text::xid8, pg_current_snapshot()) AS in_snap,
+                pg_xact_status(xmin::text::xid8) AS status,
+                xmin::text::xid8 = pg_current_xact_id() AS top_matches
+           FROM probability_observations WHERE source_name = 'sub flip probe'`,
+      )
+      expect(sub.rows[0].in_snap).toBe(true)
+      expect(sub.rows[0].status).toBe("in progress")
+      expect(sub.rows[0].top_matches).toBe(false)
+      await expect(publishHistoryCheckpoint(writer, "evt-boc-cut")).rejects.toThrow(/uncommitted history/)
+      await writer.query("ROLLBACK")
+    } finally {
+      await closeClient(writer)
+      await closeClient(other)
+    }
+  })
+
+  it("publishes without waiting on an open event revision", async () => {
+    const database = await migratedDatabase()
+    await withClient(database.url, (client) => writeEventBundle(client, seedBundle()))
+    await withClient(database.url, (client) =>
+      client.query(
+        `INSERT INTO probability_observations (
+           event_id, source_kind, source_name, probability_type, probability_pct,
+           observed_at, captured_at, provenance
+         ) VALUES (
+           'evt-boc-cut', 'author', 'uncheckpointed probe', 'forecaster_estimate', 47,
+           '2026-09-14T00:00:00Z', '2026-09-14T00:01:00Z', 'demo'
+         )`,
+      ),
+    )
+    const holder = await openClient(database.url, "omen-revision-holder")
+    const publisher = await openClient(database.url, "omen-revision-publisher")
+    try {
+      await holder.query("BEGIN")
+      await holder.query(
+        `INSERT INTO event_revisions (
+           event_id, version, title, question, status, deadline, resolution_criteria,
+           category, significance, region, summary, tags, related_event_ids, provenance, correction_note
+         )
+         SELECT id, 2, title, question, status, deadline, resolution_criteria,
+                category, significance, region, summary, tags, related_event_ids, provenance, 'held open'
+           FROM events WHERE id = 'evt-boc-cut'`,
+      )
+      await publisher.query("BEGIN")
+      await publisher.query("SET LOCAL statement_timeout = '2s'")
+      const published = await publishHistoryCheckpoint(publisher, "evt-boc-cut")
+      expect(published.created).toBe(true)
+      await publisher.query("COMMIT")
+      const during = await withClient(database.url, (client) =>
+        client.query<{ versions: number[] | null; source_name: string | null }>(
+          `SELECT (SELECT array_agg(er.version ORDER BY er.version)
+                     FROM history_checkpoint_members m
+                     JOIN event_revisions er ON er.id::text = m.row_key
+                    WHERE m.checkpoint_id = $1 AND m.relation_name = 'event_revisions') AS versions,
+                  (SELECT o.source_name
+                     FROM history_checkpoint_members m
+                     JOIN probability_observations o ON o.id::text = m.row_key
+                    WHERE m.checkpoint_id = $1 AND o.source_name = 'uncheckpointed probe') AS source_name`,
+          [published.id],
+        ),
+      )
+      expect(during.rows[0].versions).toEqual([1])
+      expect(during.rows[0].source_name).toBe("uncheckpointed probe")
+      expect(await withClient(database.url, (client) => verifyHistoryCheckpoint(client, published.id))).toBe("ok")
+
+      await holder.query("COMMIT")
+      const after = await withClient(database.url, (client) => publishHistoryCheckpoint(client, "evt-boc-cut"))
+      expect(after.created).toBe(true)
+      const versions = await withClient(database.url, (client) =>
+        client.query<{ version: number }>(
+          `SELECT er.version
+             FROM history_checkpoint_members m
+             JOIN event_revisions er ON er.id::text = m.row_key
+            WHERE m.checkpoint_id = $1 AND m.relation_name = 'event_revisions'
+            ORDER BY er.version`,
+          [after.id],
+        ),
+      )
+      expect(versions.rows.map((row) => row.version)).toEqual([1, 2])
+      expect(await withClient(database.url, (client) => verifyHistoryCheckpoint(client, after.id))).toBe("ok")
+    } finally {
+      await closeClient(holder)
+      await closeClient(publisher)
+    }
+  })
+
+  it("rejects a checkpoint member from another event", async () => {
+    const database = await migratedDatabase()
+    await withClient(database.url, (client) => writeEventBundle(client, seedBundle()))
+    await withClient(database.url, (client) => writeEventBundle(client, sourcedBundle()))
+    await withClient(database.url, (client) =>
+      client.query(
+        `INSERT INTO probability_observations (
+           event_id, source_kind, source_name, probability_type, probability_pct,
+           observed_at, captured_at, provenance
+         ) VALUES (
+           'evt-boc-cut', 'author', 'member guard probe', 'forecaster_estimate', 49,
+           '2026-09-15T00:00:00Z', '2026-09-15T00:01:00Z', 'demo'
+         )`,
+      ),
+    )
+    const attacker = await openClient(database.url, "omen-cross-event-member")
+    try {
+      await attacker.query("BEGIN")
+      const published = await publishHistoryCheckpoint(attacker, "evt-boc-cut")
+      expect(published.created).toBe(true)
+      const foreign = await attacker.query<{ id: string; xmin: string }>(
+        `SELECT id::text AS id, xmin::text AS xmin
+           FROM probability_observations WHERE event_id = 'evt-sourced-sample' LIMIT 1`,
+      )
+      await expect(
+        attacker.query(
+          `INSERT INTO history_checkpoint_members (checkpoint_id, relation_name, row_key, inserting_xid)
+           VALUES ($1, 'probability_observations', $2, $3::xid8)`,
+          [published.id, foreign.rows[0].id, foreign.rows[0].xmin],
+        ),
+      ).rejects.toThrow(/belongs to event/)
+      await attacker.query("ROLLBACK")
+    } finally {
+      await closeClient(attacker)
     }
   })
 })
