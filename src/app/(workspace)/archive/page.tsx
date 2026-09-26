@@ -31,6 +31,7 @@ async function ArchivePageContent({
       initialCheckpoint={loaded.initialCheckpoint}
       initialReconstruction={loaded.initialReconstruction}
       initialCheckpoints={loaded.initialCheckpoints}
+      initialHasMore={loaded.initialHasMore}
       initialStatus={loaded.initialStatus}
     />
   )

@@ -5,6 +5,8 @@ import { getRepository, summarizeProvenance } from "@/lib/data/repository"
 import {
   checkpointSummaryFromReconstruction,
   mergeCheckpointSummaries,
+  missingNeighborCursors,
+  nextDiscoveryHasMore,
   type HistoricalReconstruction,
   type HistoryCheckpointSummary,
   type ReconstructionOutcome,
@@ -20,16 +22,47 @@ export interface ArchivePageData {
   initialCheckpoint?: string
   initialReconstruction: HistoricalReconstruction | null
   initialCheckpoints: HistoryCheckpointSummary[]
+  initialHasMore: boolean
   initialStatus: ArchiveLoadStatus
   initialOutcome?: ReconstructionOutcome["outcome"]
 }
 
-function checkpointsWithActiveReplay(
+function activeSummary(replay: ReconstructionOutcome): HistoryCheckpointSummary | null {
+  if (replay.outcome !== "reconstruction" && replay.outcome !== "pre_coverage") return null
+  return checkpointSummaryFromReconstruction(replay.reconstruction)
+}
+
+/** Loads the pages that contain the checkpoints beside `active`, and keeps the first page. */
+async function withNeighborCheckpoints(
   listed: HistoryCheckpointSummary[],
-  replay: ReconstructionOutcome,
-): HistoryCheckpointSummary[] {
-  if (replay.outcome !== "reconstruction" && replay.outcome !== "pre_coverage") return listed
-  return mergeCheckpointSummaries(listed, [checkpointSummaryFromReconstruction(replay.reconstruction)])
+  listedHasMore: boolean,
+  active: HistoryCheckpointSummary | null,
+  listPage: (
+    beforeSequence?: number,
+  ) => Promise<{ checkpoints: HistoryCheckpointSummary[]; hasMore: boolean } | null>,
+): Promise<{ checkpoints: HistoryCheckpointSummary[]; hasMore: boolean }> {
+  if (!active) {
+    return { checkpoints: listed, hasMore: nextDiscoveryHasMore(listed, listedHasMore) }
+  }
+  let checkpoints = mergeCheckpointSummaries(listed, [active])
+  let hasMore = nextDiscoveryHasMore(checkpoints, listedHasMore)
+  const newerBefore = missingNeighborCursors(checkpoints, active).newerBeforeSequence
+  if (newerBefore !== undefined) {
+    const newer = await listPage(newerBefore)
+    if (newer) {
+      checkpoints = mergeCheckpointSummaries(checkpoints, newer.checkpoints)
+      hasMore = nextDiscoveryHasMore(checkpoints, hasMore)
+    }
+  }
+  const olderBefore = missingNeighborCursors(checkpoints, active).olderBeforeSequence
+  if (olderBefore !== undefined) {
+    const older = await listPage(olderBefore)
+    if (older) {
+      checkpoints = mergeCheckpointSummaries(checkpoints, older.checkpoints)
+      hasMore = nextDiscoveryHasMore(checkpoints, older.hasMore, older)
+    }
+  }
+  return { checkpoints, hasMore: nextDiscoveryHasMore(checkpoints, hasMore) }
 }
 
 export async function loadArchivePageData(searchParams: {
@@ -51,6 +84,7 @@ export async function loadArchivePageData(searchParams: {
       provenance: "none",
       initialReconstruction: null,
       initialCheckpoints: [],
+      initialHasMore: false,
       initialStatus: "unavailable",
     }
   }
@@ -65,6 +99,7 @@ export async function loadArchivePageData(searchParams: {
       provenance,
       initialReconstruction: null,
       initialCheckpoints: [],
+      initialHasMore: false,
       initialStatus: "present",
     }
   }
@@ -77,15 +112,20 @@ export async function loadArchivePageData(searchParams: {
       initialEventId: eventId,
       initialReconstruction: null,
       initialCheckpoints: [],
+      initialHasMore: false,
       initialStatus: "present",
     }
   }
 
   let listedCheckpoints: HistoryCheckpointSummary[] = []
+  let listedHasMore = false
   let listFailed = false
   try {
     const listed = await repository.listHistoryCheckpoints(eventId, { limit: 20 })
-    listedCheckpoints = listed.outcome === "checkpoints" ? listed.checkpoints : []
+    if (listed.outcome === "checkpoints") {
+      listedCheckpoints = listed.checkpoints
+      listedHasMore = listed.hasMore
+    }
   } catch {
     listFailed = true
   }
@@ -102,18 +142,33 @@ export async function loadArchivePageData(searchParams: {
       initialCheckpoint: checkpointId,
       initialReconstruction: null,
       initialCheckpoints: listFailed ? [] : listedCheckpoints,
+      initialHasMore: listFailed ? false : nextDiscoveryHasMore(listedCheckpoints, listedHasMore),
       initialStatus: "unavailable",
     }
   }
 
-  const checkpoints = checkpointsWithActiveReplay(listedCheckpoints, replay)
+  const discovered = await withNeighborCheckpoints(
+    listedCheckpoints,
+    listedHasMore,
+    activeSummary(replay),
+    async (beforeSequence) => {
+      try {
+        const page = await repository.listHistoryCheckpoints(eventId, { limit: 20, beforeSequence })
+        if (page.outcome !== "checkpoints") return null
+        return { checkpoints: page.checkpoints, hasMore: page.hasMore }
+      } catch {
+        return null
+      }
+    },
+  )
   return mapReplayOutcome({
     events,
     storage: repository.storage,
     provenance,
     eventId,
     checkpointId,
-    checkpoints,
+    checkpoints: discovered.checkpoints,
+    hasMore: discovered.hasMore,
     replay,
   })
 }
@@ -125,6 +180,7 @@ function mapReplayOutcome(input: {
   eventId: string
   checkpointId: string
   checkpoints: HistoryCheckpointSummary[]
+  hasMore: boolean
   replay: ReconstructionOutcome
 }): ArchivePageData {
   const base = {
@@ -134,6 +190,7 @@ function mapReplayOutcome(input: {
     initialEventId: input.eventId,
     initialCheckpoint: input.checkpointId,
     initialCheckpoints: input.checkpoints,
+    initialHasMore: input.hasMore,
   }
 
   switch (input.replay.outcome) {
