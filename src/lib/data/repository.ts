@@ -12,6 +12,7 @@ import { MockIntelligenceRepository } from "@/lib/data/mock-repository"
 import { PostgresIntelligenceRepository } from "@/lib/data/postgres-repository"
 import { RepositoryUnavailableError } from "@/lib/data/repository-errors"
 import { readStorageConfig, type StorageMode } from "@/lib/db/config"
+import type { ReconstructionOutcome } from "@/lib/domain/historical-reconstruction"
 import type { AionEvent, Provenance } from "@/types/event"
 
 /**
@@ -36,6 +37,12 @@ export interface IntelligenceRepository {
   listFeed(filter?: EventFilter): Promise<IntelligenceItem[]>
   getGraph(): Promise<RelationshipGraph>
   search(query: string): Promise<SearchHit[]>
+  /**
+   * Stored checkpoint replay for one event. Returns a historical view, never
+   * today's `AionEvent`. Demo storage reports unsupported history. Database
+   * failures reject; they do not fall back to current or demo rows.
+   */
+  reconstructEvent(eventId: string, checkpointId: string): Promise<ReconstructionOutcome>
 }
 
 /** Summarises record provenance for display. `none` means there were no records to describe. */
@@ -67,6 +74,7 @@ class UnavailableRepository implements IntelligenceRepository {
   listFeed = this.fail
   getGraph = this.fail
   search = this.fail
+  reconstructEvent = this.fail
 }
 
 let instance: IntelligenceRepository | undefined
