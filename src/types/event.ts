@@ -163,7 +163,8 @@ export interface AionEvent {
   catalystLabel: string
   catalyst: string
   catalystTime: string
-  explained: number
+  /** Null when no explained share is recorded for the latest Move Log revision. */
+  explained: number | null
   analogues: HistoricalAnalogue[]
   timeline: TimelineItem[]
   /** The headline series' points, oldest first. */

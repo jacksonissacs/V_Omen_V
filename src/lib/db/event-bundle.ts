@@ -37,6 +37,8 @@ export interface EventRecordInput {
   tags: string[]
   relatedEventIds: string[]
   provenance: Provenance
+  /** Required when a bundle changes versioned event metadata on an event that already has revisions. */
+  correctionNote?: string
   followedByDefault: boolean
   catalogPosition: number
   display: EventDisplayInput
@@ -76,7 +78,8 @@ export interface MoveLogRevisionInput {
   author: string
   whatChanged: string
   likelyCause: string
-  explainedPct: number
+  /** Null when no defensible explained share is recorded. */
+  explainedPct?: number | null
   unexplainedFactors: string[]
   evidenceIds: string[]
   correctionNote?: string
@@ -253,6 +256,7 @@ function readEvent(reader: Reader, raw: Json): EventRecordInput {
   if (question !== undefined && !question.endsWith("?")) {
     event.issue("question", "must be phrased as a question ending in ?")
   }
+  const correctionNote = event.string("correctionNote", { optional: true })
   return {
     id: event.id("id"),
     title: event.string("title", { min: 3, max: 200 }),
@@ -267,6 +271,7 @@ function readEvent(reader: Reader, raw: Json): EventRecordInput {
     tags: event.strings("tags", { optional: true }),
     relatedEventIds: event.strings("relatedEventIds", { optional: true }),
     provenance: event.oneOf("provenance", PROVENANCE),
+    ...(correctionNote === undefined ? {} : { correctionNote }),
     followedByDefault: event.boolean("followedByDefault", false),
     catalogPosition: event.has("catalogPosition")
       ? event.number("catalogPosition", { min: 0, max: 1_000_000, integer: true })
@@ -344,6 +349,11 @@ export function parseEventBundle(input: unknown): EventBundle {
       if (version === 1 && correctionNote !== undefined) {
         issues.push(`bundle.moveLogRevisions[${index}].correctionNote is only allowed on corrections (version > 1)`)
       }
+      const explainedRaw = raw.explainedPct
+      let explainedPct: number | null | undefined
+      if (explainedRaw === undefined) explainedPct = undefined
+      else if (explainedRaw === null) explainedPct = null
+      else explainedPct = item.number("explainedPct", { min: 0, max: 100, decimals: 2 })
       return {
         moveLogId: item.id("moveLogId"),
         version,
@@ -351,7 +361,7 @@ export function parseEventBundle(input: unknown): EventBundle {
         author: item.string("author"),
         whatChanged: item.string("whatChanged"),
         likelyCause: item.string("likelyCause"),
-        explainedPct: item.number("explainedPct", { min: 0, max: 100, decimals: 2 }),
+        ...(explainedPct === undefined ? {} : { explainedPct }),
         unexplainedFactors: item.strings("unexplainedFactors", { optional: true }),
         evidenceIds: item.strings("evidenceIds", { optional: true }),
         ...(correctionNote === undefined ? {} : { correctionNote }),
