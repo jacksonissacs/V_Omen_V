@@ -53,10 +53,14 @@ export function Sidebar() {
       {primaryNav.map((item) => (
         <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} />
       ))}
-      <div className="aion-nav-section">Workspace</div>
-      {workspaceNav.map((item) => (
-        <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} />
-      ))}
+      {workspaceNav.length > 0 ? (
+        <>
+          <div className="aion-nav-section">Workspace</div>
+          {workspaceNav.map((item) => (
+            <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} />
+          ))}
+        </>
+      ) : null}
       <div className="aion-sidebar-foot">
         {footerNav.map((item) => (
           <NavLink

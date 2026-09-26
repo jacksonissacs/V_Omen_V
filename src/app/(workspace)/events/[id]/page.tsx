@@ -37,7 +37,9 @@ export default async function EventIntelligencePage({ params, searchParams }: Pa
   if (checkpoint) {
     const invalid = invalidCheckpointId(checkpoint)
     if (invalid) {
-      return <HistoricalUnavailable eventId={id} request={{ kind: "checkpoint", value: checkpoint }} detail={invalid.message} />
+      return (
+        <HistoricalUnavailable eventId={id} request={{ kind: "checkpoint", value: checkpoint }} detail={invalid.message} />
+      )
     }
     redirect(`/events/${id}/history/${checkpoint}`)
   }

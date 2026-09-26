@@ -1,4 +1,14 @@
-export function Residual({ explained }: { explained: number }) {
+export function Residual({ explained }: { explained: number | null }) {
+  if (explained === null) {
+    return (
+      <div className="aion-residual">
+        <div className="aion-residual-legend">
+          <span>Explained share · not recorded</span>
+          <span>Unexplained · not split</span>
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="aion-residual">
       <div className="aion-residual-track">

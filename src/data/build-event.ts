@@ -1,5 +1,4 @@
-import { orderSeries, seriesId } from "@/lib/domain/probability-history"
-import { probabilityDelta } from "@/lib/domain/scoring"
+import { latestChange, orderSeries, seriesId } from "@/lib/domain/probability-history"
 import type {
   AionEvent,
   EventAnomaly,
@@ -23,7 +22,12 @@ export interface EventDraft {
   title: string
   category: EventCategory
   probability: number
-  previousProbability: number
+  /**
+   * Ignored when the headline series has observations. Kept so existing drafts
+   * still typecheck; the series is the only comparison.
+   */
+  previousProbability?: number | null
+  /** Ignored. Movement size is not a data-quality measurement. */
   confidence?: AionEvent["confidence"]
   timestamp: string
   displayTime: string
@@ -35,12 +39,14 @@ export interface EventDraft {
   unexplainedFactors: string[]
   significance?: AionEvent["significance"]
   sourceTier?: AionEvent["sourceTier"]
-  sigma: number
+  /** Ignored. No stored procedure produces a sigma. */
+  sigma?: number | null
   duration: string
   catalystLabel?: string
   catalyst: string
   catalystTime: string
-  explained: number
+  /** Kept for demo copy and for a published move log. Never invented when absent. */
+  explained?: number | null
   region: string
   tags: string[]
   resolvesAt?: string
@@ -61,19 +67,38 @@ export interface EventDraft {
   moveLog?: AionEvent["moveLog"]
 }
 
+/**
+ * An attribution percentage is shown only when someone stored it.
+ * A sourced event without a move log does not inherit a display number.
+ * Demo copy may keep an illustrative figure; callers must label it as such.
+ */
+export function storedExplanation(draft: Pick<EventDraft, "explained" | "provenance" | "moveLog">): number | null {
+  if (draft.explained == null) return null
+  const provenance = draft.provenance ?? "demo"
+  if (provenance === "sourced" && !draft.moveLog) return null
+  return draft.explained
+}
+
 export function buildEvent(draft: EventDraft): AionEvent {
-  const change = probabilityDelta(draft.probability, draft.previousProbability)
+  const probabilitySeries = orderSeries(draft.probabilitySeries ?? [demoSeries(draft)])
+  const headline = probabilitySeries[0]
+  const latest = headline?.observations.at(-1)
+  const compared = latestChange(headline)
+  const probability = latest?.probability ?? draft.probability
+  const previousProbability = compared?.from.probability ?? null
+  const change = compared?.deltaPp ?? null
   const evidence = draft.evidence
+  const abs = change === null ? 0 : Math.abs(change)
   return {
     id: draft.id,
     provenance: draft.provenance ?? "demo",
     title: draft.title,
     category: draft.category,
-    probability: draft.probability,
-    previousProbability: draft.previousProbability,
-    confidence: draft.confidence ?? (Math.abs(change) >= 8 ? "High" : "Medium"),
+    probability,
+    previousProbability,
+    confidence: null,
     change,
-    timestamp: draft.timestamp,
+    timestamp: latest?.observedAt ?? draft.timestamp,
     displayTime: draft.displayTime,
     status: draft.status ?? "active",
     summary: draft.summary,
@@ -86,18 +111,25 @@ export function buildEvent(draft: EventDraft): AionEvent {
     unexplainedFactors: draft.unexplainedFactors,
     question: draft.question,
     whatChanged: draft.whatChanged,
-    significance: draft.significance ?? (Math.abs(change) >= 10 ? "critical" : Math.abs(change) >= 6 ? "high" : "medium"),
-    sourceTier: draft.sourceTier ?? 1,
-    sigma: draft.sigma,
+    significance:
+      draft.significance ?? (abs >= 10 ? "critical" : abs >= 6 ? "high" : "medium"),
+    sourceTier: draft.sourceTier ?? null,
+    sigma: null,
     duration: draft.duration,
     catalystLabel: draft.catalystLabel ?? "Primary catalyst",
     catalyst: draft.catalyst,
     catalystTime: draft.catalystTime,
-    explained: draft.explained,
+    explained: storedExplanation(draft),
     analogues: draft.analogues ?? [],
-    timeline: draft.timeline ?? defaultTimeline(draft),
-    expectationHistory: draft.expectationHistory,
-    probabilitySeries: draft.probabilitySeries ?? [demoSeries(draft)],
+    timeline: draft.timeline ?? [],
+    expectationHistory: headline
+      ? headline.observations.map((point) => ({
+          at: point.observedAt,
+          probability: point.probability,
+          ...(point.note ? { note: point.note } : {}),
+        }))
+      : draft.expectationHistory,
+    probabilitySeries,
     forecasts: draft.forecasts ?? [],
     region: draft.region,
     tags: draft.tags,
@@ -129,37 +161,4 @@ function demoSeries(draft: EventDraft): ProbabilitySeries {
       })),
     },
   ])[0]
-}
-
-function defaultTimeline(draft: EventDraft): TimelineItem[] {
-  return [
-    {
-      time: draft.catalystTime,
-      text: draft.catalyst,
-      type: "source",
-    },
-    {
-      time: incrementTime(draft.catalystTime, 42),
-      text: "Related markets begin repricing",
-    },
-    {
-      time: incrementTime(draft.catalystTime, 71),
-      text: "OMEN detects abnormal movement",
-    },
-    {
-      time: incrementTime(draft.catalystTime, 127),
-      text: "Probability revises",
-      delta: `${draft.probability - draft.previousProbability >= 0 ? "+" : ""}${probabilityDelta(draft.probability, draft.previousProbability).toFixed(1)} pts`,
-      tone: draft.probability >= draft.previousProbability ? "up" : "down",
-    },
-  ]
-}
-
-function incrementTime(time: string, seconds: number): string {
-  const [h, m, s] = time.split(":").map(Number)
-  const total = (h ?? 0) * 3600 + (m ?? 0) * 60 + (s ?? 0) + seconds
-  const hh = String(Math.floor((total / 3600) % 24)).padStart(2, "0")
-  const mm = String(Math.floor((total % 3600) / 60)).padStart(2, "0")
-  const ss = String(total % 60).padStart(2, "0")
-  return `${hh}:${mm}:${ss}`
 }

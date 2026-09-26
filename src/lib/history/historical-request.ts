@@ -13,6 +13,35 @@ export function firstQueryValue(value: string | string[] | undefined | null): st
   return trimmed ? trimmed : undefined
 }
 
+function readQuery(
+  searchParams: { [key: string]: string | string[] | undefined } | URLSearchParams,
+  key: string,
+): { present: boolean; value: string } {
+  if (searchParams instanceof URLSearchParams) {
+    if (!searchParams.has(key)) return { present: false, value: "" }
+    return { present: true, value: firstQueryValue(searchParams.get(key)) ?? "" }
+  }
+  if (!Object.prototype.hasOwnProperty.call(searchParams, key)) return { present: false, value: "" }
+  return { present: true, value: firstQueryValue(searchParams[key]) ?? "" }
+}
+
+/**
+ * `at` and `cutoff` ask for a wall-clock instant. A blank value still counts:
+ * the parameter is present, and it is not a stored checkpoint.
+ */
+export function arbitraryTimeQuery(
+  searchParams:
+    | { [key: string]: string | string[] | undefined }
+    | URLSearchParams
+    | undefined,
+): HistoricalRequest | undefined {
+  if (!searchParams) return undefined
+  for (const kind of ["at", "cutoff"] as const) {
+    const read = readQuery(searchParams, kind)
+    if (read.present) return { kind, value: read.value }
+  }
+}
+
 export interface HistoricalRequestOptions {
   /** Archive serves checkpoint replay itself; only arbitrary-time queries are refused at the page gate. */
   route?: "archive" | "workspace"
@@ -31,14 +60,12 @@ export function requestedHistoricalView(
   options: HistoricalRequestOptions = {},
 ): HistoricalRequest | undefined {
   if (!searchParams) return undefined
-  const read = (key: string) =>
-    searchParams instanceof URLSearchParams
-      ? firstQueryValue(searchParams.get(key))
-      : firstQueryValue(searchParams[key])
   for (const kind of HISTORICAL_QUERY_KEYS) {
     if (options.route === "archive" && kind === "checkpoint") continue
-    const value = read(kind)
-    if (value) return { kind, value }
+    const read = readQuery(searchParams, kind)
+    if (!read.present) continue
+    if (kind === "checkpoint" && !read.value) continue
+    return { kind, value: read.value }
   }
 }
 

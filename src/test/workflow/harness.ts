@@ -1,9 +1,10 @@
-import { execFile } from "node:child_process"
-import { createServer } from "node:net"
+import { execFile, execFileSync, spawn, type ChildProcess } from "node:child_process"
 import { existsSync, mkdirSync, writeFileSync } from "node:fs"
+import { createServer } from "node:net"
 import path from "node:path"
 import { promisify } from "node:util"
-import { spawn, type ChildProcess } from "node:child_process"
+
+import { Client } from "pg"
 
 import { createMigratedDatabase, type DisposableDatabase } from "@/test/postgres-harness"
 
@@ -13,16 +14,24 @@ export const ROOT = path.resolve(__dirname, "../../..")
 export const FIXTURES = path.join(ROOT, "db/fixtures/test-workflow")
 export const ARTIFACTS = path.join(ROOT, "test-artifacts")
 
-/** main SHA this suite was written against. */
+/** main SHA this suite was written against. Runtime records the checked-out head separately. */
 export const TESTED_MAIN_SHA = "d044ead2e627169b764ec223723f14af4680a919"
 
+const DECIMAL_ID = /^[1-9]\d{0,18}$/
 const TSX = path.join(ROOT, "node_modules/.bin/tsx")
 const NEXT = path.join(ROOT, "node_modules/.bin/next")
 
 export interface RunningServer {
   url: string
   port: number
+  logs: string[]
   stop(): Promise<void>
+}
+
+export interface CommandResult {
+  code: number
+  stdout: string
+  stderr: string
 }
 
 export function artifactDir(): string {
@@ -43,34 +52,90 @@ export function requireProductionBuild(): void {
   }
 }
 
-export async function upsert(databaseUrl: string, file: string): Promise<{ stdout: string; stderr: string }> {
+export function gitRev(ref: string): string {
   try {
-    return await execFileAsync(TSX, ["scripts/omen-db.ts", "upsert", "--file", file], {
-      cwd: ROOT,
-      env: { ...process.env, NODE_ENV: "development", DATABASE_URL: databaseUrl },
-    })
-  } catch (error) {
-    const failure = error as { stdout?: string; stderr?: string; message: string }
-    throw new Error(
-      `omen-db upsert failed for ${path.basename(file)}: ${failure.stderr || failure.stdout || failure.message}`,
-    )
+    return execFileSync("git", ["rev-parse", ref], { cwd: ROOT, encoding: "utf8" }).trim()
+  } catch {
+    return "unavailable"
   }
 }
 
-export async function upsertExit(
-  databaseUrl: string,
-  file: string,
-): Promise<{ code: number; stdout: string; stderr: string }> {
+/** Checkpoint ids on this branch are decimal bigint text, not UUIDs. */
+export function parseUpsertCheckpointId(stdout: string): string {
+  const match = stdout.match(/checkpoint:\s+id\s+([1-9]\d{0,18})\b/)
+  if (!match?.[1] || !DECIMAL_ID.test(match[1])) {
+    throw new Error(`Could not parse decimal checkpoint id from upsert output:\n${stdout}`)
+  }
+  return match[1]
+}
+
+export function parseOperatorCheckpointId(stdout: string): string {
+  const start = stdout.indexOf("{")
+  const end = stdout.lastIndexOf("}")
+  if (start >= 0 && end > start) {
+    const parsed = JSON.parse(stdout.slice(start, end + 1)) as {
+      summary?: { checkpoint?: { id?: string } }
+      operation?: { checkpointId?: string | null }
+    }
+    const id = parsed.summary?.checkpoint?.id ?? parsed.operation?.checkpointId ?? ""
+    if (DECIMAL_ID.test(id)) return id
+  }
+  throw new Error(`Could not parse decimal checkpoint id from operator output:\n${stdout}`)
+}
+
+async function runTsx(args: string[], databaseUrl: string): Promise<CommandResult> {
   try {
-    const { stdout, stderr } = await execFileAsync(TSX, ["scripts/omen-db.ts", "upsert", "--file", file], {
+    const { stdout, stderr } = await execFileAsync(TSX, args, {
       cwd: ROOT,
       env: { ...process.env, NODE_ENV: "development", DATABASE_URL: databaseUrl },
     })
     return { code: 0, stdout, stderr }
   } catch (error) {
-    const failure = error as { code?: number; stdout?: string; stderr?: string }
-    return { code: failure.code ?? 1, stdout: failure.stdout ?? "", stderr: failure.stderr ?? "" }
+    const failure = error as { code?: number; stdout?: string; stderr?: string; message: string }
+    return {
+      code: failure.code ?? 1,
+      stdout: failure.stdout ?? "",
+      stderr: failure.stderr ?? failure.message,
+    }
   }
+}
+
+export async function upsert(databaseUrl: string, file: string): Promise<CommandResult> {
+  const result = await runTsx(["scripts/omen-db.ts", "upsert", "--file", file], databaseUrl)
+  if (result.code !== 0) {
+    throw new Error(
+      `omen-db upsert failed for ${path.basename(file)}: ${result.stderr || result.stdout || "unknown failure"}`,
+    )
+  }
+  return result
+}
+
+export async function upsertExit(databaseUrl: string, file: string): Promise<CommandResult> {
+  return runTsx(["scripts/omen-db.ts", "upsert", "--file", file], databaseUrl)
+}
+
+export async function operator(databaseUrl: string, args: string[]): Promise<CommandResult> {
+  return runTsx(["scripts/omen-operator.ts", ...args], databaseUrl)
+}
+
+export async function queryRows<T extends Record<string, unknown>>(
+  databaseUrl: string,
+  sql: string,
+  params: unknown[] = [],
+): Promise<T[]> {
+  const client = new Client({ connectionString: databaseUrl, application_name: "omen-workflow" })
+  await client.connect()
+  try {
+    const result = await client.query<T>(sql, params)
+    return result.rows
+  } finally {
+    await client.end()
+  }
+}
+
+export async function queryCount(databaseUrl: string, sql: string, params: unknown[] = []): Promise<number> {
+  const rows = await queryRows<{ count: number }>(databaseUrl, sql, params)
+  return rows[0]?.count ?? 0
 }
 
 async function freePort(): Promise<number> {
@@ -106,7 +171,6 @@ export async function startProductionServer(env: Record<string, string>): Promis
   const logs: string[] = []
   child.stdout?.on("data", (chunk) => logs.push(String(chunk)))
   child.stderr?.on("data", (chunk) => logs.push(String(chunk)))
-
   const url = `http://127.0.0.1:${port}`
   const deadline = Date.now() + 60_000
   let lastError = ""
@@ -120,6 +184,7 @@ export async function startProductionServer(env: Record<string, string>): Promis
         return {
           url,
           port,
+          logs,
           stop: async () => {
             child.kill("SIGTERM")
             await new Promise<void>((resolve) => {
@@ -157,10 +222,7 @@ export async function fetchJson(
   return { status: response.status, body }
 }
 
-export async function fetchText(
-  server: RunningServer,
-  pathname: string,
-): Promise<{ status: number; text: string }> {
+export async function fetchText(server: RunningServer, pathname: string): Promise<{ status: number; text: string }> {
   const response = await fetch(new URL(pathname, server.url), { cache: "no-store" })
   return { status: response.status, text: await response.text() }
 }

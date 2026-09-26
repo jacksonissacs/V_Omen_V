@@ -1,10 +1,12 @@
 import "@/test/next-navigation"
 
-import { render, screen } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { render, screen, waitFor } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { ArchiveView } from "@/components/archive/archive-view"
-import { mockSearchParams } from "@/test/next-navigation"
+import { ArchiveView, type ArchiveViewProps } from "@/components/archive/archive-view"
+import type { HistoricalReconstruction, HistoryCheckpointSummary } from "@/lib/domain/historical-reconstruction"
+import { mockPush, mockSearchParams } from "@/test/next-navigation"
 
 describe("ArchiveView", () => {
   it("does not render scripted demo probabilities or fixed record counts", () => {
@@ -54,4 +56,223 @@ describe("ArchiveView", () => {
     expect(screen.getByTestId("historical-context-banner")).toHaveTextContent("not the current record")
     expect(screen.getByTestId("archive-present-context")).toHaveTextContent("Current navigation")
   })
+
+  it("opens another event without keeping the previous checkpoint id", async () => {
+    mockPush.mockClear()
+    mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a&checkpoint=11"))
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => json({ outcome: "checkpoints", eventId: "evt-a", checkpoints: [], hasMore: false })),
+    )
+    const user = userEvent.setup()
+    render(
+      <ArchiveView
+        {...archiveProps()}
+        initialCheckpoint="11"
+        initialStatus="ok"
+        initialReconstruction={reconstruction("evt-a", "11", "Alpha historical title")}
+      />,
+    )
+    await user.selectOptions(screen.getByLabelText("Event"), "evt-b")
+    expect(mockPush).toHaveBeenCalledWith("/archive?event=evt-b", { scroll: false })
+  })
+
+  it("does not keep an earlier checkpoint on screen after a newer selection resolves", async () => {
+    const pending = new Map<string, ReturnType<typeof deferred<Response>>>()
+    mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a&checkpoint=11"))
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo) => {
+        const url = String(input)
+        const replay = url.match(/\/history\/(\d+)/)
+        if (replay) {
+          const gate = deferred<Response>()
+          pending.set(replay[1]!, gate)
+          return gate.promise
+        }
+        return json({
+          outcome: "checkpoints",
+          eventId: "evt-a",
+          hasMore: false,
+          checkpoints: [summary("12", 2), summary("11", 1)],
+        })
+      }),
+    )
+    const view = render(
+      <ArchiveView
+        {...archiveProps()}
+        initialCheckpoint="11"
+        initialStatus="ok"
+        initialReconstruction={reconstruction("evt-a", "11", "EARLY_ONLY")}
+      />,
+    )
+    expect(screen.getByText("EARLY_ONLY")).toBeInTheDocument()
+
+    mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a&checkpoint=12"))
+    view.rerender(
+      <ArchiveView
+        {...archiveProps()}
+        initialCheckpoint="11"
+        initialStatus="ok"
+        initialReconstruction={reconstruction("evt-a", "11", "EARLY_ONLY")}
+      />,
+    )
+    expect(screen.queryByText("EARLY_ONLY")).not.toBeInTheDocument()
+    expect(screen.getByTestId("archive-checkpoint-loading")).toBeInTheDocument()
+
+    await waitFor(() => {
+      expect(pending.has("12")).toBe(true)
+    })
+    pending.get("12")!.resolve(json(replayBody("evt-a", "12", "LATER_ONLY")))
+    await waitFor(() => {
+      expect(screen.getByText("LATER_ONLY")).toBeInTheDocument()
+    })
+    if (pending.has("11")) pending.get("11")!.resolve(json(replayBody("evt-a", "11", "EARLY_ONLY")))
+    await waitFor(() => {
+      expect(screen.getByText("LATER_ONLY")).toBeInTheDocument()
+    })
+    expect(screen.queryByText("EARLY_ONLY")).not.toBeInTheDocument()
+  })
+
+  it("drops a late older-page response after the operator changes events", async () => {
+    const older = deferred<Response>()
+    mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a"))
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo) => {
+        const url = String(input)
+        if (url.includes("beforeSequence=")) return older.promise
+        if (url.includes("/api/events/evt-b/")) {
+          return json({
+            outcome: "checkpoints",
+            eventId: "evt-b",
+            hasMore: false,
+            checkpoints: [summary("200", 1)],
+          })
+        }
+        return json({
+          outcome: "checkpoints",
+          eventId: "evt-a",
+          hasMore: true,
+          checkpoints: [summary("100", 20)],
+        })
+      }),
+    )
+    const user = userEvent.setup()
+    const view = render(<ArchiveView {...archiveProps()} />)
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /id 100/ })).toBeInTheDocument()
+    })
+    await user.click(screen.getByRole("button", { name: "Load older checkpoints" }))
+
+    mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-b"))
+    view.rerender(<ArchiveView {...archiveProps()} />)
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /id 200/ })).toBeInTheDocument()
+    })
+    older.resolve(
+      json({
+        outcome: "checkpoints",
+        eventId: "evt-a",
+        hasMore: false,
+        checkpoints: [summary("999", 1)],
+      }),
+    )
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /id 200/ })).toBeInTheDocument()
+    })
+    expect(screen.queryByRole("button", { name: /id 999/ })).not.toBeInTheDocument()
+  })
+})
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((res) => {
+    resolve = res
+  })
+  return { promise, resolve }
+}
+
+function json(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json" },
+  })
+}
+
+function summary(id: string, sequence: number): HistoryCheckpointSummary {
+  return {
+    id,
+    sequence,
+    contentMd5: "ab".repeat(16),
+    memberCount: 1,
+    semanticHistory: "recorded",
+  }
+}
+
+function reconstruction(eventId: string, checkpointId: string, title: string): HistoricalReconstruction {
+  return {
+    eventId,
+    checkpoint: { id: checkpointId, sequence: Number(checkpointId), contentMd5: "ab".repeat(16), memberCount: 1 },
+    coverage: {
+      semanticEventFieldsFrom: "2026-09-26T00:00:00.000Z",
+      recordAvailabilityRealignedAt: "2026-09-26T00:00:00.000Z",
+      semanticHistory: "recorded",
+      preBaselineEventRevisions: "not_recorded",
+    },
+    provenance: "demo",
+    semantics: {
+      version: 1,
+      title,
+      question: "Will this checkpoint keep its own title?",
+      status: "active",
+      deadline: "2026-12-01T00:00:00.000Z",
+      resolutionCriteria: "SYNTHETIC TEST resolution criteria for archive navigation.",
+      category: "Economics",
+      significance: "low",
+      region: "Test",
+      summary: `Summary for ${title}`,
+      tags: [],
+      relatedEventIds: [],
+      provenance: "demo",
+      correctionNote: null,
+      recordedAt: "2026-09-01T00:00:00.000Z",
+    },
+    observations: [],
+    evidence: [],
+    moveLogs: [],
+  }
+}
+
+function replayBody(eventId: string, checkpointId: string, title: string) {
+  const view = reconstruction(eventId, checkpointId, title)
+  return {
+    outcome: "reconstruction",
+    eventId: view.eventId,
+    checkpoint: view.checkpoint,
+    coverage: view.coverage,
+    provenance: view.provenance,
+    semantics: view.semantics,
+    observations: view.observations,
+    evidence: view.evidence,
+    moveLogs: view.moveLogs,
+  }
+}
+
+function archiveProps(): ArchiveViewProps {
+  return {
+    events: [
+      { id: "evt-a", title: "Alpha navigation title" },
+      { id: "evt-b", title: "Beta navigation title" },
+    ],
+    storage: "database",
+    provenance: "demo",
+    initialEventId: "evt-a",
+  }
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+  mockPush.mockClear()
+  mockSearchParams.mockReturnValue(new URLSearchParams())
 })

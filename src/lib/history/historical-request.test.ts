@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  arbitraryTimeQuery,
   historicalViewUnavailableMessage,
   requestedHistoricalView,
 } from "@/lib/history/historical-request"
@@ -11,6 +12,17 @@ describe("requestedHistoricalView", () => {
     expect(requestedHistoricalView({})).toBeUndefined()
     expect(requestedHistoricalView(new URLSearchParams("tab=evidence"))).toBeUndefined()
     expect(requestedHistoricalView({ checkpoint: "  " })).toBeUndefined()
+  })
+
+  it("lets Archive replay a checkpoint query and still refuse arbitrary time", () => {
+    expect(
+      requestedHistoricalView(new URLSearchParams("event=evt-1&checkpoint=12"), { route: "archive" }),
+    ).toBeUndefined()
+    expect(
+      requestedHistoricalView(new URLSearchParams("checkpoint=12&at=2026-09-01T00:00:00.000Z"), {
+        route: "archive",
+      }),
+    ).toEqual({ kind: "at", value: "2026-09-01T00:00:00.000Z" })
   })
 
   it("detects checkpoint, at, and cutoff without treating later keys as current-state filters", () => {
@@ -26,6 +38,12 @@ describe("requestedHistoricalView", () => {
       kind: "cutoff",
       value: "2026-09-01T00:00:00.000Z",
     })
+    expect(requestedHistoricalView(new URLSearchParams("at="))).toEqual({ kind: "at", value: "" })
+    expect(arbitraryTimeQuery({ checkpoint: "12", at: "2026-09-01T00:00:00.000Z" })).toEqual({
+      kind: "at",
+      value: "2026-09-01T00:00:00.000Z",
+    })
+    expect(arbitraryTimeQuery({ checkpoint: "12" })).toBeUndefined()
   })
 
   it("names the missing reconstruction instead of describing current text", () => {

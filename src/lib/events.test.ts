@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import { events } from "@/data/events"
 import { filterEvents, sortEvents } from "@/lib/events"
+import { testEvent } from "@/test/fake-repository"
 
 describe("event catalog helpers", () => {
   it("keeps a 25–35 event book across the required categories", () => {
@@ -35,5 +36,16 @@ describe("event catalog helpers", () => {
     expect(Math.abs(byChange[0]?.change ?? 0)).toBeGreaterThanOrEqual(
       Math.abs(byChange[1]?.change ?? 0),
     )
+  })
+
+  it("ranks a one-point history after events that have a recorded move", () => {
+    const moved = testEvent({ id: "evt-moved", title: "Moved", probability: 60, previousProbability: 50 })
+    const lone = testEvent({
+      id: "evt-lone",
+      title: "Lone",
+      expectationHistory: [{ at: "2026-09-01T12:00:00.000Z", probability: 80 }],
+    })
+    expect(lone.change).toBeNull()
+    expect(sortEvents([lone, moved], "change").map((event) => event.id)).toEqual(["evt-moved", "evt-lone"])
   })
 })

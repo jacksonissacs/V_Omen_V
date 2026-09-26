@@ -1,6 +1,7 @@
 import { Kv } from "@/components/common/kv"
 import { seriesFromHistoricalObservations } from "@/lib/archive/historical-series"
 import { formatDateTime } from "@/lib/format"
+import { navigableHttpUrl } from "@/lib/http-url"
 import type { HistoricalReconstruction } from "@/lib/domain/historical-reconstruction"
 import {
   BASIS_LABEL,
@@ -116,21 +117,24 @@ export function HistoricalReconstructionPanel({
           <h2>Evidence in this checkpoint</h2>
           {reconstruction.evidence.length ? (
             <ul style={{ margin: 0, paddingLeft: 18 }}>
-              {reconstruction.evidence.map((item) => (
+              {reconstruction.evidence.map((item) => {
+                const sourceHref = navigableHttpUrl(item.sourceUrl)
+                return (
                 <li key={item.id}>
                   {item.sourceName}
                   {item.sourcePublishedAt ? ` · published ${formatDateTime(item.sourcePublishedAt)}` : ""}
-                  {item.sourceUrl ? (
+                  {sourceHref ? (
                     <>
                       {" "}
                       ·{" "}
-                      <a className="aion-evidence-link" href={item.sourceUrl}>
+                      <a className="aion-evidence-link" href={sourceHref} rel="noreferrer">
                         Open source
                       </a>
                     </>
                   ) : null}
                 </li>
-              ))}
+                )
+              })}
             </ul>
           ) : (
             <p className="aion-note" style={{ border: 0, margin: 0, padding: 0 }}>
@@ -147,7 +151,10 @@ export function HistoricalReconstructionPanel({
             <div key={log.id} style={{ marginBottom: 16 }}>
               <Kv label="Move log" value={`${log.moveLogId} v${log.version}`} />
               <Kv label="Published" value={formatDateTime(log.publishedAt)} />
-              <Kv label="Explained" value={`${log.explainedPct}%`} />
+              <Kv
+                label="Explained"
+                value={log.explainedPct === null ? "Not recorded" : `${log.explainedPct}%`}
+              />
               <p style={{ color: "var(--a-tx-2)", fontSize: 12 }}>{log.whatChanged}</p>
               {log.correctionNote ? (
                 <p style={{ color: "var(--a-tx-2)", fontSize: 12 }}>{log.correctionNote}</p>

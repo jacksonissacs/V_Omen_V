@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync } from "node:fs"
+import { existsSync, mkdirSync, writeFileSync } from "node:fs"
 import path from "node:path"
 
 import puppeteer, { type Browser, type Page } from "puppeteer-core"
@@ -13,6 +13,8 @@ const CHROME_CANDIDATES = [
   "/usr/bin/chromium-browser",
   "/usr/bin/chromium",
 ].filter((value): value is string => Boolean(value))
+
+const READY_TIMEOUT_MS = 20_000
 
 export function chromePath(): string {
   const found = CHROME_CANDIDATES.find((candidate) => existsSync(candidate))
@@ -32,6 +34,21 @@ export async function launchWorkflowBrowser(): Promise<Browser> {
   })
 }
 
+export function attachBrowserDiagnostics(page: Page): void {
+  const consoleErrors: string[] = []
+  const pending = new Map<string, string>()
+  page.on("console", (message) => {
+    if (message.type() === "error") consoleErrors.push(message.text())
+  })
+  page.on("request", (request) => {
+    if (request.url().startsWith("http")) pending.set(request.url(), request.resourceType())
+  })
+  page.on("requestfinished", (request) => pending.delete(request.url()))
+  page.on("requestfailed", (request) => pending.delete(request.url()))
+  ;(page as Page & { __omenDiagnostics?: { consoleErrors: string[]; pending: Map<string, string> } }).__omenDiagnostics =
+    { consoleErrors, pending }
+}
+
 export async function saveFailureTrace(page: Page, name: string): Promise<void> {
   const dir = path.join(artifactDir(), "failures")
   mkdirSync(dir, { recursive: true })
@@ -39,8 +56,23 @@ export async function saveFailureTrace(page: Page, name: string): Promise<void> 
   const png = path.join(dir, `${safe}.png`) as `${string}.png`
   await page.screenshot({ path: png, fullPage: true })
   const html = await page.content()
-  const { writeFileSync } = await import("node:fs")
   writeFileSync(path.join(dir, `${safe}.html`), html)
+  const diagnostics = (page as Page & { __omenDiagnostics?: { consoleErrors: string[]; pending: Map<string, string> } })
+    .__omenDiagnostics
+  if (diagnostics) {
+    writeFileSync(
+      path.join(dir, `${safe}.diagnostics.json`),
+      JSON.stringify(
+        {
+          url: page.url(),
+          consoleErrors: diagnostics.consoleErrors,
+          pendingRequests: [...diagnostics.pending.entries()].map(([url, type]) => ({ url, type })),
+        },
+        null,
+        2,
+      ),
+    )
+  }
 }
 
 export async function saveScreenshot(page: Page, name: string): Promise<string> {
@@ -55,7 +87,25 @@ export async function noHorizontalOverflow(page: Page): Promise<boolean> {
   return page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)
 }
 
-/** Pulse/Events/Watchlists stream a loading shell before repository HTML arrives. */
+export async function bodyText(page: Page): Promise<string> {
+  return page.evaluate(() => document.body.innerText)
+}
+
+/** Marketing `/` streams static HTML; Link prefetch can keep network idle from settling. */
+export async function waitForMarketingReady(page: Page): Promise<void> {
+  await page.waitForSelector("h1#hero-title", { timeout: READY_TIMEOUT_MS })
+  await page.waitForFunction(
+    () => document.querySelector("h1#hero-title")?.textContent?.includes("Every probability") ?? false,
+    { timeout: 5_000 },
+  )
+}
+
+export async function gotoMarketingHome(page: Page, baseUrl: string): Promise<void> {
+  await page.goto(new URL("/", baseUrl).toString(), { waitUntil: "domcontentloaded" })
+  await waitForMarketingReady(page)
+}
+
+/** Pulse/Events/Watchlists/Archive stream a loading shell before repository HTML arrives. */
 export async function waitForWorkspaceReady(page: Page): Promise<void> {
   await page.waitForFunction(
     () => {
@@ -66,6 +116,55 @@ export async function waitForWorkspaceReady(page: Page): Promise<void> {
         !text.includes("Reading events from the workspace repository")
       )
     },
-    { timeout: 20_000 },
+    { timeout: READY_TIMEOUT_MS },
   )
+}
+
+export async function gotoWorkspacePath(page: Page, baseUrl: string, pathname: string): Promise<void> {
+  await page.goto(new URL(pathname, baseUrl).toString(), { waitUntil: "domcontentloaded" })
+  await waitForWorkspaceReady(page)
+}
+
+/**
+ * Follows a real click. Destination readiness replaces network-idle waits.
+ * The timeout is the same readiness bound used for the homepage, not a raised navigation timeout.
+ */
+export async function clickThrough(page: Page, selector: string): Promise<void> {
+  const before = `${new URL(page.url()).pathname}${new URL(page.url()).search}`
+  await page.click(selector)
+  await page.waitForFunction(
+    (source) => `${window.location.pathname}${window.location.search}` !== source,
+    { timeout: READY_TIMEOUT_MS },
+    before,
+  )
+  const path = new URL(page.url()).pathname
+  if (path === "/") await waitForMarketingReady(page)
+  else await waitForWorkspaceReady(page)
+}
+
+export async function clickControl(page: Page, label: string): Promise<void> {
+  const clicked = await page.evaluate((text) => {
+    const element = [...document.querySelectorAll("a, button")].find((node) => node.textContent?.trim() === text) as
+      | HTMLElement
+      | undefined
+    if (!element) return false
+    element.click()
+    return true
+  }, label)
+  if (!clicked) throw new Error(`No link or button with text "${label}"`)
+}
+
+/** Waits until a button is enabled, then clicks it. Disabled controls are not treated as navigation. */
+export async function clickEnabledControl(page: Page, label: string): Promise<void> {
+  await page.waitForFunction(
+    (text) => {
+      const element = [...document.querySelectorAll("button")].find(
+        (node) => node.textContent?.trim() === text,
+      ) as HTMLButtonElement | undefined
+      return Boolean(element && !element.disabled)
+    },
+    { timeout: READY_TIMEOUT_MS },
+    label,
+  )
+  await clickControl(page, label)
 }

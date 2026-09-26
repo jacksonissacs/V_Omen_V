@@ -73,7 +73,7 @@ export async function loadArchivePageData(searchParams: {
 
   try {
     const [listed, replay] = await Promise.all([
-      repository.listHistoryCheckpoints(eventId, { limit: 50 }),
+      repository.listHistoryCheckpoints(eventId, { limit: 20 }),
       repository.reconstructEvent(eventId, checkpointId),
     ])
 

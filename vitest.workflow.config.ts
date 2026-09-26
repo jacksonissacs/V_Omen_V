@@ -2,7 +2,9 @@ import path from "node:path"
 import { defineConfig } from "vitest/config"
 
 /**
- * Production-build + disposable PostgreSQL + Chrome workflow tests.
+ * Deterministic production-build workflow.
+ * Uses disposable PostgreSQL, `next start`, and Chrome.
+ * It does not call external sources. `npm run intake:check` is the separate smoke check.
  * Requires OMEN_TEST_DATABASE_ADMIN_URL, `npm run build`, and Chrome.
  */
 export default defineConfig({
@@ -10,6 +12,7 @@ export default defineConfig({
     environment: "node",
     include: ["src/**/*.workflow.test.ts"],
     fileParallelism: false,
+    sequence: { concurrent: false },
     testTimeout: 60_000,
     hookTimeout: 120_000,
   },

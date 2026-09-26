@@ -74,7 +74,8 @@ export interface HistoricalMoveLog {
   author: string
   whatChanged: string
   likelyCause: string
-  explainedPct: number
+  /** Null when the revision recorded no explained share. */
+  explainedPct: number | null
   unexplainedFactors: string[]
   evidenceIds: string[]
   correctionNote: string | null

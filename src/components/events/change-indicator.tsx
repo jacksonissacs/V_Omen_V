@@ -4,9 +4,12 @@ export function ChangeIndicator({
   change,
   unit = "pts",
 }: {
-  change: number
+  change: number | null
   unit?: "pts" | "pp" | "pct"
 }) {
+  if (change === null) {
+    return <b className="aion-mono">Not computable</b>
+  }
   const direction = movementDirection(change)
   const label =
     unit === "pp"

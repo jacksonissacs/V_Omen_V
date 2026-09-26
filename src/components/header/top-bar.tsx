@@ -13,7 +13,9 @@ export function TopBar() {
   const { setPaletteOpen, findEventSummary, storage } = useWorkspace()
   const onArchive = pathname === "/archive"
   const archiveCheckpoint = onArchive ? searchParams.get("checkpoint") : null
-  const historical = requestedHistoricalView(searchParams)
+  const historical = requestedHistoricalView(searchParams, {
+    route: onArchive ? "archive" : "workspace",
+  })
   const historyMatch = pathname.match(/^\/events\/([^/]+)\/history\/([^/]+)$/)
   const eventMatch = pathname.match(/^\/events\/([^/]+)$/)
   const event =
@@ -50,10 +52,10 @@ export function TopBar() {
         type="button"
         className="aion-ask"
         onClick={() => setPaletteOpen(true)}
-        aria-label="Ask OMEN"
+        aria-label="Search"
       >
         <Search size={13} />
-        Ask OMEN…
+        Search
         <span className="aion-kbd">⌘K</span>
       </button>
     </header>

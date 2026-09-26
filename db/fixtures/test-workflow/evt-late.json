@@ -1,0 +1,45 @@
+{
+  "event": {
+    "id": "evt-test-late",
+    "title": "[SYNTHETIC TEST] Late commit subject",
+    "question": "Will a delayed commit stay out of the earlier checkpoint?",
+    "status": "watch",
+    "deadline": "2026-12-20T00:00:00.000Z",
+    "resolutionCriteria": "Resolves YES only as a labelled SYNTHETIC TEST of snapshot membership. Not a real question.",
+    "category": "Science",
+    "significance": "low",
+    "region": "Test",
+    "summary": "SYNTHETIC TEST FIXTURE used to prove a row committed after a checkpoint stays out of that checkpoint.",
+    "tags": ["SYNTHETIC-TEST", "late-commit"],
+    "relatedEventIds": [],
+    "provenance": "demo",
+    "followedByDefault": false,
+    "catalogPosition": 4
+  },
+  "observations": [
+    {
+      "sourceKind": "author",
+      "sourceName": "SYNTHETIC TEST late analyst",
+      "probabilityType": "forecaster_estimate",
+      "probabilityPct": 19,
+      "observedAt": "2026-09-02T00:00:00.000Z",
+      "capturedAt": "2026-09-02T00:01:00.000Z",
+      "note": "SYNTHETIC TEST observation present at the first checkpoint",
+      "provenance": "demo"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev-test-late-base",
+      "sourceName": "SYNTHETIC TEST late base note",
+      "sourcePublishedAt": null,
+      "firstObservedAt": "2026-09-02T00:00:00.000Z",
+      "capturedAt": "2026-09-02T00:01:00.000Z",
+      "summary": "SYNTHETIC TEST evidence that belongs in the earlier checkpoint.",
+      "stance": "contextual",
+      "reliability": 0.4,
+      "recordedBy": "omen-workflow-test",
+      "provenance": "demo"
+    }
+  ]
+}
