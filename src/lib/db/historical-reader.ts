@@ -81,7 +81,7 @@ interface MoveLogRow {
   author: string
   what_changed: string
   likely_cause: string
-  explained_pct: number
+  explained_pct: number | null
   unexplained_factors: string[]
   evidence_ids: string[]
   correction_note: string | null

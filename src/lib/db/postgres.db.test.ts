@@ -121,19 +121,16 @@ describe("migrations", () => {
       expect(identity.environment).toBe("test")
 
       const migrations = loadMigrations()
+      expect(migrations.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5])
       expect(migrations.at(-1)?.version).toBe(EXPECTED_SCHEMA_VERSION)
       const first = await migrate(client, migrations)
-      expect(first.applied.map((migration) => migration.version)).toEqual([1, 2, 3])
+      expect(first.applied.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5])
       const second = await migrate(client, migrations)
       expect(second.applied).toEqual([])
-      expect(second.alreadyApplied).toBe(3)
+      expect(second.alreadyApplied).toBe(5)
 
       const { rows } = await client.query("SELECT version, checksum FROM omen_schema_migrations ORDER BY version")
-      expect(rows).toEqual([
-        { version: 1, checksum: migrations[0]!.checksum },
-        { version: 2, checksum: migrations[1]!.checksum },
-        { version: 3, checksum: migrations[2]!.checksum },
-      ])
+      expect(rows).toEqual(migrations.map((migration) => ({ version: migration.version, checksum: migration.checksum })))
       const tables = await client.query<{ table_name: string }>(
         "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name",
       )
@@ -149,6 +146,8 @@ describe("migrations", () => {
         "omen_history_coverage",
         "omen_schema_migrations",
         "probability_observations",
+        "publication_operations",
+        "source_review_items",
       ])
     })
   })

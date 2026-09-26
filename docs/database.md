@@ -31,7 +31,7 @@ Storage says where records are kept. Provenance says where they came from. Every
 
 Migrations live in `db/migrations/NNNN_name.sql`, numbered consecutively. They are applied in order and recorded with a SHA-256 checksum in `omen_schema_migrations`. Editing an applied migration is refused; add a new one instead. The highest migration number must equal `EXPECTED_SCHEMA_VERSION` in `src/lib/db/schema-version.ts`, and a test checks that they match.
 
-`0001_core_event_storage.sql`, `0002_trustworthy_temporal_storage.sql` and `0003_history_visibility_checkpoints.sql` create the following tables.
+`0001_core_event_storage.sql` through `0005_intake_review_bridge.sql` create the following tables.
 
 | Table | Holds | Mutability |
 | --- | --- | --- |
@@ -40,7 +40,9 @@ Migrations live in `db/migrations/NNNN_name.sql`, numbered consecutively. They a
 | `probability_observations` | Event, source kind (`provider`/`author`) and name, probability type (`market_implied`/`forecaster_estimate`/`model_estimate`), value, `observed_at`, `captured_at`, `record_available_at`, provenance | Append-only |
 | `evidence` | Source name/URL, `source_published_at` (nullable: the source may carry no date), `first_observed_at` (when OMEN first saw it), `captured_at`, `record_available_at`, stance, reliability 0–1, `recorded_by`, provenance | Append-only |
 | `move_logs` | One row per move on an event | Append-only |
-| `move_log_revisions` | Version, `published_at`, `recorded_at`, `record_available_at`, author, what changed, likely cause, explained %, unexplained factors, linked `evidence_ids`, correction note, provenance | Append-only |
+| `move_log_revisions` | Version, `published_at`, `recorded_at`, `record_available_at`, author, what changed, likely cause, explained % (nullable when no share is recorded), unexplained factors, linked `evidence_ids`, correction note, provenance | Append-only |
+| `source_review_items` | Staged operator intake. Status is `staged`, `approved`, or `rejected`. A file-queue capture keeps source id, captured version, canonical URL, source clock time, calendar date, fetch time, and content identity. Re-import of the same version updates nothing | Review outcome is durable. Payload is not rewritten after staging |
+| `publication_operations` | Idempotent publish attempts: bundle JSON, status (`pending`, `checkpoint_pending`, `completed`, `failed`), write summary, checkpoint id and sequence as bigint, optional link to a review item | Updated through the operator publish path. The bundle for one idempotency key does not change |
 | `omen_history_coverage` | One row: when append-only semantic event history begins, and when pre-existing history rows received their `record_available_at` realignment marker | Set at migration 0002. Immutable afterwards |
 | `history_checkpoints` | One immutable verified reconstruction point for an event: publishing transaction id, the publishing statement's snapshot, content digest, member count, and semantic-history label. No foreign key to `events` | Append-only |
 | `history_checkpoint_members` | History rows visible in that snapshot (`probability_observations`, `evidence`, `move_log_revisions`, `event_revisions`), with the inserting transaction id | Append-only. Written only by the publishing transaction |
@@ -49,7 +51,7 @@ Every event must have at least one observation. This is a deferred constraint tr
 
 ### Probability scale
 
-Every probability is stored in **percentage points**, as `numeric(5,2)` constrained to `0.00–100.00` inclusive, so `73.8` means 73.8%. The same scale applies to `explained_pct`. `reliability` is a 0–1 fraction. The write command rejects values with more than two decimals, and PostgreSQL rounds any more-precise value written directly.
+Every probability is stored in **percentage points**, as `numeric(5,2)` constrained to `0.00–100.00` inclusive, so `73.8` means 73.8%. The same scale applies to `explained_pct` when it is recorded; otherwise the column stays `NULL` and readers report that the explained share is not recorded. `reliability` is a 0–1 fraction. The write command rejects values with more than two decimals, and PostgreSQL rounds any more-precise value written directly.
 
 ### Source time, recording time, snapshot capture, and publication
 
@@ -201,7 +203,7 @@ OMEN_STORAGE_MODE=database npm run dev   # or set it in .env.local
 
 ### The write command
 
-`scripts/omen-db.ts` is the only write path. There is no HTTP write endpoint. It is for nonproduction use only:
+`scripts/omen-db.ts` is the low-level write path. `scripts/omen-operator.ts` (`npm run operator`) stages review items and publishes only through `publishEventBundle`, which calls `writeEventBundle`. There is no HTTP write endpoint. Both are for nonproduction use only:
 
 - It refuses to run `migrate` or `upsert` when `NODE_ENV`, `VERCEL_ENV` or `OMEN_DEPLOYMENT_ENV` is `production`.
 - It writes only to a database carrying an OMEN identity (`omen_database_identity`). The identity's environment must be `development`, `test` or `demo`; the column cannot hold `production`.
@@ -237,6 +239,8 @@ The integration suite covers:
 - recording-time `record_available_at` (not a visibility predicate), coverage baseline, backdated source and capture input, and concurrent revision allocation;
 - verified checkpoints: delayed commits, lock-waiting writers, an open event revision that must not stall publication, multi-table bundles, legacy events with no semantic revision, consistent multi-table reads, and rejection of uncommitted or cross-event members;
 - stored reconstruction from checkpoint membership: later corrections, backdated evidence, late commits, missing semantic revisions, cross-event checkpoint ids, verification failure, retries, bounded checkpoint listing, and lossless bigint ids;
+- operator publishing: review before publication, nullable explained percentages, corrections, checkpoint retry without duplicate rows, and lossless checkpoint ids;
+- source-intake import: one review item per source version, no invented probability or publication timestamp, rejection of stale approvals, changed versions, and concurrent checkpoint retry;
 - persistence across processes: separate `tsx scripts/omen-db.ts` processes write, the test reads over a fresh pool, and a third process reads the data back;
 - explicit failures for a missing schema, schema version drift, bad credentials and a missing database in database mode.
 
@@ -246,3 +250,4 @@ The integration suite covers:
 - No public write endpoint, auth, server-side per-user watchlists, or billing. Following is stored in the browser for the current storage mode. "Followed by default" is a column on the event.
 - No Archive / workspace UI for checkpoint reconstruction yet (`/archive` remains a demo shell). Latest-projection reads are unchanged. Stored reconstruction is `GET /api/events/:id/history` and `GET /api/events/:id/history/:checkpointId`. Arbitrary-time reconstruction is not provided.
 - Legacy demo-only screens (Markets, Signals and others listed in `docs/architecture.md`) still read the in-process demo book in both modes.
+- Source intake ([source-intake.md](source-intake.md)) writes a gitignored local review queue. Importing a selected version stages a database review item for an event that already exists. It does not insert observations, evidence, or Move Log rows until an operator approves that item and publishes it.

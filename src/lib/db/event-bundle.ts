@@ -78,7 +78,8 @@ export interface MoveLogRevisionInput {
   author: string
   whatChanged: string
   likelyCause: string
-  explainedPct: number
+  /** Null when no defensible explained share is recorded. Omit to store NULL. */
+  explainedPct?: number | null
   unexplainedFactors: string[]
   evidenceIds: string[]
   correctionNote?: string
@@ -348,6 +349,11 @@ export function parseEventBundle(input: unknown): EventBundle {
       if (version === 1 && correctionNote !== undefined) {
         issues.push(`bundle.moveLogRevisions[${index}].correctionNote is only allowed on corrections (version > 1)`)
       }
+      const explainedRaw = raw.explainedPct
+      let explainedPct: number | null | undefined
+      if (explainedRaw === undefined) explainedPct = undefined
+      else if (explainedRaw === null) explainedPct = null
+      else explainedPct = item.number("explainedPct", { min: 0, max: 100, decimals: 2 })
       return {
         moveLogId: item.id("moveLogId"),
         version,
@@ -355,7 +361,7 @@ export function parseEventBundle(input: unknown): EventBundle {
         author: item.string("author"),
         whatChanged: item.string("whatChanged"),
         likelyCause: item.string("likelyCause"),
-        explainedPct: item.number("explainedPct", { min: 0, max: 100, decimals: 2 }),
+        ...(explainedPct === undefined ? {} : { explainedPct }),
         unexplainedFactors: item.strings("unexplainedFactors", { optional: true }),
         evidenceIds: item.strings("evidenceIds", { optional: true }),
         ...(correctionNote === undefined ? {} : { correctionNote }),

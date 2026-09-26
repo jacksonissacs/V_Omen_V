@@ -215,12 +215,12 @@ in `design-reference/README.md`.
 | Payments / entitlements | Not the founding surface. |
 | Paid market-data or LLM APIs | Cost, licenses, and nondeterminism do not belong in the core loop. |
 | Write path / collaboration | Read-only fixtures first; writes need persistence. |
-| Streaming ingest | Requires a worker and a store. Designed as a later adapter. |
+| Unattended ingest | A manual one-source review queue exists ([source-intake.md](source-intake.md)). Importing it stages a database review item. It does not publish evidence or run on a schedule. |
 
 ## Extending the system
 
 1. **Persistence** — PostgreSQL storage for events, observations, evidence and Move Log revisions exists ([database.md](database.md)). Object storage for evidence blobs is still to come.
-2. **Ingest** — workers write normalized `EvidenceItem`s; a scoring job proposes probability revisions.
+2. **Ingest** — `npm run intake` stages the CISA Known Exploited Vulnerabilities catalog in a local review queue ([source-intake.md](source-intake.md)). `npm run operator -- intake import` copies a selected version into the database review queue and does not publish it or propose a probability. A worker that does either is still later.
 3. **Agents** — same repository port, plus a job table (`proposed_change`, `rationale`, `human_decision`).
 4. **Live markets** — a `MarketAdapter` behind the existing `RelatedMarket` shape. The UI should not change.
 5. **Auth** — wrap the App Router and API with a session boundary once there is more than one tenant.
