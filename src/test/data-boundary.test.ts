@@ -17,6 +17,7 @@ const SERVER_ONLY_MODULES = [
   "lib/data/repository.ts",
   "lib/data/mock-repository.ts",
   "lib/data/postgres-repository.ts",
+  "lib/intake/adapter.ts",
 ]
 
 function sourceFiles(dir: string): string[] {
@@ -82,7 +83,14 @@ describe("server data boundary", () => {
     expect(offenders.sort()).toEqual([...LEGACY_FIXTURE_READERS].sort())
   })
 
-  it("marks the repository modules server-only", () => {
+  it("keeps source intake out of client modules", () => {
+    const offenders = clientModules.filter(({ source }) =>
+      imports(source).some((specifier) => specifier.includes("lib/intake")),
+    )
+    expect(offenders.map(({ file }) => file)).toEqual([])
+  })
+
+  it("marks repository and intake adapters server-only", () => {
     for (const file of SERVER_ONLY_MODULES) {
       expect(readFileSync(path.join(SRC, file), "utf8")).toMatch(/^import "server-only"/)
     }
