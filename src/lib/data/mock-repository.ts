@@ -9,6 +9,7 @@ import {
   graphNodes,
 } from "@/lib/data/mock-catalog"
 import type { IntelligenceRepository } from "@/lib/data/repository"
+import { moveLogRevisionsFromEvent } from "@/lib/archive/map-move-log-revisions"
 import { applyEventFilter } from "@/lib/data/event-query"
 import type { EventFilter, RelationshipGraph, SearchHit } from "@/lib/domain/types"
 import { searchCatalog } from "@/lib/search/command-index"
@@ -58,5 +59,9 @@ export class MockIntelligenceRepository implements IntelligenceRepository {
 
   async search(query: string): Promise<SearchHit[]> {
     return searchCatalog(query, events)
+  }
+
+  async listMoveLogRevisions(eventId: string) {
+    return moveLogRevisionsFromEvent(getEvent(eventId))
   }
 }

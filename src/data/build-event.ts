@@ -123,7 +123,7 @@ function demoSeries(draft: EventDraft): ProbabilitySeries {
       ...identity,
       observations: draft.expectationHistory.map((point) => ({
         observedAt: point.at,
-        capturedAt: null,
+        capturedAt: point.at,
         probability: point.probability,
         ...(point.note ? { note: point.note } : {}),
       })),

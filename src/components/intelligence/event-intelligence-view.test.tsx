@@ -219,7 +219,7 @@ describe("EventIntelligenceView", () => {
     expect(observed).toHaveTextContent("Statistics Canada CPI, August 2026")
     expect(observed).toHaveTextContent("Published 04 Sept, 18:30 UTC")
     const interpretation = screen.getByRole("region", { name: "Interpretation" })
-    expect(interpretation).toHaveTextContent("No move log has been published")
+    expect(interpretation).toHaveTextContent("Move log ml-boc-cut-2026-09-04 v1")
     expect(interpretation).toHaveTextContent("Illustrative demo text.")
     expect(interpretation).toHaveTextContent("Statistics Canada CPI release")
     const unknown = screen.getByRole("region", { name: "Still unknown" })

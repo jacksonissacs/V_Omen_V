@@ -1,4 +1,5 @@
 import { buildEvent, type EventDraft } from "@/data/build-event"
+import { moveLogRevisionsFromEvent } from "@/lib/archive/map-move-log-revisions"
 import type { IntelligenceRepository } from "@/lib/data/repository"
 import type { AionEvent } from "@/types/event"
 
@@ -47,6 +48,7 @@ export function fakeRepository(
     listFeed: async () => [],
     getGraph: async () => ({ nodes: [], edges: [] }),
     search: async () => [],
+    listMoveLogRevisions: async (id) => moveLogRevisionsFromEvent(byId.get(id)),
   }
 }
 
@@ -67,5 +69,6 @@ export function failingRepository(
     listFeed: fail,
     getGraph: fail,
     search: fail,
+    listMoveLogRevisions: fail,
   }
 }
