@@ -24,6 +24,7 @@ async function ArchivePageContent({
 
   return (
     <ArchiveView
+      key={`${event ?? ""}:${checkpoint ?? "present"}`}
       events={loaded.events}
       storage={loaded.storage}
       provenance={loaded.provenance}
@@ -42,9 +43,14 @@ export default async function ArchivePage({
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const params = await searchParams
+  const event = firstQueryValue(params.event)
+  const checkpoint = firstQueryValue(params.checkpoint)
   return (
     <Suspense fallback={<section className="aion-screen" aria-busy="true" data-testid="archive-loading" />}>
-      <ArchivePageContent searchParams={params} />
+      <ArchivePageContent
+        key={`${event ?? ""}:${checkpoint ?? "present"}`}
+        searchParams={params}
+      />
     </Suspense>
   )
 }
