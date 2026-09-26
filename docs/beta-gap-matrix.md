@@ -2,10 +2,12 @@
 
 Audit of what exists for a working MVP and a monetizable public beta. This document records observed state. It does not change product scope, merge pull requests, or authorize production writes.
 
-**Audited:** 2026-09-25  
+**First audit:** 2026-09-25  
+**Recheck:** 2026-09-26 (live; earlier findings updated, not assumed)  
 **Repository:** `jacksonissacs/V_Omen_V`  
-**Audited branch / SHA:** `main` @ `9c1aace947b2d3a17ca15e16503055a8b059ac49`  
-**Open integration PR:** [#6](https://github.com/jacksonissacs/V_Omen_V/pull/6) `cursor/omen-v0-event-detail-94d3` @ `8afd1eda0ef707132eaff1b55fb7e6378447ca00`
+**Product line audited:** `origin/main` @ `d044ead2e627169b764ec223723f14af4680a919` (PR [#6](https://github.com/jacksonissacs/V_Omen_V/pull/6) merged 2026-09-25)  
+**Open integration:** PR [#8](https://github.com/jacksonissacs/V_Omen_V/pull/8) `cursor/trustworthy-temporal-storage-df20` @ `eddc175` (Task 04A — trustworthy temporal storage)  
+**This docs branch:** `cursor/beta-gap-inventory-6a92` (see PR [#7](https://github.com/jacksonissacs/V_Omen_V/pull/7) for commit SHA after the recheck commit)
 
 Related progress, blockers, and the next three tasks: [launch-progress.md](launch-progress.md).
 
@@ -27,240 +29,185 @@ Never treat a missing check as passing.
 
 ## Historical findings rechecked
 
-These were prior inspection notes. Rechecked against current refs; none were assumed.
+Prior audit (2026-09-25) used `main` @ `9c1aace` and open PR #6 @ `8afd1ed`. Rechecked on 2026-09-26 after `git fetch origin main`.
 
-| Prior finding | Current fact |
+| Prior finding (2026-09-25) | Current fact (2026-09-26) |
 | --- | --- |
-| `main` at `9c1aace` | **Still true.** `origin/main` after `git fetch origin main` is `9c1aace947b2d3a17ca15e16503055a8b059ac49` (`Merge pull request #3`). Working tree on this audit branch started clean at that SHA. |
-| PR #6 open, integration head `8afd1ed` | **Still true.** Only open PR. Head `8afd1eda0ef707132eaff1b55fb7e6378447ca00`. Base `main`. `MERGEABLE` / `CLEAN`. 14 commits, 60 files, +5899 / −458. |
-| PR #6 contains PostgreSQL persistence and honest event-detail work | **Still true.** Tasks 02–03. See [Work to integrate, not reimplement](#work-to-integrate-not-reimplement). |
-| Following is browser memory only | **Still true on `main` and on PR #6.** `WorkspaceProvider` keeps a `useState<Set<string>>`. No write API, no `localStorage`, no per-user table. |
-| Archive is a clearly labeled scripted demo | **True on PR #6 only.** On `main`, Archive is still a scripted demo but its copy claims reconstruction (`archive-screen.tsx`). PR #6 relabels it: “Demo of planned point-in-time reconstruction” and a notice that controls do not query stored records. |
-| Database commands reject production writes | **True on PR #6 only.** Absent on `main`. `scripts/omen-db.ts` refuses `migrate` / `upsert` when `NODE_ENV`, `VERCEL_ENV`, or `OMEN_DEPLOYMENT_ENV` is `production`, and writes only to an identified `development` / `test` / `demo` database. |
-| Event metadata lacks full historical versioning | **Still true on PR #6.** Observations, evidence, and Move Log revisions are append-only. Mutable `events` fields (title, question, status, deadline, criteria, `display`) are overwritten on upsert. Documented in PR #6 `docs/database.md`. |
-| No verified CI on the integration head | **Still true.** `gh pr checks 6` → `no checks reported`. `statusCheckRollup` is `[]`. There is no `.github/workflows` on `main` or on PR #6. |
-
-Additional current facts that were not in the prior note:
-
-- PRs #4 and #5 show **MERGED**, but they merged into stacked feature branches, not into `main`. PR #4 base was `cursor/omen-v0-data-boundary-93d8`; PR #5 base was `cursor/omen-v0-postgres-event-storage-93d8`. `main` still ends at PR #3.
-- `origin/cursor/omen-v0-postgres-event-storage-93d8` is `17fb42e` (`Merge pull request #5`). That commit is a merge of the event-detail branch; it adds no unique feature commits beyond PR #6’s head.
-- GitHub Pages is **configured** and **deployed** for `main` at https://jacksonissacs.github.io/V_Omen_V/. It serves the repository README as a Jekyll page, not the Next.js app.
-- `docs/database.md` is **absent on `main`**. It exists on PR #6.
+| `main` at `9c1aace` | **Superseded.** `origin/main` is `d044ead` — merge of PR #6 (`Integrate OMEN V0 Tasks 02–03 into main`). |
+| PR #6 open @ `8afd1ed` | **Superseded.** PR #6 is **merged**. Head at merge: `d044ead`. |
+| PR #6 contains PostgreSQL + honest event detail | **Still true, now on `main`.** Tasks 02–03 landed as one integration. |
+| PRs #4 and #5 merged into stacked branches, not `main` | **Historical only.** Their work arrived on `main` through PR #6. |
+| Following is browser memory only | **Still true on `main`.** `WorkspaceProvider` `useState<Set<string>>`; no write API or per-user store. |
+| Archive is a labeled scripted demo | **Still true on `main`.** `archive-screen.test.tsx` + demo notice; no stored as-of read. |
+| Database CLI rejects production writes | **Still true on `main`.** `scripts/omen-db.ts` guards. |
+| Event metadata lacks full historical versioning | **Still true on `main` @ `d044ead`.** Append-only observations, evidence, Move Logs; mutable `events` fields on upsert. **Task 04A (PR #8)** adds `event_revisions` + `record_available_at`; not merged. |
+| No verified CI on integration head | **Superseded on `main`.** `.github/workflows/application-ci.yml` runs lint, typecheck, unit tests, build, and `test:db` with a Postgres service. Latest PR #6 checks reported **pass** before merge. |
+| `docs/database.md` absent on `main` | **Superseded.** Present on `main` after PR #6. |
+| `npm ci` fails on `main` (picomatch) | **Superseded.** Lockfile fixed on landed integration; `npm ci` **passes** on `main` @ `d044ead` in this recheck. |
+| GitHub Pages serves README, not Next.js | **Still true.** https://jacksonissacs.github.io/V_Omen_V/ — Jekyll README site; `/pulse` is not hosted there. |
 
 ## Area matrix
 
-Statuses are given for **`main` @ `9c1aace`** and **PR #6 @ `8afd1ed`**.
+Statuses are for **`main` @ `d044ead`** unless a column names an open PR.
 
 ### 1. Homepage and public demo
 
-| | `main` | PR #6 |
-| --- | --- | --- |
-| Status | **implemented**, **merged**, **illustrative** data, locally **verified** | Same product surface; marketing tests still pass |
+| | `main` @ `d044ead` |
+| --- | --- |
+| Status | **implemented**, **merged**, **illustrative** data, locally **verified** |
 
-**Evidence (`main`):**
+**Evidence:**
 
 - Route: `src/app/(marketing)/page.tsx` — Hero → Preview → Walkthrough → Pulse → Archive → Ledger → Relations → Methodology → FAQ → Final CTA.
-- Layout and tokens: `src/app/(marketing)/layout.tsx`, `src/app/(marketing)/marketing.css`.
-- Components: `src/components/marketing/{hero,preview-section,walkthrough,feature-sections,faq-section,final-cta,site-header,site-footer,spectrum-stage}.tsx`.
-- Demo fixtures: `src/lib/marketing/demo-data.ts`. Design source: `design-reference/omen-site/`.
-- Honesty copy: `hero.tsx` — “illustrative data. Nothing on this page is a live feed or a performance claim.” CTA is **Explore the demo → `/pulse`**. No signup form (`README.md`).
-- Tests: `src/components/marketing/landing-page.test.tsx`, `walkthrough.test.tsx`, `spectrum-stage.test.tsx`, `src/lib/marketing/demo-data.test.ts`.
+- Demo fixtures: `src/lib/marketing/demo-data.ts`. Honesty copy in `hero.tsx`; CTA **Explore the demo → `/pulse`**.
+- Tests: `landing-page.test.tsx`, `walkthrough.test.tsx`, `spectrum-stage.test.tsx`, `demo-data.test.ts`.
 
 **Gap:** Public marketing is a local demo, not a hosted Next.js site. GitHub Pages does not serve this route.
 
 ### 2. Pulse and event detail
 
-| | `main` | PR #6 |
-| --- | --- | --- |
-| Status | **implemented**, **merged**, **illustrative** figures on detail, locally **verified** | **implemented** (honest, observation-driven). Unit tests passed with an unhandled `scrollIntoView` error (`npm test` exit 1). Not **merged**. Not CI-**verified**. |
-
-**Evidence (`main`):**
-
-- Server boundary: `src/lib/data/repository.ts` (`IntelligenceRepository`, `getRepository()` → `MockIntelligenceRepository` only).
-- Layout: `src/app/(workspace)/layout.tsx` loads `listEvents` + `listFollowedEventIds`.
-- Pulse: `src/app/(workspace)/pulse/page.tsx` → `src/components/screens/pulse-screen.tsx`.
-- Event book: `src/app/(workspace)/events/(book)/page.tsx`.
-- Event detail: `src/app/(workspace)/events/[id]/page.tsx` → `src/components/intelligence/event-intelligence-view.tsx`. Unknown ids `notFound()`.
-- Catalog: `src/data/events.ts` (32 `buildEvent` fixtures), `src/data/build-event.ts`, `src/lib/data/mock-catalog.ts`.
-- Demo chip: `src/components/header/top-bar.tsx` — “Every figure in this workspace is illustrative fixture data”.
-- **Illustrative on detail:** “OMEN estimate” is `event.probability - 2.6` (`event-intelligence-view.tsx`). “Identification confidence” is `event.explained + 20`. Chart tabs include Volume / Spread / Related without stored series. “Make a call” opens `src/components/common/call-modal.tsx`, which shows a hardcoded “cryptographically recorded” timestamp.
-- Tests: `src/app/(workspace)/workspace-routes.test.tsx`, `event-intelligence-view.test.tsx`, `src/lib/data/mock-repository.test.ts`.
-
-**Evidence (PR #6, do not reimplement):**
-
-- Chart and table from `probabilitySeries`; Observed / Interpretation / Still unknown; Inspect evidence + Follow; no Make a call, no fabricated OMEN estimate (`src/components/intelligence/event-intelligence-view.tsx`, `probability-chart.tsx`).
-- Domain: `src/lib/domain/probability-history.ts`, `event-chronology.ts`.
-- Storage + provenance chips via layout / `top-bar.tsx`.
-- Remaining defect: `inspectEvidence` calls `scrollIntoView` / `focus` and throws under jsdom; Vitest reports 145 passing tests and **exit code 1**.
-
-### 3. Evidence and published Move Logs
-
-| | `main` | PR #6 |
-| --- | --- | --- |
-| Status | **illustrative** fixtures; durable Move Log **absent** | **implemented** (append-only tables + CLI publish/correct). Not **merged**. Persistence **not verified** here (`test:db` blocked). |
-
-**Evidence (`main`):**
-
-- `AionEvent.evidence`, `timeline`, `expectationHistory` seeded in `src/data/events.ts` / `src/data/build-event.ts`.
-- UI: `src/components/intelligence/intelligence-panel.tsx`, `event-timeline.tsx`.
-- Marketing “Ledger” is a **Demo** chip over `demoLedger` in `src/lib/marketing/demo-data.ts` / `feature-sections.tsx`.
-- Build contract item “Published Move Log — durable, append-only” (`docs/omen-v0-build-contract.md`) has no store or API on `main`.
-
-**Evidence (PR #6):**
-
-- Tables `evidence`, `move_logs`, `move_log_revisions` in `db/migrations/0001_core_event_storage.sql`.
-- Writer: `src/lib/db/event-store.ts`, `event-bundle.ts`, `scripts/omen-db.ts`.
-- Reader maps latest revision onto `whatChanged` / `likelyCause` / `explained`; history via `db:show`.
-- Fixtures: `db/fixtures/demo-evt-boc-cut.json`, `demo-evt-boc-cut.correction.json` (v2 correction).
-- Corrections cannot rewrite v1 (`HistoryConflictError`). No public HTTP write.
-
-### 4. Database migrations and persistence
-
-| | `main` | PR #6 |
-| --- | --- | --- |
-| Status | **absent** | **implemented**, not **merged**, not **verified** against PostgreSQL in this environment, not **deployed** |
-
-**Evidence (`main`):** no `db/`, no `pg`, no `DATABASE_URL`, no `docs/database.md`. `getRepository()` always constructs `MockIntelligenceRepository`.
-
-**Evidence (PR #6):**
-
-| Path | Role |
+| | `main` @ `d044ead` |
 | --- | --- |
-| `docs/database.md` | Modes, schema, write-command safety, limitations |
-| `db/migrations/0001_core_event_storage.sql` | V0 schema |
-| `src/lib/db/{config,migrate,event-store,event-reader,event-bundle,schema-version}.ts` | Config, migrator, I/O |
-| `src/lib/data/postgres-repository.ts` | Repository adapter |
-| `src/lib/data/repository.ts` | `OMEN_STORAGE_MODE` (`demo` / `database`); no demo fallback in database mode |
-| `scripts/omen-db.ts` | `migrate`, `status`, `upsert`, `show` |
-| `.env.example` | `DATABASE_URL`, `OMEN_TEST_DATABASE_ADMIN_URL`, `OMEN_STORAGE_MODE` |
-| `vitest.db.config.ts`, `src/test/postgres-harness.ts`, `src/lib/db/postgres.db.test.ts` | Disposable-DB suite |
-
-Scripts added: `typecheck`, `test:db`, `db:migrate`, `db:status`, `db:upsert`, `db:show`. `npm ci` succeeds on this branch (lockfile in sync).
-
-### 5. Historical reconstruction
-
-| | `main` | PR #6 |
-| --- | --- | --- |
-| Status | **illustrative** | **illustrative**, honestly labeled. Stored point-in-time reads **absent** |
-
-**Evidence (`main`):**
-
-- Workspace Archive: `src/app/(workspace)/archive/page.tsx` → `src/components/screens/archive-screen.tsx`. Hardcoded date `2026-08-17`, slider formula `(58.4 + position * 0.2)`, static KVs. Description: “Reconstruct the information environment at any moment.” Not labeled as a demo. Listed as legacy demo-only in `docs/architecture.md`.
-- Marketing Archive / walkthrough rewind: `src/components/marketing/feature-sections.tsx`, `walkthrough.tsx`, PIT helpers in `src/lib/marketing/demo-data.ts` — fixture-only.
-- `/relations` is an inline SVG placeholder (`relations-screen.tsx`); `getGraph()` is unused.
-
-**Evidence (PR #6):** same scripted Archive, plus `archive-screen.test.tsx` and the demo notice quoted above. Schema can support reconstruction (timestamped observations, evidence, revisions) but no read path or UI uses an as-of timestamp.
-
-### 6. Authentication and operator authorization
-
-| | `main` | PR #6 |
-| --- | --- | --- |
-| Status | **absent** | **absent** |
-
-No `middleware.ts`, no NextAuth / Clerk / SSO, no roles, no RLS. Grep over `src/` for those names is empty. Deferred in `README.md`, `docs/architecture.md`, `docs/omen-v0-build-contract.md` (requires owner approval). `/team` is a static `UtilityScreen` (`src/app/(workspace)/team/page.tsx`).
-
-### 7. Persistent per-user Following
-
-| | `main` | PR #6 |
-| --- | --- | --- |
-| Status | **implemented** in-session; persistence **absent** | Same. Seed ids may come from `events.followed_by_default` |
-
-**Evidence (both):**
-
-- Seed: `src/lib/data/mock-catalog.ts` `defaultFollowedEventIds` (`evt-boc-cut`, `evt-frontier-release`, `evt-fed-cut`, `evt-housing-ca`).
-- Client: `src/components/layout/workspace-provider.tsx` — `toggleWatch` mutates a `Set`. Architecture: “Follow/unfollow is not persisted (there is no write path).”
-- Surfaces: Pulse watchlist filter, `src/components/screens/watchlists-screen.tsx`, event Follow button.
-
-PR #6 adds a column, not a user. `docs/database.md`: “No public write endpoint, auth, per-user watchlists, or billing.”
-
-### 8. Ingestion and scheduled jobs
-
-| | `main` | PR #6 |
-| --- | --- | --- |
-| Status | **absent** | **absent** |
-
-No workers, queues, cron routes, or fetchers. Roadmap Phase 2 only (`docs/roadmap.md`). Writes on PR #6 are a local CLI, not ingest.
-
-### 9. Notifications
-
-| | `main` | PR #6 |
-| --- | --- | --- |
-| Status | **illustrative** | **illustrative** |
-
-- `src/app/(workspace)/alerts/page.tsx` — static rows (“Armed” / “Triggered”).
-- `src/components/screens/settings-screen.tsx` — checkbox in `useState`; no delivery.
-- `src/components/screens/utility-screen.tsx` — “intentionally local-only for the MVP.”
-
-No email, push, webhooks, or notification service.
-
-### 10. Billing and server-side entitlements
-
-| | `main` | PR #6 |
-| --- | --- | --- |
-| Status | **absent** | **absent** |
-
-No Stripe, plans, meters, or entitlement gates. Roadmap Phase 8. Build contract: payments require owner approval.
-
-### 11. CI, deployment, and monitoring
-
-| | `main` | PR #6 |
-| --- | --- | --- |
-| Status | App CI **absent**. GitHub Pages **configured** + **deployed** (README only). Local checks **verified** below. Monitoring **absent**. | Same empty workflow tree. Pages does not build this head. Local unit/lint/typecheck/build run in this audit; `test:db` **blocked**. |
+| Status | **implemented**, **merged**, observation-driven detail, locally **verified** |
 
 **Evidence:**
 
-- No `.github/workflows` in either tree.
-- `gh run list` shows only `pages-build-deployment` on `main` (latest success 2026-09-25T18:41:28Z).
-- Pages: `build_type: legacy`, source `main` `/`, https://jacksonissacs.github.io/V_Omen_V/ — fetched in this audit; content is the README, not `/` or `/pulse`.
-- No `vercel.json`, Dockerfile, `docker-compose`, Sentry, or other APM.
-- `next.config.ts` is empty defaults.
+- `IntelligenceRepository` + `OMEN_STORAGE_MODE` (`demo` / `database`): `src/lib/data/repository.ts`, `postgres-repository.ts`.
+- Pulse, Events, detail: workspace routes + `event-intelligence-view.tsx` — chart/table from `probabilitySeries`; Observed / Interpretation / Still unknown; Inspect evidence + Follow; storage/provenance chips in `top-bar.tsx`.
+- Domain: `src/lib/domain/probability-history.ts`, `event-chronology.ts`.
+- Tests: `workspace-routes.test.tsx`, `event-intelligence-view.test.tsx`, `mock-repository.test.ts`, `data-boundary.test.ts`.
+- `inspectEvidence` scroll guard: unit suite exits 0 (`70ece6c`).
+
+### 3. Evidence and published Move Logs
+
+| | `main` @ `d044ead` | PR #8 (open) |
+| --- | --- | --- |
+| Status | **implemented** (append-only tables + CLI). Not **verified** in this pod (`test:db` blocked). | Adds `record_available_at` on history rows; unchanged Move Log rules |
+
+**Evidence (`main`):**
+
+- Tables: `db/migrations/0001_core_event_storage.sql` — `evidence`, `move_logs`, `move_log_revisions`.
+- Writer/reader: `event-store.ts`, `event-reader.ts`, `scripts/omen-db.ts`.
+- Fixtures: `db/fixtures/demo-evt-boc-cut.json`, `.correction.json`.
+- No public HTTP write.
+
+### 4. Database migrations and persistence
+
+| | `main` @ `d044ead` | PR #8 (open) |
+| --- | --- | --- |
+| Status | **implemented**, **merged**, not **verified** in this environment | **implemented** migration `0002_trustworthy_temporal_storage.sql`; not **merged** |
+
+**Evidence (`main`):**
+
+| Path | Role |
+| --- | --- |
+| `docs/database.md` | Modes, schema, write safety, limitations |
+| `db/migrations/0001_core_event_storage.sql` | V0 core schema |
+| `src/lib/db/*`, `postgres-repository.ts` | Config, migrator, I/O |
+| `vitest.db.config.ts`, `postgres.db.test.ts` | Disposable-DB suite |
+| Scripts | `typecheck`, `test:db`, `db:migrate`, `db:status`, `db:upsert`, `db:show` |
+
+**PR #8:** `event_revisions`, `omen_history_coverage`, projection guard, populated-DB migration realignment (see PR #8 description).
+
+### 5. Historical reconstruction
+
+| | `main` @ `d044ead` | PR #8 (open) |
+| --- | --- | --- |
+| Status | **illustrative** Archive; stored as-of UI **absent** | Storage groundwork for reconstruction; workspace Archive still demo |
+
+**Evidence (`main`):**
+
+- Workspace Archive: `archive-screen.tsx` — scripted slider; labeled demo (`archive-screen.test.tsx`).
+- Schema holds timestamped observations, evidence, revisions; no read path uses an as-of timestamp in the UI.
+
+### 6. Authentication and operator authorization
+
+| | `main` |
+| --- | --- |
+| Status | **absent** |
+
+No auth middleware or roles. `/team` is a static utility screen. Deferred per build contract (owner approval).
+
+### 7. Persistent per-user Following
+
+| | `main` |
+| --- | --- |
+| Status | **implemented** in-session; persistence **absent** |
+
+Seed ids from fixtures / `followed_by_default` column when in database mode; client `toggleWatch` only.
+
+### 8. Ingestion and scheduled jobs
+
+| | `main` |
+| --- | --- |
+| Status | **absent** |
+
+CLI upsert only; no workers or cron.
+
+### 9. Notifications
+
+| | `main` |
+| --- | --- |
+| Status | **illustrative** |
+
+Static alerts page; settings checkbox local-only.
+
+### 10. Billing and server-side entitlements
+
+| | `main` |
+| --- | --- |
+| Status | **absent** |
+
+### 11. CI, deployment, and monitoring
+
+| | `main` @ `d044ead` |
+| --- | --- |
+| Status | Application CI **configured** on `main` (workflow merged with PR #6). GitHub Pages **deployed** (README only). Local checks **verified** below. Monitoring **absent**. |
+
+**Evidence:**
+
+- `.github/workflows/application-ci.yml` — `npm ci`, lint, typecheck, unit tests, build, `test:db` with Postgres service.
+- `gh pr checks 6` before merge: **application pass**.
+- Pages: https://jacksonissacs.github.io/V_Omen_V/ — README, not the Next.js app.
+- No production Next.js host config in repo.
 
 ## HTTP surface
 
-| Route | `main` | PR #6 |
-| --- | --- | --- |
-| `GET /api/events`, `GET /api/events/:id` | **implemented**, **merged** (`src/app/api/events/route.ts`, `[id]/route.ts`) | Adds `storage`, `provenance`, `503` on store failure |
-| POST / PUT / PATCH / DELETE | **absent** | **absent** (CLI only) |
+| Route | `main` @ `d044ead` |
+| --- | --- |
+| `GET /api/events`, `GET /api/events/:id` | **implemented**, **merged** — `storage`, `provenance`, `503` on store failure |
+| POST / PUT / PATCH / DELETE | **absent** (CLI only) |
 
 ## Work to integrate, not reimplement
 
-PR #6 is the stacked result of Task 02 (PR #4) and Task 03 (PR #5). Land it as a unit after its checks are green. Do not rebuild:
+**Land PR #6 — done.** Tasks 02–03 are on `main` @ `d044ead`. Do not rebuild that stack.
 
-- PostgreSQL schema, migrator, identity / production-write guards
-- `PostgresIntelligenceRepository` and `OMEN_STORAGE_MODE`
-- Bundle validation and append-only Move Log revisions
-- Probability series / chronology domain
-- Honest event-detail UI and Archive demo labeling
-- `docs/database.md` and the `db:*` / `test:db` / `typecheck` scripts
-- The lockfile fix that makes `npm ci` work (broken on current `main`)
+**Land PR #8 (Task 04A)** when review and checks are green. Do not reimplement:
 
-Leave for later, already documented as out of scope on that branch: auth, billing, ingest, per-user Following, event-field versioning, stored Archive reconstruction, CI workflows, hosted production database.
+- Migration `0002`, `event_revisions`, `record_available_at`, coverage baseline
+- Write-path revision appends and Grok review fixes on branch `cursor/trustworthy-temporal-storage-df20`
 
-## Baseline checks (this audit)
+Leave for later: auth, billing, ingest, per-user Following, stored Archive UI, hosted production database, Next.js deployment.
 
-Commands were run on 2026-09-25 against the SHAs above. Node `v22.14.0`, npm `10.9.7`. This environment has no `psql`, Docker, `DATABASE_URL`, or `OMEN_TEST_DATABASE_ADMIN_URL`.
+## Baseline checks
 
-### `main` @ `9c1aace`
+Commands on **2026-09-26** against `main` @ `d044ead` (merged into this docs branch before the recheck commit). Node from environment; npm from project.
 
-| Command | Result | Evidence |
-| --- | --- | --- |
-| `npm ci` | **BLOCKED** | `Invalid: lock file's picomatch@2.3.2 does not satisfy picomatch@4.0.7` / `Missing: picomatch@2.3.2 from lock file`. `package.json` and `package-lock.json` on `main` are out of sync. |
-| `npm test` | **PASS** | 15 files, **75** tests. Used the snapshot `node_modules` after `npm ci` failed. |
-| `npm run lint` | **PASS** | `eslint`, exit 0 |
-| `npm run typecheck` | **BLOCKED** | `npm error Missing script: "typecheck"` |
-| `npx tsc --noEmit` (ad hoc, not the npm script) | exit 0 | Does **not** make `npm run typecheck` verified |
-| `npm run build` | **PASS** | Next.js 16.3.4; 21 routes; core pages static (`○`); `/api/events` and `/events/[id]` dynamic (`ƒ`) |
-| `npm run test:db` | **BLOCKED** | `npm error Missing script: "test:db"` |
+This cloud pod has **no** `OMEN_TEST_DATABASE_ADMIN_URL` / local PostgreSQL admin.
 
-### PR #6 @ `8afd1ed` (worktree `/tmp/omen-pr6`, not merged)
+### `main` @ `d044ead` (recheck)
 
 | Command | Result | Evidence |
 | --- | --- | --- |
-| `npm ci` | **PASS** | 745 packages |
-| `npm test` | **FAIL** (exit 1) | 22 files, **145** tests reported passed; 1 unhandled `TypeError: inspectorRef.current?.scrollIntoView is not a function` from `event-intelligence-view.tsx:52` |
+| `npm ci` | **PASS** | exit 0 |
+| `npm test` | **PASS** | 22 files, **146** tests, exit 0 |
 | `npm run lint` | **PASS** | exit 0 |
 | `npm run typecheck` | **PASS** | `tsc --noEmit`, exit 0 |
-| `npm run build` | **PASS** | Workspace routes become dynamic (`ƒ`) because the layout uses `connection()` |
-| `npm run test:db` | **BLOCKED** | Script exists. 12 failed / 14 skipped. Exact error: `BLOCKED: OMEN_TEST_DATABASE_ADMIN_URL is not set, so PostgreSQL integration tests cannot run. See docs/database.md.` No disposable PostgreSQL in this environment. |
+| `npm run build` | **PASS** | Next.js 16.3.4; app routes built |
+| `npm run test:db` | **BLOCKED** (this pod) | `OMEN_TEST_DATABASE_ADMIN_URL` unset — disposable PostgreSQL not configured here. CI job on GitHub **does** run `test:db` with a service container. |
 
-`gh pr checks 6` remains empty. Local runs here are not GitHub CI.
+Browser click-through of the running app was **not** performed in either audit pass.
+
+### Prior audit snapshot (`main` @ `9c1aace`, 2026-09-25)
+
+Kept for history: 75 unit tests; `npm ci` **BLOCKED** on lockfile; no `typecheck` / `test:db` scripts; PR #6 worktree 145 tests with exit 1 (`scrollIntoView`).
