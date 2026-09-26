@@ -102,7 +102,7 @@ Significance on an event is curated in the catalog for the MVP. Scoring helpers 
 
 - `EventSummary` (`src/lib/events.ts`) is the serializable slice the shell needs: id, title, category, and a precomputed search string. The full event objects do not ship to every route.
 - Filtering, sorting, and search helpers (`filterEvents`, `sortEvents`, `summaryMatchesQuery`, `watchlistRows` in `src/lib/watchlist.ts`) are pure and take explicit data.
-- The follow list is client state seeded from `listFollowedEventIds()`. Follow/unfollow is not persisted (there is no write path).
+- The follow list is client state. The first visit in a storage mode seeds it from `listFollowedEventIds()`. Later visits read the versioned browser `localStorage` record for that mode (`demo`, `database`, or `misconfigured`), including an intentionally empty list. There is no server write path and no account sync.
 - `src/test/data-boundary.test.ts` fails if a client module imports `@/lib/data/*`, `@/lib/db/*` or `pg`, mentions `DATABASE_URL`, or if a client module other than the listed legacy screens imports `@/data/events`. It also fails if any source file exposes a database URL through a `NEXT_PUBLIC_` variable.
 
 ### Loading, unavailable, and empty states

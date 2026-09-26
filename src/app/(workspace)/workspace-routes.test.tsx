@@ -17,6 +17,7 @@ import PulseLoading from "@/app/(workspace)/pulse/loading"
 import PulsePage from "@/app/(workspace)/pulse/page"
 import WatchlistsLoading from "@/app/(workspace)/watchlists/loading"
 import WatchlistsPage from "@/app/(workspace)/watchlists/page"
+import { __resetFollowingStoresForTests } from "@/lib/following/following-store"
 import { __resetRepositoryForTests, type IntelligenceRepository } from "@/lib/data/repository"
 import { failingRepository, fakeRepository, testEvent } from "@/test/fake-repository"
 
@@ -79,6 +80,8 @@ function rowTitles(container: HTMLElement) {
 
 afterEach(() => {
   __resetRepositoryForTests()
+  __resetFollowingStoresForTests()
+  window.localStorage.clear()
   mockPush.mockClear()
   mockPathname.mockReset()
   mockPathname.mockReturnValue("/")
@@ -269,14 +272,13 @@ describe("Watchlists route", () => {
     expect(screen.getByText("Gamma housing lull")).toBeInTheDocument()
     expect(screen.queryByText("Beta model launch")).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole("button", { name: /Gamma housing lull/ }))
+    await user.click(screen.getByRole("button", { name: /^Gamma housing lull/ }))
     expect(mockPush).toHaveBeenCalledWith("/events/evt-gamma")
 
-    const [firstUnfollow] = screen.getAllByRole("button", { name: "Unfollow" })
-    await user.click(firstUnfollow!)
+    await user.click(screen.getByRole("button", { name: "Unfollow Alpha rate decision" }))
     expect(screen.queryByText("Alpha rate decision")).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole("button", { name: "Unfollow" }))
+    await user.click(screen.getByRole("button", { name: "Unfollow Gamma housing lull" }))
     expect(screen.getByText("Nothing followed")).toBeInTheDocument()
   })
 })

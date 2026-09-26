@@ -243,6 +243,6 @@ The integration suite covers:
 ## Not included
 
 - No hosted database provisioning, production migrations or production writes (owner approval required).
-- No public write endpoint, auth, per-user watchlists, or billing. "Followed by default" is a column on the event.
+- No public write endpoint, auth, server-side per-user watchlists, or billing. Following is stored in the browser for the current storage mode. "Followed by default" is a column on the event.
 - No Archive / workspace UI for checkpoint reconstruction yet (`/archive` remains a demo shell). Latest-projection reads are unchanged. Stored reconstruction is `GET /api/events/:id/history` and `GET /api/events/:id/history/:checkpointId`. Arbitrary-time reconstruction is not provided.
 - Legacy demo-only screens (Markets, Signals and others listed in `docs/architecture.md`) still read the in-process demo book in both modes.
