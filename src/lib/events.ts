@@ -82,7 +82,7 @@ export function sortEvents(events: AionEvent[], sort: EventSort): AionEvent[] {
     case "sigma":
       return copy.sort((a, b) => b.sigma - a.sigma)
     case "unexplained":
-      return copy.sort((a, b) => a.explained - b.explained)
+      return copy.sort((a, b) => (a.explained ?? 100) - (b.explained ?? 100))
     case "change":
     default:
       return copy.sort((a, b) => Math.abs(b.change) - Math.abs(a.change))

@@ -11,6 +11,7 @@ import {
 } from "react"
 
 import type { EventSummary } from "@/lib/events"
+import { readPersistedWatchlist, writePersistedWatchlist } from "@/lib/watchlist-storage"
 import type { AionEvent, Provenance } from "@/types/event"
 
 export type ShellStorage = "demo" | "database" | "misconfigured"
@@ -67,9 +68,11 @@ export function WorkspaceProvider({
   const [collapsed, setCollapsed] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [callEvent, setCallEvent] = useState<AionEvent | null>(null)
-  const [watchlist, setWatchlist] = useState<Set<string>>(
-    () => new Set(followedEventIds),
-  )
+  const [watchlist, setWatchlist] = useState<Set<string>>(() => {
+    const merged = new Set(followedEventIds)
+    for (const id of readPersistedWatchlist()) merged.add(id)
+    return merged
+  })
   const summaryById = useMemo(
     () => new Map(eventIndex.map((summary) => [summary.id, summary])),
     [eventIndex],
@@ -94,9 +97,14 @@ export function WorkspaceProvider({
       const next = new Set(current)
       if (next.has(id)) next.delete(id)
       else next.add(id)
+      writePersistedWatchlist(next)
       return next
     })
   }, [])
+
+  useEffect(() => {
+    writePersistedWatchlist(watchlist)
+  }, [watchlist])
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {

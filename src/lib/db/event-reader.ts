@@ -72,7 +72,7 @@ export interface MoveLogRevisionRecord {
   author: string
   whatChanged: string
   likelyCause: string
-  explainedPct: number
+  explainedPct: number | null
   unexplainedFactors: string[]
   evidenceIds: string[]
   correctionNote: string | null
@@ -114,7 +114,7 @@ interface RevisionRow {
   author: string
   what_changed: string
   likely_cause: string
-  explained_pct: number
+  explained_pct: number | null
   unexplained_factors: string[]
   evidence_ids: string[]
   correction_note: string | null
@@ -313,7 +313,7 @@ function assemble(
     catalystLabel: display.catalystLabel,
     catalyst: display.catalyst ?? latest?.likelyCause ?? "Not yet attributed",
     catalystTime: display.catalystTime ?? utcClock(observedAt, true),
-    explained: latest?.explainedPct ?? 0,
+    explained: latest?.explainedPct ?? null,
     region: row.region,
     tags: row.tags,
     resolvesAt: formatDeadline(row.deadline),

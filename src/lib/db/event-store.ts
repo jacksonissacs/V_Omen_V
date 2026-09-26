@@ -474,7 +474,7 @@ async function appendRevision(client: ClientBase, eventId: string, item: MoveLog
     author: string
     what_changed: string
     likely_cause: string
-    explained_pct: number
+    explained_pct: number | null
     unexplained_factors: string[]
     evidence_ids: string[]
     correction_note: string | null
@@ -492,7 +492,7 @@ async function appendRevision(client: ClientBase, eventId: string, item: MoveLog
       existing.author === item.author &&
       existing.what_changed === item.whatChanged &&
       existing.likely_cause === item.likelyCause &&
-      existing.explained_pct === item.explainedPct &&
+      (existing.explained_pct ?? null) === (item.explainedPct ?? null) &&
       sameArray(existing.unexplained_factors, item.unexplainedFactors) &&
       sameArray(existing.evidence_ids, item.evidenceIds) &&
       existing.correction_note === (item.correctionNote ?? null) &&
@@ -521,7 +521,7 @@ async function appendRevision(client: ClientBase, eventId: string, item: MoveLog
       item.author,
       item.whatChanged,
       item.likelyCause,
-      item.explainedPct,
+      item.explainedPct ?? null,
       item.unexplainedFactors,
       item.evidenceIds,
       item.correctionNote ?? null,

@@ -184,6 +184,19 @@ describe("Events route", () => {
     )
   })
 
+  it("persists Following in browser storage across provider remounts", async () => {
+    window.localStorage.clear()
+    useRepository(fakeRepository(book))
+    const { user, unmount } = await renderRoute(EventsPage())
+    await user.click(screen.getByRole("button", { name: "Follow Alpha rate decision" }))
+    unmount()
+
+    useRepository(fakeRepository(book))
+    await renderRoute(WatchlistsPage())
+    expect(screen.queryByText("Nothing followed")).not.toBeInTheDocument()
+    expect(screen.getByText("Alpha rate decision")).toBeInTheDocument()
+  })
+
   it("shows an empty state when the book is empty", async () => {
     useRepository(fakeRepository([]))
     await renderRoute(EventsPage())

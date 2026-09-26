@@ -40,7 +40,7 @@ export interface EventDraft {
   catalystLabel?: string
   catalyst: string
   catalystTime: string
-  explained: number
+  explained: number | null
   region: string
   tags: string[]
   resolvesAt?: string
