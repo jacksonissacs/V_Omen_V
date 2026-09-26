@@ -45,3 +45,14 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm run test:db
+      - uses: browser-actions/setup-chrome@v1
+        id: setup-chrome
+      - run: npm run test:workflow
+        env:
+          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: workflow-test-artifacts
+          path: test-artifacts/
+          if-no-files-found: ignore

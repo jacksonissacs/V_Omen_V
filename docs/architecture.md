@@ -121,8 +121,9 @@ Internal JSON routes exist so the UI is not the only consumer:
 
 - `GET /api/events`
 - `GET /api/events/:id`
+- `GET /api/events/:id/history/:checkpointId`
 
-Both return `storage` and, on success, `provenance` alongside the data. A storage failure returns `503` with no data, and an unknown id returns `404`.
+`GET /api/events` and `GET /api/events/:id` return `storage` and, on success, `provenance` alongside the data. A storage failure returns `503` with no data, and an unknown id returns `404`. This SHA has no verified history checkpoints. A `checkpoint`, `at`, or `cutoff` query, or `/history/:checkpointId`, returns `422` (or `404` if the event id is unknown) and does not include the current event. The matching workspace pages render **Historical view unavailable** instead of current title, status, evidence or Move Log text.
 
 The App Router pages read the repository in-process in server components (no extra HTTP hop). The routes are the contract for later clients and for tests that want HTTP semantics.
 
@@ -155,6 +156,7 @@ Also demo-only inside migrated screens: the ⌘K "Ask", "Rewind" and "Create" co
 - "Why did this move?" is split into Observed (recorded values and sources with their times), Interpretation (move log text, marked unpublished or illustrative when it is) and Still unknown.
 - The change timeline is built from recorded observation, evidence and move log times, not from `display.timeline`.
 - Volume, Spread and Related chart modes, attribution and confidence percentages, analogue similarity scores and related-market/signal tiles are not shown: no dataset backs them.
+- `?checkpoint=`, `?at=`, `?cutoff=` and `/events/:id/history/:checkpointId` do not render the current record. This SHA has no stored checkpoints, so those URLs show **Historical view unavailable** and a return-to-present link.
 
 ## Frontend composition
 

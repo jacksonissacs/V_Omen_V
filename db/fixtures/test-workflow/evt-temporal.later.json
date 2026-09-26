@@ -1,0 +1,81 @@
+{
+  "event": {
+    "id": "evt-test-temporal",
+    "title": "[SYNTHETIC TEST] Example agency published the 2026 bulletin (updated)",
+    "question": "Will the example agency publish the 2026 bulletin before 1 December 2026?",
+    "status": "resolved",
+    "deadline": "2026-12-01T00:00:00.000Z",
+    "resolutionCriteria": "Resolves YES if the example agency publishes the labelled 2026 bulletin on its public site before the deadline. SYNTHETIC TEST FIXTURE — not a real event.",
+    "category": "Science",
+    "significance": "low",
+    "region": "Test",
+    "summary": "SYNTHETIC TEST FIXTURE after a later write: title and status changed, later evidence and a Move Log correction were appended.",
+    "tags": ["SYNTHETIC-TEST", "workflow", "later-write"],
+    "relatedEventIds": ["evt-test-single"],
+    "provenance": "demo",
+    "followedByDefault": true,
+    "catalogPosition": 1,
+    "display": {
+      "displayTime": "13:10 UTC",
+      "catalystLabel": "Recorded catalyst",
+      "catalyst": "SYNTHETIC TEST bulletin notice",
+      "catalystTime": "12:00:00",
+      "entities": ["SYNTHETIC TEST"]
+    }
+  },
+  "observations": [
+    {
+      "sourceKind": "provider",
+      "sourceName": "SYNTHETIC TEST book",
+      "probabilityType": "market_implied",
+      "probabilityPct": 41.5,
+      "observedAt": "2026-09-01T12:00:00.000Z",
+      "capturedAt": "2026-09-01T12:01:00.000Z",
+      "note": "SYNTHETIC TEST first observation",
+      "provenance": "demo"
+    },
+    {
+      "sourceKind": "provider",
+      "sourceName": "SYNTHETIC TEST book",
+      "probabilityType": "market_implied",
+      "probabilityPct": 55.25,
+      "observedAt": "2026-09-10T15:30:00.000Z",
+      "capturedAt": "2026-09-10T15:31:00.000Z",
+      "note": "SYNTHETIC TEST second observation",
+      "provenance": "demo"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev-test-temporal-3",
+      "sourceName": "SYNTHETIC TEST later correction note",
+      "sourceUrl": "https://example.test/synthetic/agency-bulletin-2026-correction",
+      "sourcePublishedAt": "2026-09-12T09:00:00.000Z",
+      "firstObservedAt": "2026-09-12T09:10:00.000Z",
+      "capturedAt": "2026-09-12T09:11:00.000Z",
+      "summary": "SYNTHETIC TEST later evidence: part of the earlier move is no longer attributed to the first notice.",
+      "stance": "contradicts",
+      "reliability": 0.55,
+      "recordedBy": "omen-workflow-test",
+      "provenance": "demo"
+    }
+  ],
+  "moveLogRevisions": [
+    {
+      "moveLogId": "ml-test-temporal-1",
+      "version": 2,
+      "publishedAt": "2026-09-12T10:00:00.000Z",
+      "author": "SYNTHETIC TEST desk",
+      "whatChanged": "SYNTHETIC TEST: implied odds moved from 41.5% to 55.25%. Coverage revised after later evidence.",
+      "likelyCause": "SYNTHETIC TEST agency notice, later revised",
+      "explainedPct": 45,
+      "unexplainedFactors": [
+        "SYNTHETIC TEST residual increased after the later note",
+        "SYNTHETIC TEST later evidence was not in the first publication"
+      ],
+      "evidenceIds": ["ev-test-temporal-1", "ev-test-temporal-3"],
+      "correctionNote": "SYNTHETIC TEST correction: coverage revised from 60% to 45% after later evidence.",
+      "provenance": "demo"
+    }
+  ]
+}

@@ -123,8 +123,9 @@ A bundle is validated in full before connecting, then written in one transaction
 ## Tests
 
 ```bash
-npm test          # unit and component tests; no database needed
-npm run test:db   # PostgreSQL integration tests
+npm test            # unit and component tests; no database needed
+npm run test:db     # PostgreSQL integration tests
+npm run test:workflow  # production Next.js + disposable PostgreSQL + Chrome
 ```
 
 `npm run test:db` needs `OMEN_TEST_DATABASE_ADMIN_URL`, a connection to a **local** server whose role has `CREATEDB`. Each run creates uniquely named `omen_test_<pid>_<hex>` databases and identifies them as `test`. It drops only databases matching that pattern. Without the variable, every integration test fails with a `BLOCKED:` message instead of passing silently.
@@ -138,6 +139,8 @@ The integration suite covers:
 - correction as a new version with v1 preserved;
 - persistence across processes: separate `tsx scripts/omen-db.ts` processes write, the test reads over a fresh pool, and a third process reads the data back;
 - explicit failures for a missing schema, schema version drift, bad credentials and a missing database in database mode.
+
+`npm run test:workflow` (after `npm run build`) writes labelled synthetic fixtures through `omen-db upsert`, starts production `next start` against a disposable database, and inspects HTTP payloads plus Chrome. Failure traces and screenshots are written to `test-artifacts/`. The suite records the main SHA it was written against in `src/test/workflow/harness.ts` (`TESTED_MAIN_SHA`).
 
 ## Not included
 
