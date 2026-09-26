@@ -37,6 +37,8 @@ export interface EventRecordInput {
   tags: string[]
   relatedEventIds: string[]
   provenance: Provenance
+  /** Required when a bundle changes versioned event metadata on an event that already has revisions. */
+  correctionNote?: string
   followedByDefault: boolean
   catalogPosition: number
   display: EventDisplayInput
@@ -253,6 +255,7 @@ function readEvent(reader: Reader, raw: Json): EventRecordInput {
   if (question !== undefined && !question.endsWith("?")) {
     event.issue("question", "must be phrased as a question ending in ?")
   }
+  const correctionNote = event.string("correctionNote", { optional: true })
   return {
     id: event.id("id"),
     title: event.string("title", { min: 3, max: 200 }),
@@ -267,6 +270,7 @@ function readEvent(reader: Reader, raw: Json): EventRecordInput {
     tags: event.strings("tags", { optional: true }),
     relatedEventIds: event.strings("relatedEventIds", { optional: true }),
     provenance: event.oneOf("provenance", PROVENANCE),
+    ...(correctionNote === undefined ? {} : { correctionNote }),
     followedByDefault: event.boolean("followedByDefault", false),
     catalogPosition: event.has("catalogPosition")
       ? event.number("catalogPosition", { min: 0, max: 1_000_000, integer: true })
