@@ -203,7 +203,11 @@ async function openArchive(eventId: string, checkpointId?: string): Promise<stri
 
 /** Historical facts, separate from the current-title option used for navigation. */
 async function reconstructionText(): Promise<string> {
-  return page.evaluate(() => {
+  return archiveReconstructionText(page)
+}
+
+async function archiveReconstructionText(target: Page): Promise<string> {
+  return target.evaluate(() => {
     const headings = [...document.querySelectorAll("h2")].filter((node) =>
       /semantics|Evidence in this checkpoint|Move Log revisions in this checkpoint|Observations in this checkpoint|Headline probability/i.test(
         node.textContent ?? "",
@@ -212,6 +216,26 @@ async function reconstructionText(): Promise<string> {
     if (headings.length === 0) return document.body.innerText
     return headings.map((heading) => heading.parentElement?.innerText ?? "").join("\n")
   })
+}
+
+async function waitForArchiveCheckpoint(target: Page, checkpointId: string, marker: string): Promise<void> {
+  await target.waitForFunction(
+    (id, note) => {
+      const panel = document.querySelector("[data-testid='historical-reconstruction']")
+      const text = panel?.textContent ?? ""
+      return new URL(window.location.href).searchParams.get("checkpoint") === id && text.includes(`id ${id}`) && text.includes(note)
+    },
+    { timeout: 20_000 },
+    checkpointId,
+    marker,
+  )
+}
+
+async function clickArchiveControl(target: Page, label: string): Promise<void> {
+  const before = target.url()
+  await clickEnabledControl(target, label)
+  await target.waitForFunction((previous) => window.location.href !== previous, { timeout: 20_000 }, before)
+  await waitForWorkspaceReady(target)
 }
 
 async function tamperCheckpointDigest(checkpointId: string, digest: string): Promise<void> {
@@ -967,6 +991,164 @@ describe("intake review publication and checkpoint stability", () => {
     expect(urlSelectsCheckpoint(page.url(), earlyCheckpoint)).toBe(false)
     await saveScreenshot(page, "05_earlier_checkpoint_stable")
   })
+
+  it("opens an off-page checkpoint and crosses the first page with real pagination", async () => {
+    const eventId = "evt-test-offpage"
+    const marker = (sequence: number) => `OFFPAGE_LATER_ONLY_${sequence}`
+    const bundlePath = writeArtifact(
+      "evt-offpage.json",
+      JSON.stringify({
+        event: {
+          id: eventId,
+          title: "[SYNTHETIC TEST] Off-page archive checkpoint",
+          question: "Will the off-page archive checkpoint stay outside the first discovery page?",
+          status: "active",
+          deadline: "2026-12-01T00:00:00.000Z",
+          resolutionCriteria: "SYNTHETIC TEST: resolves only as a labelled fixture for archive pagination.",
+          category: "Science",
+          significance: "low",
+          region: "Test",
+          summary: "SYNTHETIC TEST FIXTURE with thirty published checkpoints.",
+          tags: ["SYNTHETIC-TEST"],
+          relatedEventIds: [],
+          provenance: "demo",
+          followedByDefault: false,
+          catalogPosition: 9,
+        },
+        observations: [
+          {
+            sourceKind: "author",
+            sourceName: "offpage probe",
+            probabilityType: "forecaster_estimate",
+            probabilityPct: 10,
+            observedAt: "2026-01-01T00:00:00.000Z",
+            capturedAt: "2026-01-01T00:01:00.000Z",
+            note: marker(1),
+            provenance: "demo",
+          },
+        ],
+      }),
+    )
+    const seeded = await upsert(database.url, bundlePath)
+    const checkpoints: Array<{ id: string; sequence: number }> = [
+      { id: parseUpsertCheckpointId(seeded.stdout), sequence: 1 },
+    ]
+    expect(checkpoints[0]!.id).toMatch(/^[1-9]\d{0,18}$/)
+    const client = new Client({ connectionString: database.url, application_name: "omen-workflow-offpage" })
+    await client.connect()
+    try {
+      for (let sequence = 2; sequence <= 30; sequence += 1) {
+        const day = String(sequence).padStart(2, "0")
+        await client.query(
+          `INSERT INTO probability_observations (
+             event_id, source_kind, source_name, probability_type, probability_pct,
+             observed_at, captured_at, note, provenance
+           ) VALUES (
+             $1, 'author', 'offpage probe', 'forecaster_estimate', $2,
+             $3, $4, $5, 'demo'
+           )`,
+          [eventId, sequence, `2026-03-${day}T00:00:00Z`, `2026-03-${day}T00:01:00Z`, marker(sequence)],
+        )
+        const published = await publishHistoryCheckpoint(client, eventId)
+        expect(published.created).toBe(true)
+        expect(published.sequence).toBe(sequence)
+        expect(published.id).toMatch(/^[1-9]\d{0,18}$/)
+        expect(published.contentMd5).toMatch(/^[0-9a-f]{32}$/)
+        checkpoints.push({ id: published.id, sequence: published.sequence })
+      }
+    } finally {
+      await client.end()
+    }
+    expect(new Set(checkpoints.map((item) => item.id)).size).toBe(30)
+
+    const selected = checkpoints.find((item) => item.sequence === 10)
+    const older = checkpoints.find((item) => item.sequence === 9)
+    const newer = checkpoints.find((item) => item.sequence === 11)
+    if (!selected || !older || !newer) throw new Error("Off-page checkpoints were not published.")
+    const firstPage = await fetchJson(server, `/api/events/${eventId}/history?limit=20`)
+    expect(firstPage.status).toBe(200)
+    const firstCheckpoints = firstPage.body.checkpoints as Array<{ id: string; sequence: number }>
+    const firstIds = firstCheckpoints.map((item) => item.id)
+    expect(firstIds).toHaveLength(20)
+    expect(firstIds).not.toContain(selected.id)
+    expect(firstIds).not.toContain(older.id)
+    expect(firstIds).toContain(newer.id)
+    const replay = await fetchJson(server, `/api/events/${eventId}/history/${selected.id}`)
+    expect(replay.status).toBe(200)
+    const replayText = JSON.stringify(replay.body)
+    expect(replayText).toContain(marker(1))
+    expect(replayText).toContain(marker(selected.sequence))
+    for (let sequence = selected.sequence + 1; sequence <= 30; sequence += 1) {
+      expect(replayText).not.toContain(marker(sequence))
+    }
+
+    const context = await browser.createBrowserContext()
+    const fresh = await context.newPage()
+    try {
+      attachBrowserDiagnostics(fresh)
+      await fresh.setViewport({ width: 1280, height: 800 })
+      await gotoWorkspacePath(fresh, server.url, `/archive?event=${eventId}&checkpoint=${selected.id}`)
+      await waitForArchiveCheckpoint(fresh, selected.id, marker(selected.sequence))
+      await fresh.waitForFunction(
+        () => {
+          const button = (label: string) =>
+            [...document.querySelectorAll("button")].find((node) => node.textContent?.trim() === label) as
+              | HTMLButtonElement
+              | undefined
+          return Boolean(button("Previous checkpoint") && !button("Previous checkpoint")!.disabled && button("Next checkpoint") && !button("Next checkpoint")!.disabled)
+        },
+        { timeout: 20_000 },
+      )
+      const opened = await archiveReconstructionText(fresh)
+      expect(opened).toContain(marker(selected.sequence))
+      expect(opened).not.toContain(marker(30))
+      expect(opened).not.toContain(marker(selected.sequence + 1))
+
+      await clickArchiveControl(fresh, "Previous checkpoint")
+      expect(new URL(fresh.url()).searchParams.get("checkpoint")).toBe(older.id)
+      await waitForArchiveCheckpoint(fresh, older.id, marker(older.sequence))
+      expect(await archiveReconstructionText(fresh)).not.toContain(marker(selected.sequence))
+
+      await clickArchiveControl(fresh, "Next checkpoint")
+      expect(new URL(fresh.url()).searchParams.get("checkpoint")).toBe(selected.id)
+      await waitForArchiveCheckpoint(fresh, selected.id, marker(selected.sequence))
+
+      await clickArchiveControl(fresh, "Next checkpoint")
+      expect(new URL(fresh.url()).searchParams.get("checkpoint")).toBe(newer.id)
+      expect(firstIds).toContain(newer.id)
+      await waitForArchiveCheckpoint(fresh, newer.id, marker(newer.sequence))
+      expect(await archiveReconstructionText(fresh)).not.toContain(marker(30))
+
+      await fresh.goBack({ waitUntil: "domcontentloaded" })
+      await waitForWorkspaceReady(fresh)
+      await waitForArchiveCheckpoint(fresh, selected.id, marker(selected.sequence))
+      expect(new URL(fresh.url()).searchParams.get("checkpoint")).toBe(selected.id)
+
+      await fresh.goForward({ waitUntil: "domcontentloaded" })
+      await waitForWorkspaceReady(fresh)
+      await waitForArchiveCheckpoint(fresh, newer.id, marker(newer.sequence))
+      expect(new URL(fresh.url()).searchParams.get("checkpoint")).toBe(newer.id)
+
+      await fresh.goBack({ waitUntil: "domcontentloaded" })
+      await waitForWorkspaceReady(fresh)
+      await waitForArchiveCheckpoint(fresh, selected.id, marker(selected.sequence))
+
+      await fresh.reload({ waitUntil: "domcontentloaded" })
+      await waitForWorkspaceReady(fresh)
+      await waitForArchiveCheckpoint(fresh, selected.id, marker(selected.sequence))
+      expect(new URL(fresh.url()).searchParams.get("checkpoint")).toBe(selected.id)
+      const refreshed = await archiveReconstructionText(fresh)
+      expect(refreshed).toContain(marker(selected.sequence))
+      expect(refreshed).toContain(marker(1))
+      for (let sequence = selected.sequence + 1; sequence <= 30; sequence += 1) {
+        expect(refreshed).not.toContain(marker(sequence))
+      }
+      await saveScreenshot(fresh, "08_offpage_archive_checkpoint")
+    } finally {
+      await fresh.close().catch(() => undefined)
+      await context.close().catch(() => undefined)
+    }
+  }, 90_000)
 
   it("rejects a zero-observation bundle on the normal write path", async () => {
     const empty = path.join(ARTIFACTS, "evt-zero-rejected.json")

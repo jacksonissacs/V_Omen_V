@@ -123,23 +123,40 @@ describe("archive checkpoint navigation", () => {
       vi.fn(async (input: RequestInfo) => {
         const url = String(input)
         if (url.includes("beforeSequence=7")) return newer.promise
-        return historyResponse(url, 30, { olderLimit: 1 })
+        if (url.includes("beforeSequence=5")) {
+          return json({
+            outcome: "checkpoints",
+            eventId: "evt-a",
+            hasMore: true,
+            checkpoints: [summary("id-loaded-older", 4)],
+          })
+        }
+        return historyResponse(url)
       }),
     )
     const user = userEvent.setup()
     render(<ArchiveView {...archiveProps()} />)
     await waitFor(() => {
+      expect(screen.getByText("TITLE_5")).toBeInTheDocument()
       expect(screen.getByRole("button", { name: "Load older checkpoints" })).toBeEnabled()
     })
     await user.click(screen.getByRole("button", { name: "Load older checkpoints" }))
     await waitFor(() => {
-      expect(listedSequences()).toContain(10)
+      expect(screen.getByRole("button", { name: /id id-loaded-older/ })).toBeInTheDocument()
     })
-    newer.resolve(json(listedPage(30, 7)))
+    newer.resolve(
+      json({
+        outcome: "checkpoints",
+        eventId: "evt-a",
+        hasMore: false,
+        checkpoints: [summary(checkpointId(6), 6), summary(checkpointId(1), 1)],
+      }),
+    )
     await waitFor(() => {
       expect(screen.getByText("TITLE_5")).toBeInTheDocument()
-      expect(listedSequences()).toEqual(expect.arrayContaining([30, 10, 6, 5, 1]))
+      expect(listedSequences()).toEqual(expect.arrayContaining([30, 11, 6, 5, 4, 1]))
     })
+    expect(screen.getByRole("button", { name: /id id-loaded-older/ })).toBeInTheDocument()
     expectNewestFirst(listedSequences())
     expect(screen.queryByRole("button", { name: "Load older checkpoints" })).not.toBeInTheDocument()
   })
@@ -165,6 +182,8 @@ describe("archive checkpoint navigation", () => {
     expect(screen.getByRole("button", { name: "Next checkpoint" })).toBeDisabled()
     expect(screen.getByRole("button", { name: "Previous checkpoint" })).toBeDisabled()
     expect(screen.getByRole("button", { name: "Load older checkpoints" })).toBeEnabled()
+    expect(screen.getByTestId("archive-neighbor-retry")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Retry neighbor discovery" })).toBeEnabled()
   })
 
   it("names a list failure without calling the replay a failure", async () => {
@@ -368,6 +387,226 @@ describe("archive checkpoint navigation", () => {
     expect(screen.queryByRole("button", { name: /id id-9999/ })).not.toBeInTheDocument()
   })
 
+  it("keeps the replay and an already listed neighbor while the other neighbor request is pending", async () => {
+    const older = deferred<Response>()
+    mockSearchParams.mockReturnValue(new URLSearchParams(`event=evt-a&checkpoint=${checkpointId(10)}`))
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo) => {
+        const url = String(input)
+        if (url.includes("beforeSequence=10")) return older.promise
+        return historyResponse(url)
+      }),
+    )
+    render(<ArchiveView {...archiveProps()} />)
+    await waitFor(() => {
+      expect(screen.getByText("TITLE_10")).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId("archive-checkpoint-loading")).not.toBeInTheDocument()
+    expect(screen.queryByTestId("archive-neighbor-retry")).not.toBeInTheDocument()
+    expect(listedSequences()).toEqual(expect.arrayContaining([30, 11, 10]))
+    expect(listedSequences()).not.toContain(9)
+    expect(screen.getByRole("button", { name: "Next checkpoint" })).toBeEnabled()
+    expect(screen.getByRole("button", { name: "Previous checkpoint" })).toBeDisabled()
+
+    older.resolve(json(listedPage(30, 10)))
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Previous checkpoint" })).toBeEnabled()
+    })
+    expect(screen.getByText("TITLE_10")).toBeInTheDocument()
+    expect(listedSequences()).toEqual(expect.arrayContaining([30, 11, 10, 9, 1]))
+    expect(screen.queryByTestId("archive-neighbor-retry")).not.toBeInTheDocument()
+    expectNewestFirst(listedSequences())
+  })
+
+  it.each([
+    [
+      "HTTP 503",
+      () => json({ outcome: "unavailable", error: "Event storage is unavailable" }, 503),
+    ],
+    [
+      "malformed JSON",
+      () => new Response("not-json", { status: 200, headers: { "content-type": "application/json" } }),
+    ],
+    ["network rejection", () => Promise.reject(new Error("neighbor network down"))],
+  ] as const)("keeps the replay when neighbor discovery hits %s", async (_label, fail) => {
+    mockSearchParams.mockReturnValue(new URLSearchParams(`event=evt-a&checkpoint=${checkpointId(5)}`))
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo) => {
+        const url = String(input)
+        if (url.includes("beforeSequence=")) return fail()
+        return historyResponse(url)
+      }),
+    )
+    render(<ArchiveView {...archiveProps()} />)
+    await waitFor(() => {
+      expect(screen.getByText("TITLE_5")).toBeInTheDocument()
+    })
+    await waitFor(() => {
+      expect(screen.getByTestId("archive-neighbor-retry")).toBeInTheDocument()
+    })
+    expect(screen.getByRole("button", { name: "Retry neighbor discovery" })).toBeEnabled()
+    expect(screen.queryByTestId("archive-replay-unavailable")).not.toBeInTheDocument()
+    expect(screen.queryByTestId("archive-replay-retry")).not.toBeInTheDocument()
+    expect(listedSequences()).toEqual(expect.arrayContaining([30, 11, 5]))
+    expect(listedSequences()).not.toContain(6)
+    expect(listedSequences()).not.toContain(4)
+    expect(screen.getByRole("button", { name: "Load older checkpoints" })).toBeEnabled()
+  })
+
+  it("retries neighbor discovery without clearing the replay or loaded pages", async () => {
+    let failNewer = true
+    mockSearchParams.mockReturnValue(new URLSearchParams(`event=evt-a&checkpoint=${checkpointId(5)}`))
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo) => {
+        const url = String(input)
+        if (url.includes("beforeSequence=7")) {
+          if (failNewer) return json({ outcome: "unavailable", error: "Event storage is unavailable" }, 503)
+          return json({
+            outcome: "checkpoints",
+            eventId: "evt-a",
+            hasMore: false,
+            checkpoints: [summary(checkpointId(6), 6)],
+          })
+        }
+        if (url.includes("beforeSequence=5")) {
+          return json({
+            outcome: "checkpoints",
+            eventId: "evt-a",
+            hasMore: true,
+            checkpoints: [summary("id-older-page", 4), summary(checkpointId(3), 3)],
+          })
+        }
+        if (url.includes("beforeSequence=3")) {
+          return json({
+            outcome: "checkpoints",
+            eventId: "evt-a",
+            hasMore: false,
+            checkpoints: [summary(checkpointId(2), 2), summary(checkpointId(1), 1)],
+          })
+        }
+        return historyResponse(url)
+      }),
+    )
+    const user = userEvent.setup()
+    render(<ArchiveView {...archiveProps()} />)
+    await waitFor(() => {
+      expect(screen.getByText("TITLE_5")).toBeInTheDocument()
+      expect(screen.getByTestId("archive-neighbor-retry")).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: /id id-older-page/ })).toBeInTheDocument()
+    })
+    expect(listedSequences()).not.toContain(6)
+    await user.click(screen.getByRole("button", { name: "Load older checkpoints" }))
+    await waitFor(() => {
+      expect(listedSequences()).toEqual(expect.arrayContaining([30, 11, 5, 4, 3, 2, 1]))
+    })
+    const loaded = listedSequences()
+    failNewer = false
+    await user.click(screen.getByRole("button", { name: "Retry neighbor discovery" }))
+    await waitFor(() => {
+      expect(screen.queryByTestId("archive-neighbor-retry")).not.toBeInTheDocument()
+      expect(listedSequences()).toContain(6)
+    })
+    expect(screen.getByText("TITLE_5")).toBeInTheDocument()
+    expect(listedSequences()).toEqual(expect.arrayContaining([...loaded, 6]))
+    expect(screen.getByRole("button", { name: /id id-older-page/ })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Next checkpoint" })).toBeEnabled()
+    expect(screen.getByRole("button", { name: "Previous checkpoint" })).toBeEnabled()
+    expectNewestFirst(listedSequences())
+  })
+
+  it("ignores a late neighbor success after the checkpoint changes", async () => {
+    const newer = deferred<Response>()
+    mockSearchParams.mockReturnValue(new URLSearchParams(`event=evt-a&checkpoint=${checkpointId(5)}`))
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo) => {
+        const url = String(input)
+        if (url.includes("beforeSequence=7")) return newer.promise
+        return historyResponse(url)
+      }),
+    )
+    const view = render(<ArchiveView {...archiveProps()} />)
+    await waitFor(() => {
+      expect(screen.getByText("TITLE_5")).toBeInTheDocument()
+    })
+    mockSearchParams.mockReturnValue(new URLSearchParams(`event=evt-a&checkpoint=${checkpointId(12)}`))
+    view.rerender(<ArchiveView {...archiveProps()} />)
+    await waitFor(() => {
+      expect(screen.getByText("TITLE_12")).toBeInTheDocument()
+    })
+    newer.resolve(
+      json({
+        outcome: "checkpoints",
+        eventId: "evt-a",
+        hasMore: false,
+        checkpoints: [summary("id-9999", 999)],
+      }),
+    )
+    await waitFor(() => {
+      expect(screen.getByText("TITLE_12")).toBeInTheDocument()
+    })
+    expect(screen.queryByRole("button", { name: /id id-9999/ })).not.toBeInTheDocument()
+    expect(screen.queryByTestId("archive-neighbor-retry")).not.toBeInTheDocument()
+    expect(screen.getByText("TITLE_12")).toBeInTheDocument()
+  })
+
+  it("ignores a late neighbor failure after the checkpoint changes", async () => {
+    const older = deferred<Response>()
+    mockSearchParams.mockReturnValue(new URLSearchParams(`event=evt-a&checkpoint=${checkpointId(5)}`))
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo) => {
+        const url = String(input)
+        if (url.includes("beforeSequence=7") || url.includes("beforeSequence=5")) return older.promise
+        return historyResponse(url)
+      }),
+    )
+    const view = render(<ArchiveView {...archiveProps()} />)
+    await waitFor(() => {
+      expect(screen.getByText("TITLE_5")).toBeInTheDocument()
+    })
+    mockSearchParams.mockReturnValue(new URLSearchParams(`event=evt-a&checkpoint=${checkpointId(30)}`))
+    view.rerender(<ArchiveView {...archiveProps()} />)
+    await waitFor(() => {
+      expect(screen.getByText("TITLE_30")).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: "Next checkpoint" })).toBeDisabled()
+    })
+    older.reject(new Error("late neighbor failure"))
+    await waitFor(() => {
+      expect(screen.getByText("TITLE_30")).toBeInTheDocument()
+    })
+    expect(screen.queryByTestId("archive-neighbor-retry")).not.toBeInTheDocument()
+    expect(screen.queryByText("TITLE_5")).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Previous checkpoint" })).toBeEnabled()
+  })
+
+  it("does not classify the newest or oldest checkpoint boundary as a discovery failure", async () => {
+    mockSearchParams.mockReturnValue(new URLSearchParams(`event=evt-a&checkpoint=${checkpointId(COUNT)}`))
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo) => historyResponse(String(input))),
+    )
+    const view = render(<ArchiveView {...archiveProps()} />)
+    await waitFor(() => {
+      expect(screen.getByText("TITLE_30")).toBeInTheDocument()
+    })
+    expect(screen.getByRole("button", { name: "Next checkpoint" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Previous checkpoint" })).toBeEnabled()
+    expect(screen.queryByTestId("archive-neighbor-retry")).not.toBeInTheDocument()
+
+    mockSearchParams.mockReturnValue(new URLSearchParams(`event=evt-a&checkpoint=${checkpointId(1)}`))
+    view.rerender(<ArchiveView {...archiveProps()} />)
+    await waitFor(() => {
+      expect(screen.getByText("TITLE_1")).toBeInTheDocument()
+    })
+    expect(screen.getByRole("button", { name: "Previous checkpoint" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Next checkpoint" })).toBeEnabled()
+    expect(screen.queryByTestId("archive-neighbor-retry")).not.toBeInTheDocument()
+  })
+
   it("disables sequence steps on a gapped first paint", () => {
     mockSearchParams.mockReturnValue(new URLSearchParams(`event=evt-a&checkpoint=${checkpointId(5)}`))
     const html = renderToStaticMarkup(
@@ -479,10 +718,12 @@ async function clickCheckpoint(
 
 function deferred<T>() {
   let resolve!: (value: T) => void
-  const promise = new Promise<T>((res) => {
+  let reject!: (reason: unknown) => void
+  const promise = new Promise<T>((res, rej) => {
     resolve = res
+    reject = rej
   })
-  return { promise, resolve }
+  return { promise, resolve, reject }
 }
 
 function json(body: unknown, status = 200): Response {
