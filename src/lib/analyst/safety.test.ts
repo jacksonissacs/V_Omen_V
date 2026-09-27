@@ -44,5 +44,6 @@ describe("analyst stays outside autonomous publish and the HTTP write surface", 
     expect(publication).toContain('item.payload.kind === "analyst_proposal"')
     const bundle = readFileSync(path.join(ROOT, "src/lib/db/publication-bundle.ts"), "utf8")
     expect(bundle).toContain('candidate.kind === "analyst_proposal"')
+    expect(bundle).toContain("dedicated analyst staging workflow")
   })
 })

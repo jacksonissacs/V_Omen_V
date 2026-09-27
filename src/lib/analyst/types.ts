@@ -106,6 +106,16 @@ export interface AnalystProposalRecord {
   proposalVersion: number
   contentIdentity: string
   inputContentIdentity: string
+  /**
+   * Event question captured when the proposal's input identity was formed.
+   * Null on pre-integrity (legacy) rows — those cannot retain effective approval.
+   */
+  reviewedEventQuestion: string | null
+  /**
+   * Prompt version captured when the proposal's input identity was formed.
+   * Null on pre-integrity (legacy) rows — those cannot retain effective approval.
+   */
+  reviewedPromptVersion: string | null
   status: AnalystProposalStatus
   proposal: AnalystProposalBody
   stagedAt: string | null

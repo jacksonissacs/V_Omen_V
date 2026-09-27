@@ -99,11 +99,15 @@ export async function executeAnalystProposal(
     id: item.id,
     contentIdentity: item.contentIdentity,
   }))
-  const inputIdentity = inputContentIdentity(inputRefs)
   const prompt = buildAnalystPrompt({
     eventId: args.eventId,
     eventQuestion: question,
     evidence,
+  })
+  const inputIdentity = inputContentIdentity({
+    eventQuestion: question,
+    promptVersion: prompt.promptVersion,
+    evidence: inputRefs,
   })
 
   const pending = await insertPendingRun(client, {
@@ -178,6 +182,8 @@ export async function executeAnalystProposal(
       eventId: args.eventId,
       contentIdentity,
       inputContentIdentity: inputIdentity,
+      reviewedEventQuestion: question,
+      reviewedPromptVersion: prompt.promptVersion,
       proposal: body,
     })
     const reusedExistingProposal = before.runId !== pending.id

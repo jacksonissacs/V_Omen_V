@@ -57,6 +57,9 @@ export type AnalystProposalReviewPayload = {
   contentIdentity: string
   inputContentIdentity: string
   proposal: unknown
+  proposalVersion?: number
+  reviewedEventQuestion?: string | null
+  reviewedPromptVersion?: string | null
 }
 
 export type SourceReviewCandidate =
@@ -230,7 +233,9 @@ export function parseStageSourceReviewInput(input: unknown): StageSourceReviewIn
       "Import a file-queue capture with operator intake import. intake stage does not accept source_capture.",
     )
   } else if (kind === "analyst_proposal") {
-    candidate = parseAnalystProposalCandidate(candidateObj)
+    throw new PublicationValidationError(
+      "Analyst proposals must be staged through the dedicated analyst staging workflow (npm run analyst -- stage / stageAnalystProposalForReview). Generic intake stage does not accept analyst_proposal.",
+    )
   } else if (kind === "evidence") {
     const bundle = parseEventBundle({ eventId, evidence: [candidateObj.evidence] })
     candidate = { kind: "evidence", evidence: bundle.evidence[0]! }
@@ -240,34 +245,10 @@ export function parseStageSourceReviewInput(input: unknown): StageSourceReviewIn
     candidate = { kind: "bundle", bundle: parseEventBundle(candidateObj.bundle) }
   } else {
     throw new PublicationValidationError(
-      'candidate.kind must be "evidence", "move_log", "bundle", or "analyst_proposal".',
+      'candidate.kind must be "evidence", "move_log", or "bundle". Use the analyst staging workflow for analyst_proposal.',
     )
   }
   return { id, eventId, stagedBy, ...(intakeNote ? { intakeNote } : {}), candidate }
-}
-
-function parseAnalystProposalCandidate(raw: Record<string, unknown>): AnalystProposalReviewPayload {
-  const proposalId = typeof raw.proposalId === "string" ? raw.proposalId.trim() : ""
-  const contentIdentity = typeof raw.contentIdentity === "string" ? raw.contentIdentity.trim() : ""
-  const inputContentIdentity =
-    typeof raw.inputContentIdentity === "string" ? raw.inputContentIdentity.trim() : ""
-  assertId(proposalId, "proposalId")
-  if (!/^[a-f0-9]{64}$/.test(contentIdentity)) {
-    throw new PublicationValidationError("analyst_proposal.contentIdentity must be a sha256 hex digest.")
-  }
-  if (!/^[a-f0-9]{64}$/.test(inputContentIdentity)) {
-    throw new PublicationValidationError("analyst_proposal.inputContentIdentity must be a sha256 hex digest.")
-  }
-  if (typeof raw.proposal !== "object" || raw.proposal === null) {
-    throw new PublicationValidationError("analyst_proposal.proposal must be an object.")
-  }
-  return {
-    kind: "analyst_proposal",
-    proposalId,
-    contentIdentity,
-    inputContentIdentity,
-    proposal: raw.proposal,
-  }
 }
 
 function parseAuthoredMoveLogDraft(input: unknown): AuthoredMoveLogDraft {
