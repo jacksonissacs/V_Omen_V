@@ -14,6 +14,7 @@ export class UnavailableAnalystProvider implements AnalystProvider {
   }
 
   async generate(_request: AnalystGenerateRequest): Promise<AnalystGenerateResult> {
+    void _request
     return {
       ok: false,
       errorCode: "unavailable",

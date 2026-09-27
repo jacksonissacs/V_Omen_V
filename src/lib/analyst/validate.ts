@@ -231,7 +231,7 @@ export function parseAnalystProposalBody(
       }
       return trimmed
     })
-    return { text, kind, evidenceIds: [...new Set(evidenceIds)] }
+    return { text, kind: kind as "reported_fact" | "interpretation", evidenceIds: [...new Set(evidenceIds)] }
   })
 
   // Reject unexpected top-level keys that look like forbidden product fields.

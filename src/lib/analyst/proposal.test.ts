@@ -169,7 +169,7 @@ describe("analyst providers", () => {
   })
 
   it("returns unavailable when live configuration is missing", () => {
-    const provider = resolveAnalystProvider({ provider: "live", env: {} })
+    const provider = resolveAnalystProvider({ provider: "live", env: { ...process.env, OMEN_ANALYST_LIVE_API_KEY: "" } })
     expect(provider).toBeInstanceOf(UnavailableAnalystProvider)
   })
 
@@ -177,7 +177,7 @@ describe("analyst providers", () => {
     expect(() =>
       resolveAnalystProvider({
         provider: "live",
-        env: { OMEN_ANALYST_LIVE_API_KEY: "sk-test-not-for-production" },
+        env: { ...process.env, OMEN_ANALYST_LIVE_API_KEY: "sk-test-not-for-production" },
       }),
     ).toThrow(/not activated/)
   })
