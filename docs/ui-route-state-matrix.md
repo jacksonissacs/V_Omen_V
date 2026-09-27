@@ -92,7 +92,7 @@ Status column is the Chromium navigation status in demo mode. “Preview” mean
 | `/settings` | `settings/page.tsx` | Local controls | 200 | Settings | None | None | None | Controls do not persist |
 | `/markets` | `markets/page.tsx` | Fixture markets | 200 | Markets | None | Blank list | None | Yes. Imports `@/data/events` |
 | `/signals` | `signals/page.tsx` | Fixture signals | 200 | Signals | None | Blank grid | None | Yes. Imports `@/data/events` |
-| `/agents` | `agents/page.tsx` | Fixture ledger | 200 | Agents | None | Blank search | None | Yes. Hard-coded calibration |
+| `/agents` | `agents/page.tsx` | Fixture ledger | 200 | Agents | None | Blank search | None | Yes. Hard-coded calibration **labelled illustrative** |
 | `/research` | `research/page.tsx` | Fixture person | 200 | Alan | None | None | None | Yes. Invented rating |
 | `/relations` | `relations/page.tsx` | Static graph | 200 | Relations | None | None | None | Yes. Does not call `getGraph()` |
 | `/graph` | `graph/page.tsx` | Redirect | Final 200 at `/relations` | Relations | — | — | — | Redirect only. Production build marks `/graph` static. |

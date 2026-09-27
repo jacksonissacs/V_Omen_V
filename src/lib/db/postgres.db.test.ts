@@ -121,13 +121,13 @@ describe("migrations", () => {
       expect(identity.environment).toBe("test")
 
       const migrations = loadMigrations()
-      expect(migrations.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5])
+      expect(migrations.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6])
       expect(migrations.at(-1)?.version).toBe(EXPECTED_SCHEMA_VERSION)
       const first = await migrate(client, migrations)
-      expect(first.applied.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5])
+      expect(first.applied.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6])
       const second = await migrate(client, migrations)
       expect(second.applied).toEqual([])
-      expect(second.alreadyApplied).toBe(5)
+      expect(second.alreadyApplied).toBe(6)
 
       const { rows } = await client.query("SELECT version, checksum FROM omen_schema_migrations ORDER BY version")
       expect(rows).toEqual(migrations.map((migration) => ({ version: migration.version, checksum: migration.checksum })))
@@ -135,6 +135,8 @@ describe("migrations", () => {
         "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name",
       )
       expect(tables.rows.map((row) => row.table_name)).toEqual([
+        "analyst_proposals",
+        "analyst_runs",
         "event_revisions",
         "events",
         "evidence",

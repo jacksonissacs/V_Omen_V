@@ -118,6 +118,10 @@ export async function operator(databaseUrl: string, args: string[]): Promise<Com
   return runTsx(["scripts/omen-operator.ts", ...args], databaseUrl)
 }
 
+export async function analyst(databaseUrl: string, args: string[]): Promise<CommandResult> {
+  return runTsx(["scripts/omen-analyst.ts", ...args], databaseUrl)
+}
+
 export async function queryRows<T extends Record<string, unknown>>(
   databaseUrl: string,
   sql: string,

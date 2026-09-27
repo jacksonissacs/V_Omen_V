@@ -31,7 +31,7 @@ Storage says where records are kept. Provenance says where they came from. Every
 
 Migrations live in `db/migrations/NNNN_name.sql`, numbered consecutively. They are applied in order and recorded with a SHA-256 checksum in `omen_schema_migrations`. Editing an applied migration is refused; add a new one instead. The highest migration number must equal `EXPECTED_SCHEMA_VERSION` in `src/lib/db/schema-version.ts`, and a test checks that they match.
 
-`0001_core_event_storage.sql` through `0005_intake_review_bridge.sql` create the following tables.
+`0001_core_event_storage.sql` through `0006_analyst_proposals.sql` create the following tables.
 
 | Table | Holds | Mutability |
 | --- | --- | --- |
@@ -41,8 +41,10 @@ Migrations live in `db/migrations/NNNN_name.sql`, numbered consecutively. They a
 | `evidence` | Source name/URL, `source_published_at` (nullable: the source may carry no date), `first_observed_at` (when OMEN first saw it), `captured_at`, `record_available_at`, stance, reliability 0–1, `recorded_by`, provenance | Append-only |
 | `move_logs` | One row per move on an event | Append-only |
 | `move_log_revisions` | Version, `published_at`, `recorded_at`, `record_available_at`, author, what changed, likely cause, explained % (nullable when no share is recorded), unexplained factors, linked `evidence_ids`, correction note, provenance | Append-only |
-| `source_review_items` | Staged operator intake. Status is `staged`, `approved`, or `rejected`. A file-queue capture keeps source id, captured version, canonical URL, source clock time, calendar date, fetch time, and content identity. Re-import of the same version updates nothing | Review outcome is durable. Payload is not rewritten after staging |
+| `source_review_items` | Staged operator intake. Status is `staged`, `approved`, or `rejected`. A file-queue capture keeps source id, captured version, canonical URL, source clock time, calendar date, fetch time, and content identity. Re-import of the same version updates nothing. Candidate kinds include evidence, Move Log, bundle, source capture, and analyst proposal (review-only; not publishable as a bundle) | Review outcome is durable. Payload is not rewritten after staging |
 | `publication_operations` | Idempotent publish attempts: bundle JSON, status (`pending`, `checkpoint_pending`, `completed`, `failed`), write summary, checkpoint id and sequence as bigint, optional link to a review item | Updated through the operator publish path. The bundle for one idempotency key does not change |
+| `analyst_runs` | Bounded AI analyst executions: provider/model ids, `executionKind` (`synthetic` or `live`), prompt version, exact input evidence refs and content identities, status, timing, optional usage | Append-style run records. Secrets are never stored. Unknown usage stays null |
+| `analyst_proposals` | Validated proposal drafts distinct from published evidence and Move Logs. Status `draft` / `staged` / `rejected` / `superseded`. Human approval binds to content + input identities | Staging may link to `source_review_items`. Identical content for the same inputs stages once |
 | `omen_history_coverage` | One row: when append-only semantic event history begins, and when pre-existing history rows received their `record_available_at` realignment marker | Set at migration 0002. Immutable afterwards |
 | `history_checkpoints` | One immutable verified reconstruction point for an event: publishing transaction id, the publishing statement's snapshot, content digest, member count, and semantic-history label. No foreign key to `events` | Append-only |
 | `history_checkpoint_members` | History rows visible in that snapshot (`probability_observations`, `evidence`, `move_log_revisions`, `event_revisions`), with the inserting transaction id | Append-only. Written only by the publishing transaction |

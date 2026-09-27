@@ -18,6 +18,7 @@
     "db:upsert": "tsx scripts/omen-db.ts upsert",
     "db:show": "tsx scripts/omen-db.ts show",
     "operator": "tsx scripts/omen-operator.ts",
+    "analyst": "tsx scripts/omen-analyst.ts",
     "intake": "tsx scripts/omen-intake.ts",
     "intake:check": "tsx scripts/omen-intake.ts check"
   },
