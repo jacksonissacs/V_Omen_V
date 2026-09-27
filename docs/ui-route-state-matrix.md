@@ -1,8 +1,12 @@
 # UI route and state matrix
 
-Inventory of the running app at `1a7ad2b00f791fa531e5bcda2203797533d3a849` (`origin/main` when this audit branched). Captures and probe text are in [consumer-ui-baseline.md](consumer-ui-baseline.md). The consumer target is in [consumer-design-contract.md](consumer-design-contract.md). This matrix describes what is shipped, not that target.
+**Audit snapshot SHA:** `1a7ad2b00f791fa531e5bcda2203797533d3a849` — the `origin/main` tip when the consumer UI audit branched. Screenshots, HTTP statuses, and copy quoted here reflect that tree only.
 
-Method: read each route module, then loaded it in Chromium at 390×844 and 1440×900 against `next dev` with `OMEN_STORAGE_MODE=demo`. Empty-book, repository-error, and loading flashes were not forced. Those rows say so.
+**Not current `main`:** As of the 2026-09-27 documentation sync, `origin/main` is `1032d318426b5e7fd818278cb3ca65c8ff5dafa1` (merged pull request #23; reviewed head `f873fe1ca37811634f4d26f528d229463814020d`). Archive behavior on `main` now includes #21 and #23 fixes. This matrix has **not** been re-walked at `1032d318`; use it as historical inventory unless a future audit refreshes it.
+
+Captures and probe text are in [consumer-ui-baseline.md](consumer-ui-baseline.md). The consumer target is in [consumer-design-contract.md](consumer-design-contract.md). Rows below describe what was observed at `1a7ad2b`, not the migration target.
+
+Method (at `1a7ad2b`): read each route module, then loaded it in Chromium at 390×844 and 1440×900 against `next dev` with `OMEN_STORAGE_MODE=demo`. Empty-book, repository-error, and loading flashes were not forced. Those rows say so.
 
 ## Shared shells
 
@@ -167,7 +171,7 @@ Read-only. Documented because Settings and API screens name them.
 | `GET /api/events/:id/history` | Bounded checkpoint page | 400 invalid, 422 demo or unsupported, 503 storage |
 | `GET /api/events/:id/history/:checkpointId` | Historical record, not the current `AionEvent` | 400, 404, 409 pre-coverage, 422 missing or failed verification or demo, 503 |
 
-## Historical findings rechecked on this SHA
+## Historical findings rechecked on audit SHA `1a7ad2b`
 
 | Earlier claim | Recheck |
 | --- | --- |

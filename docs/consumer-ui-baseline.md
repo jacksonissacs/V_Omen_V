@@ -12,6 +12,18 @@ Audit evidence for [consumer-design-contract.md](consumer-design-contract.md) an
 
 `origin/main..HEAD` was empty before these docs. Local `main` had no commits that were absent from `origin/main`.
 
+## Current integration state (docs sync 2026-09-27)
+
+This section records repository state after pull request [#23](https://github.com/jacksonissacs/V_Omen_V/pull/23) merged. It does not re-run the screenshot audit; all captures below remain tied to `1a7ad2b`.
+
+| Point | SHA | Note |
+| --- | --- | --- |
+| `origin/main` after `git fetch origin main` | `1032d318426b5e7fd818278cb3ca65c8ff5dafa1` | Merge commit for #23. Application CI and external source smoke passed on merge. |
+| PR #23 reviewed head | `f873fe1ca37811634f4d26f528d229463814020d` | Archive stale pagination / replay isolation fixes. Now on `main`. |
+| PR #24 docs branch head (before this sync) | `d4cef0b7d6afa07f9dfb231a29f75bb27f4b4a15` | Consumer design contract only; based on current `main` at sync time. |
+
+Archive runtime work is no longer blocked by an open #23. Consumer UI implementation should branch from refreshed `origin/main` and preserve #21/#23 Archive invariants rather than redoing them.
+
 ## Environment
 
 - Node v22.23.3, Next.js 16.3.4, React 19.2.8, Vitest 3.2.7.
@@ -104,16 +116,18 @@ DOM probe (same server, both widths) confirmed the probability figures and the c
 12. `openCall` has no caller. The call dialog remains in the tree with invented reveal numbers.
 13. Marketing matches the handoff decisions already recorded in `design-reference/README.md`: no access dialog, silver mark, illustrative chips, spectrum. Workspace and marketing event cards are different components.
 
-## Unmerged work to isolate
+## Pull request status at audit time vs now
 
-| PR | State on 2026-09-27 | Relation to this base |
+The table below is **historical evidence** from the audit session on `1a7ad2b`. For current blockers, see [Current integration state](#current-integration-state-docs-sync-2026-09-27).
+
+| PR | State when audit ran (`1a7ad2b`) | Current status (after #23 merge) |
 | --- | --- | --- |
-| #23 | Draft, open | One commit, `96676e1`, parent `1a7ad2b`. Stale older-page failure handling in `archive-view.tsx`. |
-| #20 | Draft, open | Merge-base `0fb3dc6`, not `1a7ad2b`. Superseded as a branch by merged #21. Do not revive it for UI work. |
-| #19 | Open | Docs only (`v0-integration-status.md` and two archive follow-up notes). Not a visual blocker. |
-| #18, #16, #15, #14, #11, #9, #7 | Still open on GitHub | Integration status on an older head treated several as superseded. This audit did not re-merge or close them. |
+| #23 | Draft, open. One commit `96676e1`, parent `1a7ad2b`. Stale older-page failure handling in `archive-view.tsx`. | **Merged** into `main` at `1032d318426b5e7fd818278cb3ca65c8ff5dafa1`. Final reviewed head `f873fe1`. Not open; not blocking. |
+| #20 | Draft, open. Merge-base `0fb3dc6`, not `1a7ad2b`. | Still an older/superseded archive branch relative to merged #21. Not a current runtime prerequisite for consumer UI. |
+| #19 | Open. Docs only. | Not a visual blocker for consumer UI. |
+| #18, #16, #15, #14, #11, #9, #7 | Still open on GitHub at audit time | Integration status on an older head treated several as superseded. This audit did not re-merge or close them. |
 
-No other branch named for a consumer design contract existed. This branch does not contain those pulls.
+No other branch named for a consumer design contract existed when the audit ran. PR #24 (`cursor/consumer-design-contract-a02d`) is the canonical design-contract pull request.
 
 ## Not captured
 

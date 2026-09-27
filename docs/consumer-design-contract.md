@@ -1,8 +1,12 @@
 # Consumer design contract
 
-This is an implementation specification for a later UI task. It does not change runtime behavior, routes, or data. The audited tree is `origin/main` at `1a7ad2b00f791fa531e5bcda2203797533d3a849`. Evidence for the current UI is in [consumer-ui-baseline.md](consumer-ui-baseline.md). The route-by-route inventory is in [ui-route-state-matrix.md](ui-route-state-matrix.md).
+This is an implementation specification for a later UI task. It does not change runtime behavior, routes, or data.
 
-The next implementation task follows [omen-v0-build-contract.md](omen-v0-build-contract.md), [ai-first-beta-scope.md](ai-first-beta-scope.md), and [mobile-agent-playbook.md](mobile-agent-playbook.md). It starts only after the archive isolation in [Preconditions](#preconditions-before-runtime-changes).
+**Current integration state (2026-09-27).** After `git fetch origin`, `origin/main` is `1032d318426b5e7fd818278cb3ca65c8ff5dafa1` (merge of pull request [#23](https://github.com/jacksonissacs/V_Omen_V/pull/23); reviewed head `f873fe1ca37811634f4d26f528d229463814020d`). That tree includes the Archive invariants from merged [#21](https://github.com/jacksonissacs/V_Omen_V/pull/21) and #23. The consumer UI implementation must branch from this `main`, not re-open Archive correctness work.
+
+**Historical UI audit snapshot.** Screenshots, DOM probes, test counts, and route inventory in [consumer-ui-baseline.md](consumer-ui-baseline.md) and [ui-route-state-matrix.md](ui-route-state-matrix.md) were captured against `1a7ad2b00f791fa531e5bcda2203797533d3a849` (`origin/main` when the audit branched). That SHA is evidence only; it is not today’s `main`.
+
+The next implementation task follows [omen-v0-build-contract.md](omen-v0-build-contract.md), [ai-first-beta-scope.md](ai-first-beta-scope.md), and [mobile-agent-playbook.md](mobile-agent-playbook.md). See [Preconditions](#preconditions-before-runtime-changes) for Archive boundaries during visual work.
 
 ## Product intent
 
@@ -114,7 +118,7 @@ The inspector (or the stacked panel below 1080px) is the evidence layer:
 
 From the brief, recorded history opens the existing archive or checkpoint URL for that event. Replay still uses published checkpoint membership. Arbitrary `at` and `cutoff` queries still render `HistoricalUnavailable` and do not show the current event text as history. Demo storage still says stored reconstruction is unavailable. Corrections remain visible versions on the move log (version, author, published time, correction note). A correction is not a silent rewrite.
 
-Archive behavior and `archive-view.tsx` are out of the first visual edit. See [Preconditions](#preconditions-before-runtime-changes). The chrome around history (crumb, return, bottom nav) can change in files that archive work does not own.
+Archive runtime behavior is owned by merged #21 and #23. The first consumer visual pass must not combine unrelated Archive behavior changes with chrome migration. Incidental copy fixes in `archive-view.tsx` (for example replacing “live event record” with “current event record”) are allowed when isolated from behavior edits. The chrome around history (crumb, return, bottom nav) can change in files outside `src/components/archive/**`.
 
 ## Source and time labels
 
@@ -248,14 +252,14 @@ Workspace transitions today are 120ms on background, border, and color. There is
 
 Do these in order in a later pull request. This document is step zero.
 
-1. **Confirm isolation.** Re-fetch `main`. If pull request 23 is still open, do not edit the archive files in [Preconditions](#preconditions-before-runtime-changes). If it has merged, branch from that `main`.
+1. **Branch from current `main`.** Re-fetch `origin` and create the implementation branch from `1032d318426b5e7fd818278cb3ca65c8ff5dafa1` or whatever `origin/main` is after fetch. Preserve the Archive invariants from #21 and #23 (stale-response isolation, older-page request invalidation, replay isolation, neighbor recovery, current-request error handling, checkpoint reconstruction honesty). Do not redo those features. Follow [Preconditions](#preconditions-before-runtime-changes) for which Archive files to touch.
 2. **Tokens.** In `src/app/aion-workspace.css`, add the spacing scale and raise workspace muted text to the target. Leave `src/app/(marketing)/marketing.css` tokens unchanged. Add a reduced-motion rule for `.aion-app` transitions.
 3. **Chrome.** Update `src/data/workspace.ts` labels and headings: Pulse, Explore, Following. Add a More menu component used by `src/components/sidebar/sidebar.tsx` and the phone bottom nav in `src/components/layout/app-shell.tsx`. Point Explore at `/pulse`’s sibling `/events` and Following at `/watchlists`. Put Archive only inside More. Remove Settings from the promoted nav. Update `isActive` tests in `src/components/sidebar/sidebar.test.tsx` and the link contract in `src/components/layout/app-shell.test.tsx`. The test must still fail if Markets, Signals, Agents, Research, Relations, or Alerts appear as links.
 4. **Search.** In `src/components/common/command-palette.tsx`, rename commands to the four destinations plus Archive, and make arrow and Enter behavior match the footer, or change the footer to the keys that exist (`esc`, and `⌘K` / `Ctrl+K` from `workspace-provider.tsx`).
 5. **Provenance at 390.** Remove the `.aion-demo-chip { display: none }` rule at 760px. Sourced, mixed, empty, and unavailable chips already stay visible; demo must too.
 6. **Scan and brief.** `pulse-screen.tsx`, `events-screen.tsx`, `watchlists-screen.tsx`, `event-card.tsx`, `event-intelligence-view.tsx`: hierarchy, counts, evidence link, Following copy, share control. Add tests beside the existing event-card and workspace-route tests. Do not weaken provenance, “not a live feed,” or not-found assertions.
 7. **Settings copy, only if the file is touched.** Remove the non-functional alert, density, and timezone controls from `settings-screen.tsx`, or leave the route unlinked and unused. Do not persist new preferences and do not send notifications.
-8. **Archive copy, only after isolation.** In `archive-view.tsx`, replace “live event record” with “current event record.” Do not otherwise restyle archive in the same commit as a behavior change from another branch.
+8. **Archive copy, when touched.** In `archive-view.tsx`, replace “live event record” with “current event record.” Do not restyle Archive or change Archive behavior in the same pull request as unrelated consumer chrome unless the diff is copy-only.
 9. **Leave in place.** Marketing components, `design-reference/`, repository, database, following persistence format, API routes, and the legacy fixture screens’ data imports.
 
 ## Acceptance targets
@@ -281,15 +285,23 @@ These are targets for the implementation pull request. They are not claims about
 
 ## Preconditions before runtime changes
 
-Unmerged archive work owns files this visual pass must not edit until it lands or the owner closes it:
+**Archive is no longer blocked by pull request #23.** #23 merged into `main` at `1032d318426b5e7fd818278cb3ca65c8ff5dafa1`. Future visual work must preserve the Archive invariants introduced by #21 and #23 and must not combine unrelated behavior changes with the visual migration. Do not reopen Archive correctness work or revert stale-response isolation, older-page request invalidation, replay isolation, neighbor recovery, current-request error handling, or checkpoint reconstruction honesty.
 
-| PR | Branch | Base relative to `1a7ad2b` | Why it blocks archive edits |
+Treat these paths as behavior-sensitive: prefer visual and copy-only edits; avoid mixing Archive behavior refactors with consumer chrome in one pull request:
+
+- `src/components/archive/archive-view.tsx`
+- `src/components/archive/archive-navigation.test.tsx`
+- `src/components/screens/archive-screen.test.tsx`
+- `src/app/(workspace)/archive/page.tsx`
+- `src/lib/archive/**`
+
+**Historical / superseded branches (not current prerequisites).**
+
+| PR | Branch | Note at audit time (`1a7ad2b`) | Current status |
 | --- | --- | --- | --- |
-| [#23](https://github.com/jacksonissacs/V_Omen_V/pull/23) | `cursor/fix-archive-stale-pagination-failures-bddc` | One commit on top of `1a7ad2b` | Ignores a stale “load older” failure after navigation. Edits `archive-view.tsx` and `archive-navigation.test.tsx`. |
-| [#20](https://github.com/jacksonissacs/V_Omen_V/pull/20) | `cursor/archive-a1-a2-followups-9b69` | Merge-base `0fb3dc6`, not current `main` | Older archive pagination and replay work. Do not merge it under a UI branch. [#21](https://github.com/jacksonissacs/V_Omen_V/pull/21) already merged a later archive follow-up. |
+| [#23](https://github.com/jacksonissacs/V_Omen_V/pull/23) | `cursor/fix-archive-stale-pagination-failures-bddc` | Was draft, one commit on `1a7ad2b` | **Merged.** Final head `f873fe1ca37811634f4d26f528d229463814020d`. |
+| [#20](https://github.com/jacksonissacs/V_Omen_V/pull/20) | `cursor/archive-a1-a2-followups-9b69` | Merge-base `0fb3dc6`, not `1a7ad2b` | Older archive pagination work. Superseded by merged #21. Do not merge under a UI branch. |
 
-Files to leave untouched while #23 is open: `src/components/archive/archive-view.tsx`, `src/components/archive/archive-navigation.test.tsx`, `src/components/screens/archive-screen.test.tsx`, `src/app/(workspace)/archive/page.tsx`, `src/lib/archive/**`.
+[#19](https://github.com/jacksonissacs/V_Omen_V/pull/19) was an open docs branch for integration status at audit time. It is not a runtime prerequisite for consumer UI. Do not edit it from the UI branch.
 
-[#19](https://github.com/jacksonissacs/V_Omen_V/pull/19) is an open docs branch for integration status. It is not a runtime prerequisite. Do not edit it from the UI branch.
-
-Unit tests on this base passed (263). There is no failing baseline suite to quarantine inside this specification. `npm run test:db` also passed on this base; see the baseline doc. Do not weaken either suite.
+**Tests.** Unit counts in [consumer-ui-baseline.md](consumer-ui-baseline.md) reflect the audit snapshot at `1a7ad2b` (263 unit tests on that SHA). Re-run the verification commands on the implementation branch after rebasing onto current `main`. Do not weaken provenance, archive, or data-boundary suites.
