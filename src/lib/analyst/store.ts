@@ -325,21 +325,47 @@ export async function markProposalStaged(
   return rowToProposal(rows[0])
 }
 
+const SHA256 = /^[a-f0-9]{64}$/
+
+export interface ApproveAnalystProposalArgs {
+  id: string
+  approvedBy: string
+  /**
+   * Identities of the exact proposal body and inputs the operator reviewed.
+   * The atomic UPDATE refuses if either identity no longer matches (concurrent edit)
+   * or the row is no longer draft/staged (concurrent reject).
+   */
+  expectedContentIdentity: string
+  expectedInputContentIdentity: string
+  /**
+   * Test-only synchronization hook invoked after argument validation and before the
+   * guarded UPDATE. Production callers must omit this.
+   */
+  beforeWrite?: () => Promise<void>
+}
+
 /**
  * Record human approval of a proposal draft. Approval binds to content + input identities.
  * A changed input or edited proposal must not inherit this approval.
+ * Eligibility is enforced in the UPDATE predicate — not only by a prior JavaScript read.
  */
 export async function approveAnalystProposal(
   client: ClientBase,
-  args: { id: string; approvedBy: string },
+  args: ApproveAnalystProposalArgs,
 ): Promise<AnalystProposalRecord> {
-  const current = await getAnalystProposal(client, args.id)
-  if (!current) throw new Error(`Proposal ${args.id} was not found.`)
-  if (current.status !== "staged" && current.status !== "draft") {
-    throw new Error(`Proposal ${args.id} is ${current.status} and cannot be approved.`)
-  }
   const approvedBy = args.approvedBy.trim()
   if (!approvedBy) throw new Error("approvedBy is required.")
+  const expectedContentIdentity = args.expectedContentIdentity.trim()
+  const expectedInputContentIdentity = args.expectedInputContentIdentity.trim()
+  if (!SHA256.test(expectedContentIdentity)) {
+    throw new Error("expectedContentIdentity must be a sha256 hex digest.")
+  }
+  if (!SHA256.test(expectedInputContentIdentity)) {
+    throw new Error("expectedInputContentIdentity must be a sha256 hex digest.")
+  }
+
+  if (args.beforeWrite) await args.beforeWrite()
+
   const { rows } = await client.query<ProposalRow>(
     `UPDATE analyst_proposals
         SET approved_at = now(),
@@ -347,10 +373,23 @@ export async function approveAnalystProposal(
             approval_content_identity = content_identity,
             approval_input_identity = input_content_identity
       WHERE id = $1
+        AND status IN ('draft', 'staged')
+        AND content_identity = $3
+        AND input_content_identity = $4
       RETURNING ${PROPOSAL_COLUMNS}`,
-    [args.id, approvedBy],
+    [args.id, approvedBy, expectedContentIdentity, expectedInputContentIdentity],
   )
-  return rowToProposal(rows[0]!)
+  if (!rows[0]) {
+    const existing = await getAnalystProposal(client, args.id)
+    if (!existing) throw new Error(`Proposal ${args.id} was not found.`)
+    if (existing.status !== "draft" && existing.status !== "staged") {
+      throw new Error(`Proposal ${args.id} is ${existing.status} and cannot be approved.`)
+    }
+    throw new Error(
+      `Proposal ${args.id} changed since review (content or input identity mismatch). Re-load and approve the current draft.`,
+    )
+  }
+  return rowToProposal(rows[0])
 }
 
 export async function rejectAnalystProposal(
@@ -381,8 +420,14 @@ export async function rejectAnalystProposal(
   return rowToProposal(rows[0])
 }
 
-/** True only when approval identities still match the proposal's current identities. */
+/**
+ * True only when the proposal is still reviewable and approval identities still match
+ * the proposal's current content and input identities. Rejected/superseded rows never
+ * count as currently approved.
+ */
 export function isApprovalCurrent(proposal: AnalystProposalRecord): boolean {
+  if (proposal.status === "rejected" || proposal.status === "superseded") return false
+  if (proposal.status !== "draft" && proposal.status !== "staged") return false
   if (!proposal.approvedAt || !proposal.approvalContentIdentity || !proposal.approvalInputIdentity) {
     return false
   }

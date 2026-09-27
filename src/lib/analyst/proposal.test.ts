@@ -291,6 +291,15 @@ describe("stale approval does not carry over", () => {
     expect(isApprovalCurrent({ ...base, approvedAt: null, approvalContentIdentity: null, approvalInputIdentity: null })).toBe(
       false,
     )
+    expect(
+      isApprovalCurrent({
+        ...base,
+        status: "rejected",
+        rejectedAt: new Date().toISOString(),
+        rejectedBy: "op",
+      }),
+    ).toBe(false)
+    expect(isApprovalCurrent({ ...base, status: "superseded" })).toBe(false)
   })
 
   it("changes content identity when the proposal body is edited", () => {

@@ -20,3 +20,4 @@ export {
   listAnalystProposals,
   listAnalystRuns,
 } from "./store"
+export type { ApproveAnalystProposalArgs } from "./store"

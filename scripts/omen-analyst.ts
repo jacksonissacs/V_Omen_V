@@ -216,7 +216,14 @@ async function main() {
       await assertWritableDatabase(client)
       const id = action
       if (!id || !values.by) throw new Error("approve needs <proposalId> and --by")
-      const proposal = await approveAnalystProposal(client, { id, approvedBy: values.by })
+      const current = await getAnalystProposal(client, id)
+      if (!current) throw new Error(`Proposal ${id} was not found.`)
+      const proposal = await approveAnalystProposal(client, {
+        id,
+        approvedBy: values.by,
+        expectedContentIdentity: current.contentIdentity,
+        expectedInputContentIdentity: current.inputContentIdentity,
+      })
       console.log(
         JSON.stringify(
           {

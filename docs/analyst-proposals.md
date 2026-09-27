@@ -42,9 +42,11 @@ Accepted drafts include:
 | `claims[]` | Claim text, `reported_fact` or `interpretation`, cited evidence ids |
 | `abstention` | Explicit abstention when evidence is insufficient |
 
-Forbidden in accepted output: probabilities, deadlines, explained percentages, source reliability scores, and claims of proven causality.
+Validation **rejects specific regex patterns** associated with probabilities, deadlines, explained-percentage phrasing, source reliability scores, and a short list of proven-causality phrases (for example `proves that`, `caused by`). This is a heuristic filter, not a semantic guarantee. Interpretation fields also reject numeral `%` tokens; `reported_fact` / evidence-summary fields may still quote source numerals. Human review remains required.
 
 **Citation membership** checks that claim evidence ids were among the selected inputs. Membership does **not** prove that a source supports the claim text. Evaluation fixtures cover support-checking gaps and prompt-injection attempts inside source text (source text is untrusted data, never instructions).
+
+Approval is applied only when the row is still `draft` or `staged` and the reviewed `(content_identity, input_content_identity)` still match. Concurrent reject or edit makes the guarded approval UPDATE match no row; `isApprovalCurrent` is false for `rejected` / `superseded` and for identity mismatch.
 
 ## Providers
 
@@ -74,3 +76,12 @@ This PR delivers proposal generation, validation, run persistence, and staging f
 1. Owner approval before enabling any paid live analyst provider.
 2. Independent review of this PR; merge is separate from deploy.
 3. Optional follow-up: guided “convert proposal → Move Log draft” operator command that preserves agent authorship and human review attribution on the published revision.
+
+## Follow-up from independent review (nonblocking)
+
+Recorded for later work; not fixed in the B1 approval-race repair:
+
+- Wire `assertProposalApprovalNotStale` into any future proposal→Move Log conversion path before that path exists.
+- Editing a staged proposal clears the proposal’s review link but can leave the prior `source_review_items` row orphaned (still staged/approved with the old payload). Publish still refuses `analyst_proposal`.
+- A configured but gated live provider throws at resolve time instead of recording an `unavailable` run.
+- Generic intake staging can accept unvalidated `analyst_proposal` JSON into the review queue (still not publishable).
