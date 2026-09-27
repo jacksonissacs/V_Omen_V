@@ -968,13 +968,16 @@ describe("intake review publication and checkpoint stability", () => {
     expect(urlSelectsCheckpoint(page.url(), earlyCheckpoint)).toBe(true)
     await page.waitForFunction(
       (currentTitle, laterTitle) => {
-        const panel = document.querySelector("[data-testid='historical-reconstruction']")
-        const text = panel?.textContent ?? ""
-        return (
-          text.includes("Event semantics in this checkpoint") &&
-          text.includes(currentTitle) &&
-          !text.includes(laterTitle)
-        )
+        const panels = [...document.querySelectorAll("[data-testid='historical-reconstruction']")]
+        if (panels.length === 0) return false
+        return panels.every((panel) => {
+          const text = panel.textContent ?? ""
+          return (
+            text.includes("Event semantics in this checkpoint") &&
+            text.includes(currentTitle) &&
+            !text.includes(laterTitle)
+          )
+        })
       },
       { timeout: 20_000 },
       CURRENT_TITLE,
@@ -994,7 +997,7 @@ describe("intake review publication and checkpoint stability", () => {
 
   it("opens an off-page checkpoint and crosses the first page with real pagination", async () => {
     const eventId = "evt-test-offpage"
-    const marker = (sequence: number) => `OFFPAGE_LATER_ONLY_${sequence}`
+    const marker = (sequence: number) => `OFFPAGE_SEQ_${sequence}_END`
     const bundlePath = writeArtifact(
       "evt-offpage.json",
       JSON.stringify({
