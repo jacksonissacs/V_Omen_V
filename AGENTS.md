@@ -11,3 +11,5 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 # OMEN V0 build contract
 
 Every OMEN V0 task follows [docs/omen-v0-build-contract.md](docs/omen-v0-build-contract.md): scope, data honesty, the server data boundary, required verification, and what needs explicit approval. Storage modes, the PostgreSQL schema and the nonproduction write command are described in [docs/database.md](docs/database.md).
+
+Beta coverage and agent workflow: [docs/ai-first-beta-scope.md](docs/ai-first-beta-scope.md) and [docs/mobile-agent-playbook.md](docs/mobile-agent-playbook.md).

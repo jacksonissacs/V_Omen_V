@@ -1,0 +1,52 @@
+name: Cloud Agent environment
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.cursor/**'
+      - '.github/workflows/cloud-agent-environment.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cloud-agent-image:
+    name: Cloud Agent image parity
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      IMAGE_NAME: omen-cloud-agent-ci
+      IMAGE_TAG: run-${{ github.run_id }}
+      NEXT_TELEMETRY_DISABLED: '1'
+      OMEN_STORAGE_MODE: demo
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Cloud Agent image from PR revision
+        run: |
+          docker build -f .cursor/Dockerfile -t "${IMAGE_NAME}:${IMAGE_TAG}" .
+          docker image inspect "${IMAGE_NAME}:${IMAGE_TAG}" --format 'image-id={{.Id}}'
+
+      - name: Record image identifier
+        run: docker image inspect "${IMAGE_NAME}:${IMAGE_TAG}" --format '{{.Id}}' | tee cloud-agent-image-id.txt
+
+      - name: Start PostgreSQL, smoke test, and repository checks (inside image)
+        run: |
+          # GHA bind-mounts the checkout as root:root; Cloud Agent runs as ubuntu and needs a writable workspace.
+          docker run --rm \
+            --user root \
+            -v "$PWD:/workspace" \
+            -w /workspace \
+            -e NEXT_TELEMETRY_DISABLED=1 \
+            -e OMEN_STORAGE_MODE=demo \
+            "${IMAGE_NAME}:${IMAGE_TAG}" \
+            bash -c 'chown -R ubuntu:ubuntu /workspace && exec su ubuntu -s /bin/bash /workspace/.cursor/scripts/cloud-agent-ci-verify.sh'
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cloud-agent-image-id
+          path: cloud-agent-image-id.txt
+          if-no-files-found: error

@@ -1,0 +1,11 @@
+{
+  "name": "OMEN V0 — CI parity",
+  "user": "ubuntu",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "install": "bash .cursor/scripts/cloud-agent-install.sh",
+  "start": "bash .cursor/scripts/cloud-agent-start.sh",
+  "chromeExecutablePath": "/usr/bin/chromium"
+}
