@@ -72,10 +72,10 @@ function cardTitles() {
     .map((heading) => heading.textContent)
 }
 
-function rowTitles(container: HTMLElement) {
-  return [...container.querySelectorAll(".aion-event-row .aion-watch-name")].map(
-    (node) => node.textContent,
-  )
+function exploreCardTitles() {
+  return screen
+    .getAllByRole("heading", { level: 2 })
+    .map((heading) => heading.textContent)
 }
 
 afterEach(() => {
@@ -95,15 +95,17 @@ describe("Pulse route", () => {
 
     expect(screen.getByRole("heading", { name: "Pulse", level: 1 })).toBeInTheDocument()
     expect(cardTitles()).toEqual([
-      "Alpha rate decision",
-      "Beta model launch",
-      "Gamma housing lull",
+      "Will Alpha rate decision?",
+      "Will Beta model launch?",
+      "Will Gamma housing lull?",
       "Gamma housing lull",
     ])
+    expect(screen.getByTestId("pulse-count")).toHaveTextContent("Showing 3 of 3 matching · 3 in the book")
     expect(screen.getByText("△ Expected reaction missing")).toBeInTheDocument()
     expect(screen.getByText("Illustrative note. Not a measured relationship.")).toBeInTheDocument()
     expect(screen.queryByRole("link", { name: "View relationship" })).not.toBeInTheDocument()
     expect(screen.queryByText("Bank of Canada cuts rates in October")).not.toBeInTheDocument()
+    expect(screen.queryByText(/since your last visit/i)).not.toBeInTheDocument()
   })
 
   it("sorts, filters by category, searches and narrows to the watchlist", async () => {
@@ -112,14 +114,18 @@ describe("Pulse route", () => {
 
     expect(screen.queryByRole("button", { name: "Most unusual" })).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Unexplained" })).not.toBeInTheDocument()
-    expect(cardTitles()).toEqual(["Alpha rate decision", "Beta model launch", "Gamma housing lull"])
+    expect(cardTitles()).toEqual([
+      "Will Alpha rate decision?",
+      "Will Beta model launch?",
+      "Will Gamma housing lull?",
+    ])
 
     await user.click(screen.getByRole("button", { name: "My watchlist" }))
-    expect(cardTitles()).toEqual(["Beta model launch"])
+    expect(cardTitles()).toEqual(["Will Beta model launch?"])
 
     await user.click(screen.getByRole("button", { name: "Largest move" }))
     await user.click(screen.getByRole("button", { name: "AI" }))
-    expect(cardTitles()).toEqual(["Beta model launch"])
+    expect(cardTitles()).toEqual(["Will Beta model launch?"])
 
     await user.click(screen.getByRole("button", { name: "All" }))
     await user.type(screen.getByRole("textbox", { name: "Search pulse" }), "no such catalyst")
@@ -129,7 +135,7 @@ describe("Pulse route", () => {
   it("links cards to event detail", async () => {
     useRepository(fakeRepository(book))
     await renderRoute(PulsePage())
-    expect(screen.getByRole("link", { name: "Open Alpha rate decision" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Open brief for Will Alpha rate decision?" })).toHaveAttribute(
       "href",
       "/events/evt-alpha",
     )
@@ -150,37 +156,50 @@ describe("Pulse route", () => {
 describe("Events route", () => {
   it("lists repository events and sorts by probability", async () => {
     useRepository(fakeRepository(book))
-    const { user, container } = await renderRoute(EventsPage())
+    const { user } = await renderRoute(EventsPage())
 
-    expect(rowTitles(container)).toEqual(["Alpha rate decision", "Beta model launch", "Gamma housing lull"])
+    expect(exploreCardTitles()).toEqual([
+      "Will Alpha rate decision?",
+      "Will Beta model launch?",
+      "Will Gamma housing lull?",
+    ])
     expect(screen.queryByRole("button", { name: "Significance" })).not.toBeInTheDocument()
-    expect(screen.getByText("3 events in view · 3 in the book")).toBeInTheDocument()
+    expect(screen.getAllByText("3 events in view · 3 in the book").length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByTestId("explore-stream").querySelectorAll('[data-density="book"]')).toHaveLength(3)
 
     await user.click(screen.getByRole("button", { name: "Probability" }))
-    expect(rowTitles(container)).toEqual(["Alpha rate decision", "Gamma housing lull", "Beta model launch"])
+    expect(exploreCardTitles()).toEqual([
+      "Will Alpha rate decision?",
+      "Will Gamma housing lull?",
+      "Will Beta model launch?",
+    ])
 
     await user.click(screen.getByRole("button", { name: "Time" }))
-    expect(rowTitles(container)).toEqual(["Beta model launch", "Gamma housing lull", "Alpha rate decision"])
+    expect(exploreCardTitles()).toEqual([
+      "Will Beta model launch?",
+      "Will Gamma housing lull?",
+      "Will Alpha rate decision?",
+    ])
   })
 
   it("filters by category and search, with an empty state for no matches", async () => {
     useRepository(fakeRepository(book))
-    const { user, container } = await renderRoute(EventsPage())
+    const { user } = await renderRoute(EventsPage())
 
     await user.click(screen.getByRole("button", { name: "AI" }))
-    expect(rowTitles(container)).toEqual(["Beta model launch"])
+    expect(exploreCardTitles()).toEqual(["Will Beta model launch?"])
 
     await user.click(screen.getByRole("button", { name: "All" }))
     await user.type(screen.getByRole("textbox", { name: "Search events" }), "gamma")
-    expect(rowTitles(container)).toEqual(["Gamma housing lull"])
+    expect(exploreCardTitles()).toEqual(["Will Gamma housing lull?"])
 
     await user.clear(screen.getByRole("textbox", { name: "Search events" }))
     await user.type(screen.getByRole("textbox", { name: "Search events" }), "nothing like this")
     expect(screen.getByText("No matching events")).toBeInTheDocument()
-    expect(screen.getByText("0 events in view · 3 in the book")).toBeInTheDocument()
+    expect(screen.getAllByText("0 events in view · 3 in the book").length).toBeGreaterThanOrEqual(1)
   })
 
-  it("follows an event from its row and reflects it on the watchlist state", async () => {
+  it("follows an event from its card and reflects it on the watchlist state", async () => {
     useRepository(fakeRepository(book))
     const { user } = await renderRoute(EventsPage())
 

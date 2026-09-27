@@ -2,7 +2,7 @@ import { formatSignedPp, movementDirection } from "@/lib/domain/scoring"
 
 export function ChangeIndicator({
   change,
-  unit = "pts",
+  unit = "pp",
 }: {
   change: number | null
   unit?: "pts" | "pp" | "pct"
