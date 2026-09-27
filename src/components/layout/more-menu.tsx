@@ -51,7 +51,11 @@ export function MoreMenu({
         <ul>
           {moreNav.map((item) => (
             <li key={item.href}>
-              <Link href={item.href} onClick={onClose}>
+              <Link
+                href={item.href}
+                onClick={onClose}
+                aria-label={`${item.label}: ${item.description}`}
+              >
                 <span className="aion-more-label">{item.label}</span>
                 <span className="aion-more-status">{item.description}</span>
               </Link>
