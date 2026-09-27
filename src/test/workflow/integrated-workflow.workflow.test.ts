@@ -943,12 +943,18 @@ describe("intake review publication and checkpoint stability", () => {
     }
     expect(urlSelectsCheckpoint(page.url(), earlyCheckpoint)).toBe(true)
     await page.waitForFunction(
-      (title) => {
+      (currentTitle, laterTitle) => {
         const panel = document.querySelector("[data-testid='historical-reconstruction']")
-        return panel?.textContent?.includes("Event semantics in this checkpoint") === true && panel.textContent.includes(title)
+        const text = panel?.textContent ?? ""
+        return (
+          text.includes("Event semantics in this checkpoint") &&
+          text.includes(currentTitle) &&
+          !text.includes(laterTitle)
+        )
       },
       { timeout: 20_000 },
       CURRENT_TITLE,
+      LATER_TITLE,
     )
     const archived = await reconstructionText()
     expect(archived).toContain(CURRENT_TITLE)

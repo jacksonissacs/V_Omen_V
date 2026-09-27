@@ -171,6 +171,7 @@ export function ArchiveView({
   const urlEvent = searchParams.get("event")
   const urlCheckpoint = searchParams.get("checkpoint") ?? undefined
   const activeEventId = urlEvent ?? initialEventId ?? events[0]?.id ?? ""
+  const historyLocationRef = useRef({ event: activeEventId, checkpoint: urlCheckpoint })
   const [listEventId, setListEventId] = useState(activeEventId)
   const commitCheckpoints = useCallback(
     (updater: (current: HistoryCheckpointSummary[]) => HistoryCheckpointSummary[]) => {
@@ -402,6 +403,15 @@ export function ArchiveView({
   useEffect(() => {
     activeEventRef.current = activeEventId
   }, [activeEventId])
+
+  useEffect(() => {
+    const previous = historyLocationRef.current
+    if (previous.event === activeEventId && previous.checkpoint === urlCheckpoint) return
+    historyLocationRef.current = { event: activeEventId, checkpoint: urlCheckpoint }
+    loadTokenRef.current += 1
+    setReconstruction(null)
+    setStatusRequestKey("")
+  }, [activeEventId, urlCheckpoint])
 
   const listEventRef = useRef(activeEventId)
   useEffect(() => {

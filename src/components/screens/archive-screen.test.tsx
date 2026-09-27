@@ -113,6 +113,63 @@ describe("ArchiveView", () => {
     expect(screen.queryByText("KEEP_UNTIL_EVENT_CHANGE")).not.toBeInTheDocument()
   })
 
+  it("does not keep a newer checkpoint on screen after navigating to an earlier one", async () => {
+    const pending = new Map<string, ReturnType<typeof deferred<Response>>>()
+    mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a&checkpoint=12"))
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo) => {
+        const url = String(input)
+        const replay = url.match(/\/history\/(\d+)/)
+        if (replay) {
+          const gate = deferred<Response>()
+          pending.set(replay[1]!, gate)
+          return gate.promise
+        }
+        return json({
+          outcome: "checkpoints",
+          eventId: "evt-a",
+          hasMore: false,
+          checkpoints: [summary("12", 2), summary("11", 1)],
+        })
+      }),
+    )
+    const view = render(
+      <ArchiveView
+        {...archiveProps()}
+        initialCheckpoint="12"
+        initialStatus="ok"
+        initialReconstruction={reconstruction("evt-a", "12", "LATER_ONLY")}
+      />,
+    )
+    expect(screen.getByText("LATER_ONLY")).toBeInTheDocument()
+
+    mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a&checkpoint=11"))
+    view.rerender(
+      <ArchiveView
+        {...archiveProps()}
+        initialCheckpoint="12"
+        initialStatus="ok"
+        initialReconstruction={reconstruction("evt-a", "12", "LATER_ONLY")}
+      />,
+    )
+    expect(screen.queryByText("LATER_ONLY")).not.toBeInTheDocument()
+    expect(screen.getByTestId("archive-checkpoint-loading")).toBeInTheDocument()
+
+    await waitFor(() => {
+      expect(pending.has("11")).toBe(true)
+    })
+    pending.get("11")!.resolve(json(replayBody("evt-a", "11", "EARLY_ONLY")))
+    await waitFor(() => {
+      expect(screen.getByText("EARLY_ONLY")).toBeInTheDocument()
+    })
+    if (pending.has("12")) pending.get("12")!.resolve(json(replayBody("evt-a", "12", "LATER_ONLY")))
+    await waitFor(() => {
+      expect(screen.getByText("EARLY_ONLY")).toBeInTheDocument()
+    })
+    expect(screen.queryByText("LATER_ONLY")).not.toBeInTheDocument()
+  })
+
   it("does not keep an earlier checkpoint on screen after a newer selection resolves", async () => {
     const pending = new Map<string, ReturnType<typeof deferred<Response>>>()
     mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a&checkpoint=11"))
