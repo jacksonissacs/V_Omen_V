@@ -47,7 +47,7 @@ The core workspace does not import the mock catalog. Server components and route
 | --- | --- | --- |
 | App | Next.js App Router, TypeScript | One process for UI, routing, and internal APIs. |
 | Styling | Tailwind CSS + shadcn/ui | Fast, consistent primitives; dark monochrome theme. |
-| State | Server data + light client state | Core screens receive repository data as props from server components. Filters, sort, search input, palette, and the follow list are client state. |
+| State | Server data + light client state | Core screens receive repository data as props from server components. Filters, sort, search input and the palette are client state. Following is also written to this browser's `localStorage` (`omen.following.v1`). |
 | Tests | Vitest + Testing Library | Domain logic and UI contracts, no browser farm required. |
 | Data | Typed in-process catalog | Realistic, reviewable fixtures. Zero egress. |
 
@@ -142,7 +142,9 @@ These screens are outside the V0 core boundary and were **not migrated** to the 
 
 `/archive` is labelled as a demo on screen: its date, time and replay controls do not query stored records.
 
-Also demo-only inside migrated screens: the ⌘K "Ask", "Rewind" and "Create" commands (fixed copy and links), and the Pulse card figures that are not computed from records (σ, "Data quality", the explained/unexplained bar). These need to be sourced or removed under the build contract in a later task. The Make a call modal is no longer reachable from any screen.
+Launch navigation is Pulse and Following. Archive is listed with its demo status. Deferred screens stay implemented and appear under **Demo screens**. Research is labelled as not a track record. Following choices are stored in this browser only.
+
+Pulse cards now lead with the question, the recorded change, a short explanation and the evidence on file. They no longer show σ, "Data quality" or the explained bar. The Make a call modal is no longer reachable from any screen.
 
 ## Event detail
 

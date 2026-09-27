@@ -49,8 +49,9 @@ export function EventIntelligenceView({
 
   const inspectEvidence = () => {
     setInspectorTab("Evidence")
-    inspectorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-    inspectorRef.current?.focus({ preventScroll: true })
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+    inspectorRef.current?.scrollIntoView?.({ behavior: reduceMotion ? "auto" : "smooth", block: "start" })
+    inspectorRef.current?.focus?.({ preventScroll: true })
   }
 
   return (
@@ -70,8 +71,8 @@ export function EventIntelligenceView({
           </span>
           {event.resolvesAt ? <span className="aion-chip">Resolves {event.resolvesAt}</span> : null}
         </div>
-        <h1>{event.title}</h1>
-        <p className="aion-event-question">{event.question}</p>
+        <p className="aion-event-kicker">{event.title}</p>
+        <h1 className="aion-event-question">{event.question}</h1>
         {event.resolutionCriteria ? (
           <p className="aion-note" style={{ marginBottom: 14 }}>
             <span className="aion-label">Resolution criteria</span> {event.resolutionCriteria}
@@ -133,7 +134,7 @@ export function EventIntelligenceView({
       </div>
 
       <div className="aion-event-layout">
-        <div>
+        <div className="aion-event-explain">
           <div className="aion-qa-grid">
             <QaCard
               label="What changed?"
@@ -163,7 +164,13 @@ export function EventIntelligenceView({
             />
           </div>
           {event.moveLog ? <MoveLogNote moveLog={event.moveLog} /> : null}
+          <div className="aion-panel">
+            <h2>Why did this move?</h2>
+            <Explanation event={event} change={change} series={headline} />
+          </div>
+        </div>
 
+        <div className="aion-event-history">
           <div className="aion-panel">
             <h2>Recorded probability</h2>
             {charted ? (
@@ -185,12 +192,9 @@ export function EventIntelligenceView({
             <h2>When did this change?</h2>
             <RecordedChronology event={event} series={headline} />
           </div>
+        </div>
 
-          <div className="aion-panel">
-            <h2>Why did this move?</h2>
-            <Explanation event={event} change={change} series={headline} />
-          </div>
-
+        <div className="aion-event-rest">
           <div className="aion-panel">
             <h2>Connected events</h2>
             {related.length === 0 ? (

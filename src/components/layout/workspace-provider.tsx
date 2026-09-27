@@ -7,9 +7,11 @@ import {
   useEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react"
 
+import { peekFollowing, publishFollowing, subscribeFollowing } from "@/lib/following-storage"
 import type { EventSummary } from "@/lib/events"
 import type { AionEvent, Provenance } from "@/types/event"
 
@@ -52,6 +54,8 @@ interface WorkspaceContextValue {
   watchlist: Set<string>
   isWatched: (id: string) => boolean
   toggleWatch: (id: string) => void
+  followingReady: boolean
+  followingPersisted: boolean
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null)
@@ -67,9 +71,14 @@ export function WorkspaceProvider({
   const [collapsed, setCollapsed] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [callEvent, setCallEvent] = useState<AionEvent | null>(null)
-  const [watchlist, setWatchlist] = useState<Set<string>>(
-    () => new Set(followedEventIds),
+  const [followingPersisted, setFollowingPersisted] = useState(true)
+  const followedIds = useSyncExternalStore(
+    subscribeFollowing,
+    () => peekFollowing(followedEventIds),
+    () => followedEventIds,
   )
+  const watchlist = useMemo(() => new Set(followedIds), [followedIds])
+
   const summaryById = useMemo(
     () => new Map(eventIndex.map((summary) => [summary.id, summary])),
     [eventIndex],
@@ -89,14 +98,15 @@ export function WorkspaceProvider({
 
   const isWatched = useCallback((id: string) => watchlist.has(id), [watchlist])
 
-  const toggleWatch = useCallback((id: string) => {
-    setWatchlist((current) => {
-      const next = new Set(current)
+  const toggleWatch = useCallback(
+    (id: string) => {
+      const next = new Set(followedIds)
       if (next.has(id)) next.delete(id)
       else next.add(id)
-      return next
-    })
-  }, [])
+      setFollowingPersisted(publishFollowing([...next]))
+    },
+    [followedIds],
+  )
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -130,6 +140,8 @@ export function WorkspaceProvider({
       watchlist,
       isWatched,
       toggleWatch,
+      followingReady: true,
+      followingPersisted,
     }),
     [
       eventIndex,
@@ -146,6 +158,7 @@ export function WorkspaceProvider({
       watchlist,
       isWatched,
       toggleWatch,
+      followingPersisted,
     ],
   )
 

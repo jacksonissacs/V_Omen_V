@@ -1,33 +1,35 @@
 "use client"
 
 import { Search } from "lucide-react"
+import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 import { useWorkspace } from "@/components/layout/workspace-provider"
-import { routeHeadings } from "@/data/workspace"
+import { archiveNav, demoNav, routeHeadings } from "@/data/workspace"
 
 export function TopBar() {
   const pathname = usePathname()
   const { setPaletteOpen, findEventSummary, storage } = useWorkspace()
   const eventMatch = pathname.match(/^\/events\/([^/]+)$/)
   const event = eventMatch ? findEventSummary(eventMatch[1]) : undefined
-  const heading = event ? event.title : (routeHeadings[pathname] ?? "OMEN")
+  const heading = event ? event.title : (routeHeadings[pathname] ?? (eventMatch ? "Event" : "OMEN"))
   const readsStore = CORE_ROUTE.test(pathname)
+  const demoScreen = [...archiveNav, ...demoNav].find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))
 
   return (
     <header className="aion-topbar">
       <div className="aion-crumb">
-        {event ? (
+        {eventMatch ? (
           <>
-            <span>Events</span>
-            <span>/</span>
-            <span>{event.category}</span>
-            <span>/</span>
+            <Link href="/pulse">Pulse</Link>
+            <span aria-hidden>/</span>
+            {event ? <span>{event.category}</span> : null}
+            {event ? <span aria-hidden>/</span> : null}
           </>
         ) : null}
         <b>{heading}</b>
       </div>
-      {readsStore ? <DataChip /> : <LegacyDemoChip />}
+      {readsStore ? <DataChip /> : <LegacyDemoChip status={demoScreen?.status} />}
       {readsStore && storage === "database" ? (
         <span className="aion-chip" title="Records are read from the configured PostgreSQL database.">
           PostgreSQL
@@ -37,10 +39,10 @@ export function TopBar() {
         type="button"
         className="aion-ask"
         onClick={() => setPaletteOpen(true)}
-        aria-label="Ask OMEN"
+        aria-label="Search events"
       >
-        <Search size={13} />
-        Ask OMEN…
+        <Search size={13} aria-hidden />
+        <span className="aion-ask-label">Search events</span>
         <span className="aion-kbd">⌘K</span>
       </button>
     </header>
@@ -70,7 +72,7 @@ function DataChip() {
   const { shellDataAvailable, provenance } = useWorkspace()
   if (!shellDataAvailable) {
     return (
-      <span className="aion-chip" title="The configured store could not be read. No substitute data is shown.">
+      <span className="aion-chip aion-status-chip" title="The configured store could not be read. No substitute data is shown.">
         <span className="aion-chip-dot" aria-hidden />
         Data unavailable
       </span>
@@ -78,18 +80,21 @@ function DataChip() {
   }
   const chip = PROVENANCE_CHIP[provenance]
   return (
-    <span className={`aion-chip${provenance === "demo" ? " aion-demo-chip" : ""}`} title={chip.title}>
+    <span
+      className={`aion-chip aion-status-chip${provenance === "demo" ? " aion-demo-chip" : ""}`}
+      title={chip.title}
+    >
       <span className="aion-chip-dot" aria-hidden />
       {chip.label}
     </span>
   )
 }
 
-function LegacyDemoChip() {
+function LegacyDemoChip({ status }: { status?: string }) {
   return (
     <span
-      className="aion-chip aion-demo-chip"
-      title="This screen shows illustrative demo content. It does not read the configured store."
+      className="aion-chip aion-demo-chip aion-status-chip"
+      title={status ?? "This screen shows illustrative demo content. It does not read the configured store."}
     >
       <span className="aion-chip-dot" aria-hidden />
       Demo data

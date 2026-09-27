@@ -1,33 +1,58 @@
 import type { LedgerCard, NavItem } from "@/types/workspace"
 
-export const primaryNav: NavItem[] = [
-  { href: "/pulse", label: "Intelligence", icon: "pulse" },
-  { href: "/events", label: "Events", icon: "events" },
-  { href: "/markets", label: "Markets", icon: "markets" },
-  { href: "/signals", label: "Signals", icon: "signals" },
-  { href: "/agents", label: "Agents", icon: "agents" },
-  { href: "/watchlists", label: "Watchlists", icon: "watchlists" },
-  { href: "/research", label: "Research", icon: "research" },
+/** Working launch routes. These are the only primary destinations. */
+export const launchNav: NavItem[] = [
+  { href: "/pulse", label: "Pulse", icon: "pulse" },
+  { href: "/watchlists", label: "Following", icon: "watchlists" },
 ]
 
-export const workspaceNav: NavItem[] = [
-  { href: "/archive", label: "Archive", icon: "archive" },
-  { href: "/relations", label: "Relations", icon: "relations" },
-  { href: "/alerts", label: "Alerts", icon: "alerts" },
+export const archiveNav: NavItem[] = [
+  {
+    href: "/archive",
+    label: "Archive",
+    icon: "archive",
+    demo: true,
+    status: "Demo — does not query stored history",
+  },
 ]
 
-export const footerNav: NavItem[] = [
-  { href: "/research", label: "Alan · 1,847", icon: "research" },
-  { href: "/settings", label: "Settings", icon: "settings" },
+/** Working but not a launch destination. */
+export const bookNav: NavItem[] = [{ href: "/events", label: "Events book", icon: "events" }]
+
+/**
+ * Deferred screens. Implementations stay; they are labelled demos and are not
+ * presented as a track record or as live workspace features.
+ */
+export const demoNav: NavItem[] = [
+  { href: "/markets", label: "Markets", icon: "markets", demo: true, status: "Illustrative demo" },
+  { href: "/signals", label: "Signals", icon: "signals", demo: true, status: "Illustrative demo" },
+  { href: "/agents", label: "Agents", icon: "agents", demo: true, status: "Illustrative demo" },
+  {
+    href: "/research",
+    label: "Research",
+    icon: "research",
+    demo: true,
+    status: "Illustrative demo — not a track record",
+  },
+  { href: "/relations", label: "Relations", icon: "relations", demo: true, status: "Illustrative demo" },
+  { href: "/alerts", label: "Alerts", icon: "alerts", demo: true, status: "Illustrative demo" },
+  { href: "/team", label: "Team", icon: "team", demo: true, status: "Illustrative demo" },
+  { href: "/api-access", label: "API", icon: "api", demo: true, status: "Illustrative demo" },
+  { href: "/settings", label: "Settings", icon: "settings", demo: true, status: "Illustrative demo" },
 ]
+
+/** @deprecated Use launchNav / archiveNav / demoNav. Kept for any leftover imports. */
+export const primaryNav = [...launchNav, ...bookNav]
+export const workspaceNav = archiveNav
+export const footerNav: NavItem[] = []
 
 export const routeHeadings: Record<string, string> = {
   "/pulse": "Pulse",
-  "/events": "Events",
+  "/events": "Events book",
   "/markets": "Markets",
   "/signals": "Signals",
   "/agents": "Agents",
-  "/watchlists": "Watchlists",
+  "/watchlists": "Following",
   "/research": "Research",
   "/archive": "Archive",
   "/relations": "Relations",

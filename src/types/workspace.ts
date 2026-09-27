@@ -30,6 +30,10 @@ export interface NavItem {
     | "settings"
     | "team"
     | "api"
+  /** True when the destination is a labelled demo, not a launch feature. */
+  demo?: boolean
+  /** Short status shown next to demo items. */
+  status?: string
 }
 
 export interface LedgerCard {

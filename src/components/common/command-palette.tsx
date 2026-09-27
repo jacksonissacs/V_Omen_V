@@ -1,14 +1,6 @@
 "use client"
 
-import {
-  Activity,
-  AlarmClock,
-  Braces,
-  Database,
-  History,
-  Search,
-  Sparkles,
-} from "lucide-react"
+import { Activity, History, List, Search } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
 
@@ -33,14 +25,10 @@ export function CommandPalette() {
 
   const items = useMemo(() => {
     const commands = [
-      { section: "Ask", label: "Why did rate-cut odds move today?", href: "/events/evt-boc-cut", icon: Sparkles },
-      { section: "Ask", label: "Which related event normally reacts but hasn't moved?", href: "/relations", icon: Sparkles },
-      { section: "Rewind", label: "Rewind this event to August 17 at 10:35 AM", href: "/archive", icon: History },
-      { section: "Navigate", label: "Intelligence", href: "/pulse", icon: Activity },
-      { section: "Navigate", label: "Events", href: "/events", icon: Activity },
-      { section: "Navigate", label: "Agents", href: "/agents", icon: Database },
-      { section: "Navigate", label: "Your record", href: "/research", icon: Braces },
-      { section: "Create", label: "Alert if BoC October cut exceeds 70%", href: "/alerts", icon: AlarmClock },
+      { section: "Launch", label: "Pulse", href: "/pulse", icon: Activity },
+      { section: "Launch", label: "Following", href: "/watchlists", icon: List },
+      { section: "Launch", label: "Archive (demo)", href: "/archive", icon: History },
+      { section: "Also available", label: "Events book", href: "/events", icon: Activity },
     ]
     const eventHits = eventIndex
       .filter((event) => summaryMatchesQuery(event, query))
@@ -49,7 +37,7 @@ export function CommandPalette() {
         section: "Events",
         label: event.title,
         href: `/events/${event.id}`,
-        icon: Sparkles,
+        icon: Search,
       }))
     const filteredCommands = commands.filter((item) =>
       item.label.toLowerCase().includes(query.toLowerCase()),
@@ -64,15 +52,15 @@ export function CommandPalette() {
       className="aion-overlay"
       onMouseDown={(event) => event.target === event.currentTarget && close()}
     >
-      <div className="aion-palette" role="dialog" aria-modal="true" aria-label="Command palette">
+      <div className="aion-palette" role="dialog" aria-modal="true" aria-label="Search events">
         <label className="aion-palette-input">
-          <Search size={14} color="var(--a-tx-2)" />
+          <Search size={14} color="var(--a-tx-2)" aria-hidden />
           <input
             ref={inputRef}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Ask OMEN, search, navigate, rewind…"
-            aria-label="Ask OMEN"
+            placeholder="Search events or go to Pulse, Following…"
+            aria-label="Search events"
           />
         </label>
         <div className="aion-palette-body">
@@ -90,7 +78,7 @@ export function CommandPalette() {
                       onClick={() => run(item.href)}
                       key={`${item.section}-${item.label}`}
                     >
-                      <Icon size={14} />
+                      <Icon size={14} aria-hidden />
                       {item.label}
                     </button>
                   )
@@ -103,12 +91,12 @@ export function CommandPalette() {
             </div>
           ) : null}
           {items.length === 0 ? (
-            <div className="aion-palette-section">No matching intelligence.</div>
+            <div className="aion-palette-section">No matching events.</div>
           ) : null}
         </div>
         <div className="aion-palette-footer">
           <span>↑↓ navigate</span>
-          <span>↵ run</span>
+          <span>↵ open</span>
           <span>esc close</span>
         </div>
       </div>

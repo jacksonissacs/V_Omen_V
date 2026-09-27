@@ -97,7 +97,7 @@ describe("Pulse route", () => {
       "Gamma housing lull",
       "Gamma housing lull",
     ])
-    expect(screen.getByText("△ Expected reaction missing")).toBeInTheDocument()
+    expect(screen.getByText("Expected reaction missing")).toBeInTheDocument()
     expect(screen.queryByText("Bank of Canada cuts rates in October")).not.toBeInTheDocument()
   })
 
@@ -105,10 +105,9 @@ describe("Pulse route", () => {
     useRepository(fakeRepository(book, { followed: ["evt-beta"] }))
     const { user } = await renderRoute(PulsePage())
 
-    await user.click(screen.getByRole("button", { name: "Most unusual" }))
-    expect(cardTitles()).toEqual(["Beta model launch", "Gamma housing lull", "Alpha rate decision"])
+    expect(cardTitles()).toEqual(["Alpha rate decision", "Beta model launch", "Gamma housing lull"])
 
-    await user.click(screen.getByRole("button", { name: "My watchlist" }))
+    await user.click(screen.getByRole("button", { name: "Followed only" }))
     expect(cardTitles()).toEqual(["Beta model launch"])
 
     await user.click(screen.getByRole("button", { name: "Largest move" }))
@@ -199,7 +198,7 @@ describe("Event detail route", () => {
     mockPathname.mockReturnValue("/events/evt-beta")
     await renderRoute(EventIntelligencePage(params("evt-beta")))
 
-    expect(screen.getByRole("heading", { name: "Beta model launch", level: 1 })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Will Beta model launch?", level: 1 })).toBeInTheDocument()
     const connected = screen.getByRole("heading", { name: "Connected events" }).parentElement!
     const links = within(connected).getAllByRole("link")
     expect(links).toHaveLength(1)
@@ -265,8 +264,8 @@ describe("Watchlists route", () => {
     expect(screen.getByText("Gamma housing lull")).toBeInTheDocument()
     expect(screen.queryByText("Beta model launch")).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole("button", { name: /Gamma housing lull/ }))
-    expect(mockPush).toHaveBeenCalledWith("/events/evt-gamma")
+    await user.click(screen.getByRole("link", { name: /Gamma housing lull/ }))
+    expect(screen.getByRole("link", { name: /Gamma housing lull/ })).toHaveAttribute("href", "/events/evt-gamma")
 
     const [firstUnfollow] = screen.getAllByRole("button", { name: "Unfollow" })
     await user.click(firstUnfollow!)
@@ -282,9 +281,9 @@ describe("Workspace shell", () => {
     useRepository(fakeRepository(book))
     const { user } = await renderRoute(Promise.resolve(<div>child</div>))
 
-    await user.click(screen.getByRole("button", { name: "Ask OMEN" }))
-    await user.type(screen.getByRole("textbox", { name: "Ask OMEN" }), "beta")
-    const palette = screen.getByRole("dialog", { name: "Command palette" })
+    await user.click(screen.getByRole("button", { name: "Search events" }))
+    await user.type(screen.getByRole("textbox", { name: "Search events" }), "beta")
+    const palette = screen.getByRole("dialog", { name: "Search events" })
     expect(within(palette).queryByText("Alpha rate decision")).not.toBeInTheDocument()
     await user.click(within(palette).getByRole("button", { name: "Beta model launch" }))
     expect(mockPush).toHaveBeenCalledWith("/events/evt-beta")
@@ -296,9 +295,9 @@ describe("Workspace shell", () => {
     const { user } = await renderRoute(Promise.resolve(<div>child</div>))
 
     expect(screen.getByText("child")).toBeInTheDocument()
-    await user.click(screen.getByRole("button", { name: "Ask OMEN" }))
+    await user.click(screen.getByRole("button", { name: "Search events" }))
     expect(screen.getByText("Event search is unavailable right now. Navigation still works.")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Events" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Events book" })).toBeInTheDocument()
   })
 })
 

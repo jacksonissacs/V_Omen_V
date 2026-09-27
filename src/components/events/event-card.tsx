@@ -3,12 +3,10 @@
 import Link from "next/link"
 import type { MouseEvent } from "react"
 
-import { Residual } from "@/components/common/residual"
 import { ChangeIndicator } from "@/components/events/change-indicator"
-import { ConfidenceIndicator } from "@/components/events/confidence-indicator"
 import { ProbabilityBadge } from "@/components/events/probability-badge"
-import { SourceBadge } from "@/components/events/source-badge"
 import { useWorkspace } from "@/components/layout/workspace-provider"
+import { formatProbability } from "@/lib/domain/scoring"
 import type { AionEvent } from "@/types/event"
 
 export function EventCard({ event }: { event: AionEvent }) {
@@ -18,6 +16,7 @@ export function EventCard({ event }: { event: AionEvent }) {
     mouseEvent.stopPropagation()
     callback()
   }
+  const lead = event.evidence[0]
 
   return (
     <article className="aion-pulse-card">
@@ -26,53 +25,40 @@ export function EventCard({ event }: { event: AionEvent }) {
       </Link>
       <div className="aion-card-meta">
         <span className="category">{event.category}</span>
-        <span className="aion-mono">{event.displayTime}</span>
-        <SourceBadge tier={event.sourceTier} />
+        {event.provenance === "demo" ? <span className="aion-chip aion-demo-chip">Illustrative</span> : null}
       </div>
+      <p className="aion-card-question">{event.question}</p>
       <h2>{event.title}</h2>
       <div className="aion-card-move">
         <ProbabilityBadge value={event.previousProbability} muted />
-        <span className="aion-card-arrow">→</span>
+        <span className="aion-card-arrow" aria-hidden>
+          →
+        </span>
         <ProbabilityBadge value={event.probability} />
         <div className="aion-card-stats">
-          <span>
-            <ChangeIndicator change={event.change} />
-          </span>
-          <span>
-            <b className="aion-mono">{event.sigma.toFixed(1)}σ</b> move
-          </span>
-          <span>
-            over <b className="aion-mono">{event.duration}</b>
-          </span>
+          <ChangeIndicator change={event.change} unit="pp" />
         </div>
       </div>
       <div className="aion-card-body">
         <div className="aion-card-cause">
-          <span className="aion-label">{event.catalystLabel}</span>
-          <span>{event.catalyst}</span>{" "}
-          <span className="aion-mono aion-label" style={{ display: "inline" }}>
-            {event.catalystTime}
-          </span>
-          <Residual explained={event.explained} />
+          <span className="aion-label">What changed</span>
+          <span>{event.whatChanged}</span>
         </div>
-        <div className="aion-card-confidence">
-          <ConfidenceIndicator value={event.confidence} />
-          <div>
-            <span>Data quality</span>
-            <span>{event.confidence}</span>
-          </div>
-          <div>
-            <span>Historical analogues</span>
-            <span className="aion-mono">n = {event.analogues.length || 1}</span>
-          </div>
+        <div className="aion-card-evidence">
+          <span className="aion-label">Evidence</span>
+          {lead ? (
+            <span>
+              {lead.name}
+              {event.evidence.length > 1 ? ` · ${event.evidence.length} records` : ""}
+            </span>
+          ) : (
+            <span>No evidence recorded</span>
+          )}
         </div>
       </div>
       <div className="aion-card-actions">
-        <Link className="aion-button" data-quiet="true" href={href} onClick={(event) => event.stopPropagation()}>
-          Open event
-        </Link>
-        <Link className="aion-button" data-quiet="true" href={href} onClick={(event) => event.stopPropagation()}>
-          View evidence
+        <Link className="aion-button" data-primary="true" href={href} onClick={(click) => click.stopPropagation()}>
+          Inspect evidence
         </Link>
         <button
           type="button"
@@ -83,6 +69,9 @@ export function EventCard({ event }: { event: AionEvent }) {
         >
           {isWatched(event.id) ? "Following" : "Follow"}
         </button>
+        <span className="aion-card-prob-note aion-mono">
+          {formatProbability(event.previousProbability)} → {formatProbability(event.probability)}
+        </span>
       </div>
     </article>
   )

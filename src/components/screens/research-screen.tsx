@@ -5,6 +5,14 @@ import { forecastHistory } from "@/data/workspace"
 export function ResearchScreen() {
   return (
     <section className="aion-screen">
+      <p className="aion-note aion-demo-note" role="note">
+        <span className="aion-chip aion-demo-chip">
+          <span className="aion-chip-dot" />
+          Demo
+        </span>{" "}
+        This screen is an illustrative layout. The rating, calibration and history figures are not computed from
+        recorded forecasts and are not a track record.
+      </p>
       <div className="aion-rating">
         <div>
           <h1 style={{ fontSize: 17, fontWeight: 550, margin: "0 0 2px" }}>Alan</h1>

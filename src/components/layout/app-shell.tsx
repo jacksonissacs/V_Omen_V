@@ -5,6 +5,7 @@ import type { ReactNode } from "react"
 import { CallModal } from "@/components/common/call-modal"
 import { CommandPalette } from "@/components/common/command-palette"
 import { TopBar } from "@/components/header/top-bar"
+import { MobileNav } from "@/components/layout/mobile-nav"
 import {
   WorkspaceProvider,
   useWorkspace,
@@ -34,6 +35,7 @@ function AppShellFrame({ children }: { children: ReactNode }) {
       <Sidebar />
       <TopBar />
       <main className="aion-main">{children}</main>
+      <MobileNav />
       {paletteOpen ? <CommandPalette /> : null}
       {callEvent ? <CallModal /> : null}
     </div>

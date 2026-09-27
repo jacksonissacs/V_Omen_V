@@ -3,13 +3,13 @@ import { DOMAIN_LABEL, type SearchHit } from "@/lib/domain/types"
 import type { AionEvent } from "@/types/event"
 
 const STATIC_COMMANDS: SearchHit[] = [
-  { id: "cmd-feed", kind: "command", title: "Open intelligence feed", subtitle: "Dashboard", href: "/pulse" },
-  { id: "cmd-events", kind: "command", title: "Open events", subtitle: "Events", href: "/events" },
-  { id: "cmd-markets", kind: "command", title: "Open markets", subtitle: "Markets", href: "/markets" },
-  { id: "cmd-signals", kind: "command", title: "Open signals", subtitle: "Signals", href: "/signals" },
-  { id: "cmd-agents", kind: "command", title: "Open agents", subtitle: "Agents", href: "/agents" },
-  { id: "cmd-watch", kind: "command", title: "Open watchlists", subtitle: "Watchlists", href: "/watchlists" },
-  { id: "cmd-research", kind: "command", title: "Open research", subtitle: "Research", href: "/research" },
+  { id: "cmd-feed", kind: "command", title: "Open Pulse", subtitle: "Launch", href: "/pulse" },
+  { id: "cmd-events", kind: "command", title: "Open events book", subtitle: "Events", href: "/events" },
+  { id: "cmd-markets", kind: "command", title: "Open markets", subtitle: "Demo", href: "/markets" },
+  { id: "cmd-signals", kind: "command", title: "Open signals", subtitle: "Demo", href: "/signals" },
+  { id: "cmd-agents", kind: "command", title: "Open agents", subtitle: "Demo", href: "/agents" },
+  { id: "cmd-watch", kind: "command", title: "Open Following", subtitle: "Launch", href: "/watchlists" },
+  { id: "cmd-research", kind: "command", title: "Open research", subtitle: "Demo — not a track record", href: "/research" },
   { id: "cmd-graph", kind: "command", title: "Open relationship graph", subtitle: "Relations", href: "/relations" },
   { id: "cmd-settings", kind: "command", title: "Open settings", subtitle: "Settings", href: "/settings" },
   { id: "cmd-tech", kind: "command", title: "Filter technology", subtitle: "Domain", href: "/events?category=Technology" },

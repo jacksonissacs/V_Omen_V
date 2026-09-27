@@ -1,68 +1,51 @@
 "use client"
 
-import { useRouter } from "next/navigation"
-import { useMemo } from "react"
+import Link from "next/link"
 
 import { ScreenHead } from "@/components/common/screen-head"
+import { ChangeIndicator } from "@/components/events/change-indicator"
 import { useWorkspace } from "@/components/layout/workspace-provider"
-import { watchlistRows } from "@/lib/watchlist"
+import { formatProbability } from "@/lib/domain/scoring"
 import type { AionEvent } from "@/types/event"
 
 export function WatchlistsScreen({ events }: { events: AionEvent[] }) {
-  const router = useRouter()
-  const { watchlist, toggleWatch } = useWorkspace()
-  const rows = useMemo(
-    () => watchlistRows(events.filter((event) => watchlist.has(event.id))),
-    [events, watchlist],
-  )
+  const { watchlist, toggleWatch, followingPersisted } = useWorkspace()
+  const rows = events.filter((event) => watchlist.has(event.id))
 
   return (
     <section className="aion-screen">
       <ScreenHead
-        title="Watchlists"
-        description="Markets, entities and event classes you follow."
+        title="Following"
+        description="Events you chose to keep. Saved on this device, not synced to an account."
       />
-      <div className="aion-watch-head">
-        <span>Item</span>
-        <span>Current state</span>
-        <span>Largest recent move</span>
-        <span>Last catalyst</span>
-        <span>Next event</span>
-      </div>
+      <p className="aion-note aion-follow-note" data-testid="following-storage-note">
+        {followingPersisted
+          ? "This list is stored in this browser only. Clearing site data or using another device starts from the book's default follows."
+          : "This browser would not save the list (storage is blocked or full). Follows last only until you leave the page."}
+      </p>
       {rows.length === 0 ? (
         <div className="aion-panel" role="status">
           <h2>Nothing followed</h2>
-          <p className="aion-note">Open an event and follow it to pin it here.</p>
+          <p className="aion-note">Open an event and choose Follow. The choice stays on this device.</p>
         </div>
       ) : (
-        rows.map((row) => (
-          <div className="aion-watch-row-wrap" key={row.id}>
-            <button
-              type="button"
-              className="aion-watch-row"
-              onClick={() => router.push(`/events/${row.eventId}`)}
-            >
-              <span>
-                <span className="aion-watch-name">{row.name}</span>
-                <span className="aion-watch-sub">{row.subtitle}</span>
-              </span>
-              <span className="aion-mono">{row.state}</span>
-              <span className={row.move.startsWith("−") || row.move === "No move" ? "aion-down" : "aion-up"}>
-                {row.move}
-              </span>
-              <span>{row.catalyst}</span>
-              <span className="aion-mono">{row.nextEvent}</span>
-            </button>
-            <button
-              type="button"
-              className="aion-button"
-              data-quiet="true"
-              onClick={() => toggleWatch(row.eventId)}
-            >
-              Unfollow
-            </button>
-          </div>
-        ))
+        <ul className="aion-follow-list">
+          {rows.map((event) => (
+            <li className="aion-follow-item" key={event.id}>
+              <Link className="aion-follow-main" href={`/events/${event.id}`}>
+                <span className="aion-watch-name">{event.title}</span>
+                <span className="aion-watch-sub">{event.question}</span>
+                <span className="aion-follow-figures">
+                  <span className="aion-mono">{formatProbability(event.probability)}</span>
+                  <ChangeIndicator change={event.change} unit="pp" />
+                </span>
+              </Link>
+              <button type="button" className="aion-button" data-quiet="true" onClick={() => toggleWatch(event.id)}>
+                Unfollow
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
     </section>
   )

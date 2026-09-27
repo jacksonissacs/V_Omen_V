@@ -63,13 +63,12 @@ This repository is the **Phase 0 foundation**: a local Next.js application over 
 The workspace (`/pulse` and the routes below) is labelled as demo data and uses the OMEN reference
 visual language across routed pages:
 
-- **Pulse** — expectation moves, category filters, search, sort, watchlist
-- **Event intelligence** — recorded probability history with range filtering, observed changes, evidence with publication and capture times, and separate Observed / Interpretation / Still unknown sections
-- **Events / Markets / Signals** — reusable rows, cards, and signal tiles
-- **Agents** — institution and model records
-- **Watchlists** — local follow/unfollow
-- **Archive / Relations / Research** — reference screens, now addressable by URL (Archive is a labelled demo)
-- `⌘K` / `Ctrl+K` — search and navigate
+- **Pulse** — question, recorded change, explanation and evidence, with category filters
+- **Event intelligence** — the same reading order on a shared URL, then the inspectable history
+- **Following** — events kept on this device; not synced to an account
+- **Events book** — the full recorded catalog
+- **Archive / Markets / Signals / Agents / Research / Relations** — kept as labelled demos (Research is not a track record)
+- `⌘K` / `Ctrl+K` — search recorded events and open launch routes
 
 The seeded book contains 32 events across AI, technology, economics, geopolitics, companies, regulation, financial markets, energy, crypto, and science.
 

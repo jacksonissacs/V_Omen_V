@@ -54,7 +54,8 @@ describe("EventIntelligenceView", () => {
     const { event, related } = await loadEvent("evt-boc-cut")
     renderView(event, related)
 
-    expect(screen.getByRole("heading", { name: event.title })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: event.question })).toBeInTheDocument()
+    expect(screen.getByText(event.title)).toBeInTheDocument()
     for (const label of ["What changed?", "When did it change?", "What is this probability?", "What likely caused it?"]) {
       expect(screen.getByText(label)).toBeInTheDocument()
     }

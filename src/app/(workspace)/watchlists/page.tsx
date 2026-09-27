@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 import { WatchlistsScreen } from "@/components/screens/watchlists-screen"
 import { getRepository } from "@/lib/data/repository"
 
-export const metadata: Metadata = { title: "Watchlists" }
+export const metadata: Metadata = { title: "Following" }
 
 export default async function WatchlistsPage() {
   const events = await getRepository().listEvents({ order: "catalog" })
