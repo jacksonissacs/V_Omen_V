@@ -9,7 +9,9 @@ export {
   stageAnalystProposalForReview,
   assertProposalApprovalNotStale,
   proposalIsNotPublishableBundle,
+  analystProposalReviewId,
 } from "./stage"
+export type { StageAnalystProposalArgs, AnalystProposalCandidate } from "./stage"
 export {
   approveAnalystProposal,
   rejectAnalystProposal,
