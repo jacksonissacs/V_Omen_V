@@ -511,7 +511,9 @@ export function ArchiveView({
     historyLocationRef.current = { event: activeEventId, checkpoint: urlCheckpoint }
     loadTokenRef.current += 1
     neighborRequestRef.current += 1
+    olderRequestRef.current += 1
     neighborAbortRef.current?.abort()
+    setLoadingMore(false)
     setReconstruction(null)
     setStatusRequestKey("")
     setNeighborDiscoveryDegraded(false)
@@ -525,6 +527,8 @@ export function ArchiveView({
     checkpointsRef.current = []
     hasMoreRef.current = false
     loadTokenRef.current += 1
+    olderRequestRef.current += 1
+    setLoadingMore(false)
   }, [activeEventId])
 
   useEffect(() => {
@@ -575,6 +579,8 @@ export function ArchiveView({
       commitHasMore(nextDiscoveryHasMore(merged, listed.hasMore, listed))
     } catch (error) {
       if (requestId !== olderRequestRef.current) return
+      if (tokenAtStart !== loadTokenRef.current) return
+      if (activeEventRef.current !== eventId) return
       if (!(error instanceof DOMException && error.name === "AbortError")) {
         setDiscoveryStatus("unavailable")
       }
