@@ -4,7 +4,7 @@ import { EventsScreen } from "@/components/screens/events-screen"
 import { getRepository } from "@/lib/data/repository"
 
 export const metadata: Metadata = {
-  title: "Events",
+  title: "Explore",
 }
 
 export default async function EventsPage() {

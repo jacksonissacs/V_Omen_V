@@ -3,10 +3,10 @@ import { DOMAIN_LABEL, type SearchHit } from "@/lib/domain/types"
 import type { AionEvent } from "@/types/event"
 
 const STATIC_COMMANDS: SearchHit[] = [
-  { id: "cmd-feed", kind: "command", title: "Open intelligence feed", subtitle: "Dashboard", href: "/pulse" },
-  { id: "cmd-events", kind: "command", title: "Open events", subtitle: "Events", href: "/events" },
-  { id: "cmd-watch", kind: "command", title: "Open watchlists", subtitle: "Watchlists", href: "/watchlists" },
-  { id: "cmd-settings", kind: "command", title: "Open settings", subtitle: "Settings", href: "/settings" },
+  { id: "cmd-pulse", kind: "command", title: "Open Pulse", subtitle: "Pulse", href: "/pulse" },
+  { id: "cmd-explore", kind: "command", title: "Open Explore", subtitle: "Explore", href: "/events" },
+  { id: "cmd-following", kind: "command", title: "Open Following", subtitle: "Following", href: "/watchlists" },
+  { id: "cmd-archive", kind: "command", title: "Open Archive", subtitle: "History", href: "/archive" },
 ]
 
 function normalize(value: string): string {

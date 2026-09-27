@@ -20,7 +20,7 @@ export function EventsScreen({ events }: { events: AionEvent[] }) {
   return (
     <section className="aion-screen">
       <ScreenHead
-        title="Events"
+        title="Explore"
         description="The book of questions OMEN is tracking."
       />
       <label className="aion-search-large">
