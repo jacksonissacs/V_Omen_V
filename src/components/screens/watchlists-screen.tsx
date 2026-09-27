@@ -27,7 +27,7 @@ export function WatchlistsScreen({ events }: { events: AionEvent[] }) {
   return (
     <section className="aion-screen">
       <ScreenHead
-        title="Watchlists"
+        title="Following"
         description={`Markets, entities and event classes you follow. ${FOLLOWING_BROWSER_LABEL}`}
       />
       {followingReadWarning ? (

@@ -32,6 +32,13 @@ export interface NavItem {
     | "api"
 }
 
+/** Secondary destinations exposed only through the More menu. */
+export interface MoreNavItem {
+  href: AppRoute | "/"
+  label: string
+  description: string
+}
+
 export interface LedgerCard {
   name: string
   verified: string

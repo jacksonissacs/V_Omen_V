@@ -292,7 +292,7 @@ describe("Workspace shell", () => {
     await user.type(screen.getByRole("textbox", { name: "Search events" }), "beta")
     const palette = screen.getByRole("dialog", { name: "Command palette" })
     expect(within(palette).queryByText("Alpha rate decision")).not.toBeInTheDocument()
-    await user.click(within(palette).getByRole("button", { name: "Beta model launch" }))
+    await user.click(within(palette).getByRole("option", { name: "Beta model launch" }))
     expect(mockPush).toHaveBeenCalledWith("/events/evt-beta")
   })
 
@@ -304,9 +304,10 @@ describe("Workspace shell", () => {
     expect(screen.getByText("child")).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Search" }))
     expect(screen.getByText("Event search is unavailable right now. Navigation still works.")).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "Why did rate-cut odds move today?" })).not.toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "Alert if BoC October cut exceeds 70%" })).not.toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Events" })).toBeInTheDocument()
+    expect(screen.queryByRole("option", { name: "Why did rate-cut odds move today?" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("option", { name: "Alert if BoC October cut exceeds 70%" })).not.toBeInTheDocument()
+    expect(screen.getByRole("option", { name: "Explore" })).toBeInTheDocument()
+    expect(screen.queryByRole("option", { name: "Settings" })).not.toBeInTheDocument()
   })
 })
 

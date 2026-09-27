@@ -1,23 +1,39 @@
-import type { LedgerCard, NavItem } from "@/types/workspace"
+import type { LedgerCard, MoreNavItem, NavItem } from "@/types/workspace"
 
-/** Destinations that read recorded events. Unfinished screens stay routable but are not linked. */
+/** Primary consumer destinations. Unfinished screens stay routable but are not linked. */
 export const primaryNav: NavItem[] = [
-  { href: "/pulse", label: "Intelligence", icon: "pulse" },
-  { href: "/events", label: "Events", icon: "events" },
-  { href: "/watchlists", label: "Watchlists", icon: "watchlists" },
+  { href: "/pulse", label: "Pulse", icon: "pulse" },
+  { href: "/events", label: "Explore", icon: "events" },
+  { href: "/watchlists", label: "Following", icon: "watchlists" },
 ]
 
-export const workspaceNav: NavItem[] = [{ href: "/archive", label: "Archive", icon: "archive" }]
+/** Destinations offered only through the More menu — not primary chrome. */
+export const moreNav: MoreNavItem[] = [
+  {
+    href: "/archive",
+    label: "Archive",
+    description: "Recorded checkpoint replay for events in the book.",
+  },
+  {
+    href: "/",
+    label: "Public OMEN page",
+    description: "The public marketing page for OMEN.",
+  },
+]
 
-export const footerNav: NavItem[] = [{ href: "/settings", label: "Settings", icon: "settings" }]
+/** @deprecated Empty — Archive and Settings are no longer primary chrome. */
+export const workspaceNav: NavItem[] = []
+
+/** @deprecated Empty — Settings is unpromoted until controls match real behavior. */
+export const footerNav: NavItem[] = []
 
 export const routeHeadings: Record<string, string> = {
   "/pulse": "Pulse",
-  "/events": "Events",
+  "/events": "Explore",
   "/markets": "Markets",
   "/signals": "Signals",
   "/agents": "Agents",
-  "/watchlists": "Watchlists",
+  "/watchlists": "Following",
   "/research": "Research",
   "/archive": "Archive",
   "/relations": "Relations",
