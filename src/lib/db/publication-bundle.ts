@@ -50,11 +50,21 @@ export interface SourceCaptureRecord {
 
 export type ReviewStance = "supports" | "contradicts" | "contextual"
 
+/** Staged analyst draft. Not a publishable evidence/Move Log bundle. */
+export type AnalystProposalReviewPayload = {
+  kind: "analyst_proposal"
+  proposalId: string
+  contentIdentity: string
+  inputContentIdentity: string
+  proposal: unknown
+}
+
 export type SourceReviewCandidate =
   | { kind: "evidence"; evidence: EvidenceInput }
   | { kind: "move_log"; moveLog: AuthoredMoveLogDraft }
   | { kind: "bundle"; bundle: EventBundle }
   | { kind: "source_capture"; capture: SourceCaptureRecord }
+  | AnalystProposalReviewPayload
 
 const SOURCE_NAMES: Record<string, string> = {
   "cisa-kev": "CISA Known Exploited Vulnerabilities",
@@ -168,6 +178,11 @@ export function evidenceFromSourceCapture(
 }
 
 export function candidateToBundle(candidate: SourceReviewCandidate, eventId: string): EventBundle {
+  if (candidate.kind === "analyst_proposal") {
+    throw new PublicationValidationError(
+      "Analyst proposals are not published through this path. Convert an approved proposal into an authored Move Log or evidence candidate, then publish with an idempotency key.",
+    )
+  }
   if (candidate.kind === "source_capture") {
     throw new PublicationValidationError(
       "A source capture stays unpublished until review records stance and reliability.",
@@ -214,6 +229,8 @@ export function parseStageSourceReviewInput(input: unknown): StageSourceReviewIn
     throw new PublicationValidationError(
       "Import a file-queue capture with operator intake import. intake stage does not accept source_capture.",
     )
+  } else if (kind === "analyst_proposal") {
+    candidate = parseAnalystProposalCandidate(candidateObj)
   } else if (kind === "evidence") {
     const bundle = parseEventBundle({ eventId, evidence: [candidateObj.evidence] })
     candidate = { kind: "evidence", evidence: bundle.evidence[0]! }
@@ -222,9 +239,35 @@ export function parseStageSourceReviewInput(input: unknown): StageSourceReviewIn
   } else if (kind === "bundle") {
     candidate = { kind: "bundle", bundle: parseEventBundle(candidateObj.bundle) }
   } else {
-    throw new PublicationValidationError('candidate.kind must be "evidence", "move_log", or "bundle".')
+    throw new PublicationValidationError(
+      'candidate.kind must be "evidence", "move_log", "bundle", or "analyst_proposal".',
+    )
   }
   return { id, eventId, stagedBy, ...(intakeNote ? { intakeNote } : {}), candidate }
+}
+
+function parseAnalystProposalCandidate(raw: Record<string, unknown>): AnalystProposalReviewPayload {
+  const proposalId = typeof raw.proposalId === "string" ? raw.proposalId.trim() : ""
+  const contentIdentity = typeof raw.contentIdentity === "string" ? raw.contentIdentity.trim() : ""
+  const inputContentIdentity =
+    typeof raw.inputContentIdentity === "string" ? raw.inputContentIdentity.trim() : ""
+  assertId(proposalId, "proposalId")
+  if (!/^[a-f0-9]{64}$/.test(contentIdentity)) {
+    throw new PublicationValidationError("analyst_proposal.contentIdentity must be a sha256 hex digest.")
+  }
+  if (!/^[a-f0-9]{64}$/.test(inputContentIdentity)) {
+    throw new PublicationValidationError("analyst_proposal.inputContentIdentity must be a sha256 hex digest.")
+  }
+  if (typeof raw.proposal !== "object" || raw.proposal === null) {
+    throw new PublicationValidationError("analyst_proposal.proposal must be an object.")
+  }
+  return {
+    kind: "analyst_proposal",
+    proposalId,
+    contentIdentity,
+    inputContentIdentity,
+    proposal: raw.proposal,
+  }
 }
 
 function parseAuthoredMoveLogDraft(input: unknown): AuthoredMoveLogDraft {
@@ -324,6 +367,11 @@ export async function buildBundleFromReviewPayload(
   eventId: string,
   candidate: SourceReviewCandidate,
 ): Promise<EventBundle> {
+  if (candidate.kind === "analyst_proposal") {
+    throw new PublicationValidationError(
+      "Analyst proposals cannot be published as bundles. Stage a Move Log or evidence candidate after human editing.",
+    )
+  }
   if (candidate.kind === "move_log" && candidate.moveLog.version === undefined) {
     const version = await resolveMoveLogVersion(client, candidate.moveLog)
     return candidateToBundle({ kind: "move_log", moveLog: { ...candidate.moveLog, version } }, eventId)

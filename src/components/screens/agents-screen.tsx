@@ -17,8 +17,11 @@ export function AgentsScreen() {
     <section className="aion-screen">
       <ScreenHead
         title="Agents"
-        description="Who predicted what, when they predicted it, and how accurate they were."
+        description="Illustrative forecaster and model ledger. Runtime calibration, verification, and ranking are not available on this screen."
       />
+      <p className="aion-note" role="note" data-testid="agents-illustrative-banner">
+        Illustrative demo figures only. Not computed from OMEN runtime evaluations.
+      </p>
       <label className="aion-search-large">
         <input
           value={query}
@@ -33,19 +36,19 @@ export function AgentsScreen() {
             <div className="aion-ledger-title">
               <h2>{card.name}</h2>
               <span className="aion-verified">
-                <ShieldCheck size={11} style={{ display: "inline" }} /> {card.verified}
+                <ShieldCheck size={11} style={{ display: "inline" }} /> Illustrative · {card.verified}
               </span>
             </div>
             <div className="aion-ledger-kv">
-              <span>Overall calibration</span>
+              <span>Overall calibration (illustrative)</span>
               <span className="aion-mono">{card.calibration}</span>
-              <span>Forecasts scored</span>
+              <span>Forecasts scored (illustrative)</span>
               <span className="aion-mono">{card.forecasts}</span>
-              <span>Coverage</span>
+              <span>Coverage (illustrative)</span>
               <span className="aion-mono">{card.coverage}</span>
-              <span>Best category</span>
+              <span>Best category (illustrative)</span>
               <span>{card.best}</span>
-              <span>Weakest category</span>
+              <span>Weakest category (illustrative)</span>
               <span>{card.weakest}</span>
             </div>
             <div style={{ color: "var(--a-accent)", fontSize: 12, marginTop: 12 }}>
@@ -55,12 +58,14 @@ export function AgentsScreen() {
         ))}
       </div>
       <div className="aion-panel">
-        <h2>Forecast model rankings</h2>
+        <h2>Forecast model rankings (illustrative)</h2>
         <DataTable
           headings={["Model", "Calibration", "Brier", "Coverage", "30D", "90D", "1Y"]}
           rows={modelRankings}
         />
-        <p className="aion-note">Scores computed on identical resolved questions.</p>
+        <p className="aion-note">
+          Illustrative table only. These scores are not computed on identical resolved questions in this build.
+        </p>
       </div>
     </section>
   )

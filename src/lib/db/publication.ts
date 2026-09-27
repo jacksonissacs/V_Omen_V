@@ -276,6 +276,11 @@ export async function retryPublicationOperation(
 }
 
 async function bundleForApprovedItem(client: ClientBase, item: SourceReviewItem): Promise<EventBundle> {
+  if (item.payload.kind === "analyst_proposal") {
+    throw new PublicationValidationError(
+      "Analyst proposals are not published through publishApprovedReviewItem. Convert to an authored Move Log or evidence candidate after human review.",
+    )
+  }
   if (item.payload.kind === "source_capture") {
     if (!item.reviewStance || item.reviewReliability == null || !item.reviewedBy) {
       throw new PublicationValidationError(

@@ -102,6 +102,7 @@ npm run intake:check  # external CISA KEV smoke check; separate from test:workfl
 npm run db:migrate | db:status | db:upsert | db:show   # nonproduction database command
 npm run intake -- refresh   # manual CISA KEV review queue; see docs/source-intake.md
 npm run operator -- intake import --queue <queue.json> --item <id> --by "<name>"
+npm run analyst -- propose --event <id> --evidence <id>[,<id>...] --provider test  # synthetic draft; see docs/analyst-proposals.md
 ```
 
 ### Internal API
