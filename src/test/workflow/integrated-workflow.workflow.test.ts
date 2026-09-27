@@ -53,8 +53,10 @@ const SOURCED = path.join(FIXTURES, "evt-sourced.json")
 const LATE = path.join(FIXTURES, "evt-late.json")
 
 const CURRENT_TITLE = "[SYNTHETIC TEST] Example agency publishes the 2026 bulletin"
+const CURRENT_QUESTION = "Will the example agency publish the 2026 bulletin before 1 December 2026?"
 const LATER_TITLE = "[SYNTHETIC TEST] Example agency published the 2026 bulletin (updated)"
 const SINGLE_TITLE = "[SYNTHETIC TEST] Single observation event"
+const SINGLE_QUESTION = "Will the synthetic single-observation case stay without a computed change?"
 const LATE_TITLE = "[SYNTHETIC TEST] Late commit subject"
 const DEMO_TITLE = "Bank of Canada cuts rates in October"
 const INTAKE_ID = "cisa-kev-cve-2026-9001-v1"
@@ -418,8 +420,8 @@ describe("production rendered content", () => {
     expect(status).toBe(200)
     const html = visibleHtml(text)
     expect(html).toContain("Pulse")
-    expect(html).toContain(CURRENT_TITLE)
-    expect(html).toContain(SINGLE_TITLE)
+    expect(html).toContain(CURRENT_QUESTION)
+    expect(html).toContain(SINGLE_QUESTION)
     expect(html).toContain("PostgreSQL")
     expect(html).toContain("Demo + sourced data")
     expect(html).not.toContain(DEMO_TITLE)
@@ -468,14 +470,14 @@ describe("browser workspace", () => {
     await clickThrough(page, "a.btn-primary")
     expect(page.url()).toMatch(/\/pulse$/)
     const text = await bodyText(page)
-    expect(text).toContain(CURRENT_TITLE)
+    expect(text).toContain(CURRENT_QUESTION)
     expect(text).not.toContain(DEMO_TITLE)
     await saveScreenshot(page, "01_pulse")
   })
 
   it("opens event evidence and the published Move Log from the card", async () => {
     await gotoWorkspacePath(page, server.url, "/pulse")
-    await clickThrough(page, `a[aria-label="Open ${CURRENT_TITLE}"]`)
+    await clickThrough(page, `a[aria-label="Open brief for ${CURRENT_QUESTION}"]`)
     expect(page.url()).toMatch(/\/events\/evt-test-temporal$/)
     await page.click("button[data-primary='true']")
     const evidence = await page.evaluate(() => document.querySelector("#event-evidence")?.textContent ?? "")
@@ -722,7 +724,7 @@ describe("browser workspace", () => {
   it("honours browser back and forward across the workflow", async () => {
     await gotoMarketingHome(page, server.url)
     await clickThrough(page, "a.btn-primary")
-    await clickThrough(page, `a[aria-label="Open ${SINGLE_TITLE}"]`)
+    await clickThrough(page, `a[aria-label="Open brief for ${SINGLE_QUESTION}"]`)
     expect(page.url()).toMatch(/\/events\/evt-test-single$/)
 
     await page.goBack({ waitUntil: "domcontentloaded" })
