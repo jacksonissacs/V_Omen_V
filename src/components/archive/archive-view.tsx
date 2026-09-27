@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react"
 
 import { Field } from "@/components/common/field"
 import { ScreenHead } from "@/components/common/screen-head"
@@ -505,13 +505,15 @@ export function ArchiveView({
     activeEventRef.current = activeEventId
   }, [activeEventId])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const previous = historyLocationRef.current
     if (previous.event === activeEventId && previous.checkpoint === urlCheckpoint) return
     historyLocationRef.current = { event: activeEventId, checkpoint: urlCheckpoint }
     loadTokenRef.current += 1
     neighborRequestRef.current += 1
+    olderRequestRef.current += 1
     neighborAbortRef.current?.abort()
+    setLoadingMore(false)
     setReconstruction(null)
     setStatusRequestKey("")
     setNeighborDiscoveryDegraded(false)
@@ -525,6 +527,8 @@ export function ArchiveView({
     checkpointsRef.current = []
     hasMoreRef.current = false
     loadTokenRef.current += 1
+    olderRequestRef.current += 1
+    setLoadingMore(false)
   }, [activeEventId])
 
   useEffect(() => {
@@ -575,6 +579,8 @@ export function ArchiveView({
       commitHasMore(nextDiscoveryHasMore(merged, listed.hasMore, listed))
     } catch (error) {
       if (requestId !== olderRequestRef.current) return
+      if (tokenAtStart !== loadTokenRef.current) return
+      if (activeEventRef.current !== eventId) return
       if (!(error instanceof DOMException && error.name === "AbortError")) {
         setDiscoveryStatus("unavailable")
       }

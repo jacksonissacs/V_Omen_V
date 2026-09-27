@@ -24,6 +24,7 @@ async function ArchivePageContent({
 
   return (
     <ArchiveView
+      key={`${loaded.initialEventId ?? ""}:${loaded.initialCheckpoint ?? ""}`}
       events={loaded.events}
       storage={loaded.storage}
       provenance={loaded.provenance}

@@ -607,6 +607,215 @@ describe("archive checkpoint navigation", () => {
     expect(screen.queryByTestId("archive-neighbor-retry")).not.toBeInTheDocument()
   })
 
+  describe("load older pagination stale failure handling", () => {
+    it("ignores a stale older-page rejection after the operator changes events", async () => {
+      const older = deferred<Response>()
+      mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a"))
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (input: RequestInfo) => {
+          const url = String(input)
+          if (url.includes("beforeSequence=20")) return older.promise
+          if (url.includes("/api/events/evt-b/")) {
+            return json({
+              outcome: "checkpoints",
+              eventId: "evt-b",
+              hasMore: false,
+              checkpoints: [summary("id-2001", 1)],
+            })
+          }
+          return json({
+            outcome: "checkpoints",
+            eventId: "evt-a",
+            hasMore: true,
+            checkpoints: [summary("id-1020", 20)],
+          })
+        }),
+      )
+      const user = userEvent.setup()
+      const view = render(<ArchiveView {...archiveProps()} />)
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /id id-1020/ })).toBeInTheDocument()
+      })
+      await user.click(screen.getByRole("button", { name: "Load older checkpoints" }))
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "Loading older checkpoints…" })).toBeDisabled()
+      })
+
+      mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-b"))
+      view.rerender(<ArchiveView {...archiveProps()} />)
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /id id-2001/ })).toBeInTheDocument()
+      })
+      expect(screen.queryByTestId("archive-unavailable")).not.toBeInTheDocument()
+
+      older.reject(new Error("stale older-page failure"))
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /id id-2001/ })).toBeInTheDocument()
+      })
+      expect(screen.queryByTestId("archive-unavailable")).not.toBeInTheDocument()
+      expect(screen.queryByRole("button", { name: /id id-stale-page/ })).not.toBeInTheDocument()
+    })
+
+    it("ignores a stale older-page rejection after the checkpoint changes within one event", async () => {
+      const older = deferred<Response>()
+      mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a"))
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (input: RequestInfo) => {
+          const url = String(input)
+          if (url.includes("beforeSequence=11")) return older.promise
+          if (url.includes(`/history/${checkpointId(5)}`)) {
+            return json(replayAt("evt-a", checkpointId(5), 5, "TITLE_5"))
+          }
+          if (url.includes("/history?")) {
+            return json(listedPage(COUNT))
+          }
+          throw new Error(url)
+        }),
+      )
+      const user = userEvent.setup()
+      const view = render(<ArchiveView {...archiveProps()} />)
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /id id-1020/ })).toBeInTheDocument()
+      })
+      await user.click(screen.getByRole("button", { name: "Load older checkpoints" }))
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "Loading older checkpoints…" })).toBeDisabled()
+      })
+
+      mockSearchParams.mockReturnValue(new URLSearchParams(`event=evt-a&checkpoint=${checkpointId(5)}`))
+      view.rerender(<ArchiveView {...archiveProps()} />)
+      await waitFor(() => {
+        expect(screen.getByText("TITLE_5")).toBeInTheDocument()
+      })
+      expect(screen.queryByTestId("archive-unavailable")).not.toBeInTheDocument()
+
+      older.reject(new Error("stale older-page failure"))
+      await waitFor(() => {
+        expect(screen.getByText("TITLE_5")).toBeInTheDocument()
+      })
+      expect(screen.queryByTestId("archive-unavailable")).not.toBeInTheDocument()
+      expect(listedSequences()).toEqual(expect.arrayContaining([30, 11, 5]))
+    })
+
+    it("does not let a superseded older-page completion clear a newer load", async () => {
+      const first = deferred<Response>()
+      const second = deferred<Response>()
+      let manualPage: "first" | "second" | null = null
+      mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a"))
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (input: RequestInfo) => {
+          const url = String(input)
+          if (url.includes("beforeSequence=20") && manualPage !== null) {
+            if (manualPage === "first") return first.promise
+            return second.promise
+          }
+          if (url.includes("/api/events/evt-b/")) {
+            return json({
+              outcome: "checkpoints",
+              eventId: "evt-b",
+              hasMore: false,
+              checkpoints: [summary("id-2001", 1)],
+            })
+          }
+          return json({
+            outcome: "checkpoints",
+            eventId: "evt-a",
+            hasMore: true,
+            checkpoints: [summary("id-1020", 20)],
+          })
+        }),
+      )
+      const user = userEvent.setup()
+      const view = render(<ArchiveView {...archiveProps()} />)
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /id id-1020/ })).toBeInTheDocument()
+        expect(screen.getByRole("button", { name: "Load older checkpoints" })).toBeEnabled()
+      })
+      manualPage = "first"
+      await user.click(screen.getByRole("button", { name: "Load older checkpoints" }))
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "Loading older checkpoints…" })).toBeDisabled()
+      })
+
+      mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-b"))
+      view.rerender(<ArchiveView {...archiveProps()} />)
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /id id-2001/ })).toBeInTheDocument()
+      })
+
+      mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a"))
+      view.rerender(<ArchiveView {...archiveProps()} />)
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /id id-1020/ })).toBeInTheDocument()
+        expect(screen.getByRole("button", { name: "Load older checkpoints" })).toBeEnabled()
+      })
+
+      manualPage = "second"
+      await user.click(screen.getByRole("button", { name: "Load older checkpoints" }))
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "Loading older checkpoints…" })).toBeDisabled()
+      })
+
+      first.resolve(
+        json({
+          outcome: "checkpoints",
+          eventId: "evt-a",
+          hasMore: false,
+          checkpoints: [summary("id-stale-page", 1)],
+        }),
+      )
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "Loading older checkpoints…" })).toBeDisabled()
+      })
+      expect(screen.queryByRole("button", { name: /id id-stale-page/ })).not.toBeInTheDocument()
+
+      second.resolve(
+        json({
+          outcome: "checkpoints",
+          eventId: "evt-a",
+          hasMore: false,
+          checkpoints: [summary("id-current-page", 1)],
+        }),
+      )
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /id id-current-page/ })).toBeInTheDocument()
+      })
+      expect(screen.queryByRole("button", { name: "Loading older checkpoints…" })).not.toBeInTheDocument()
+      expect(screen.queryByRole("button", { name: /id id-stale-page/ })).not.toBeInTheDocument()
+    })
+
+    it("shows list failure when the current older-page request rejects", async () => {
+      mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a"))
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (input: RequestInfo) => {
+          const url = String(input)
+          if (url.includes("beforeSequence=20")) throw new Error("older page unavailable")
+          return json({
+            outcome: "checkpoints",
+            eventId: "evt-a",
+            hasMore: true,
+            checkpoints: [summary("id-1020", 20)],
+          })
+        }),
+      )
+      const user = userEvent.setup()
+      render(<ArchiveView {...archiveProps()} />)
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /id id-1020/ })).toBeInTheDocument()
+      })
+      await user.click(screen.getByRole("button", { name: "Load older checkpoints" }))
+      await waitFor(() => {
+        expect(screen.getByTestId("archive-unavailable")).toHaveTextContent("The checkpoint list could not be loaded.")
+      })
+      expect(screen.getByRole("button", { name: /id id-1020/ })).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: "Load older checkpoints" })).toBeEnabled()
+    })
+  })
+
   it("disables sequence steps on a gapped first paint", () => {
     mockSearchParams.mockReturnValue(new URLSearchParams(`event=evt-a&checkpoint=${checkpointId(5)}`))
     const html = renderToStaticMarkup(
