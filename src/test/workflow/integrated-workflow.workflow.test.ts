@@ -208,26 +208,42 @@ async function reconstructionText(): Promise<string> {
 
 async function archiveReconstructionText(target: Page): Promise<string> {
   return target.evaluate(() => {
-    const headings = [...document.querySelectorAll("h2")].filter((node) =>
+    const checkpointId = new URL(window.location.href).searchParams.get("checkpoint")
+    const panels = [...document.querySelectorAll("[data-testid='historical-reconstruction']")]
+    const panel =
+      panels.length === 1
+        ? panels[0]
+        : panels.find((node) => checkpointId && (node.textContent ?? "").includes(`id ${checkpointId}`)) ?? null
+    const root = panel ?? document.body
+    const headings = [...root.querySelectorAll("h2")].filter((node) =>
       /semantics|Evidence in this checkpoint|Move Log revisions in this checkpoint|Observations in this checkpoint|Headline probability/i.test(
         node.textContent ?? "",
       ),
     )
-    if (headings.length === 0) return document.body.innerText
+    if (headings.length === 0) return (root as HTMLElement).innerText
     return headings.map((heading) => heading.parentElement?.innerText ?? "").join("\n")
   })
 }
 
-async function waitForArchiveCheckpoint(target: Page, checkpointId: string, marker: string): Promise<void> {
+async function waitForArchiveCheckpoint(
+  target: Page,
+  checkpointId: string,
+  marker: string,
+  excludedMarkers: string[] = [],
+): Promise<void> {
   await target.waitForFunction(
-    (id, note) => {
-      const panel = document.querySelector("[data-testid='historical-reconstruction']")
-      const text = panel?.textContent ?? ""
-      return new URL(window.location.href).searchParams.get("checkpoint") === id && text.includes(`id ${id}`) && text.includes(note)
+    (id, note, excluded) => {
+      const panels = [...document.querySelectorAll("[data-testid='historical-reconstruction']")]
+      if (panels.length !== 1) return false
+      const text = panels[0]!.textContent ?? ""
+      if (new URL(window.location.href).searchParams.get("checkpoint") !== id) return false
+      if (!text.includes(`id ${id}`) || !text.includes(note)) return false
+      return excluded.every((item) => !text.includes(item))
     },
     { timeout: 20_000 },
     checkpointId,
     marker,
+    excludedMarkers,
   )
 }
 
@@ -1109,7 +1125,7 @@ describe("intake review publication and checkpoint stability", () => {
 
       await clickArchiveControl(fresh, "Previous checkpoint")
       expect(new URL(fresh.url()).searchParams.get("checkpoint")).toBe(older.id)
-      await waitForArchiveCheckpoint(fresh, older.id, marker(older.sequence))
+      await waitForArchiveCheckpoint(fresh, older.id, marker(older.sequence), [marker(selected.sequence)])
       expect(await archiveReconstructionText(fresh)).not.toContain(marker(selected.sequence))
 
       await clickArchiveControl(fresh, "Next checkpoint")

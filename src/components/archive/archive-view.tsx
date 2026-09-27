@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react"
 
 import { Field } from "@/components/common/field"
 import { ScreenHead } from "@/components/common/screen-head"
@@ -505,7 +505,7 @@ export function ArchiveView({
     activeEventRef.current = activeEventId
   }, [activeEventId])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const previous = historyLocationRef.current
     if (previous.event === activeEventId && previous.checkpoint === urlCheckpoint) return
     historyLocationRef.current = { event: activeEventId, checkpoint: urlCheckpoint }
