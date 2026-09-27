@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react"
 
 import { ScreenHead } from "@/components/common/screen-head"
-import { EventRow } from "@/components/events/event-row"
+import { EventCard } from "@/components/events/event-card"
 import { filterEvents, sortEvents } from "@/lib/events"
 import { EVENT_CATEGORIES, type AionEvent, type EventCategory, type EventSort } from "@/types/event"
 
@@ -21,8 +21,11 @@ export function EventsScreen({ events }: { events: AionEvent[] }) {
     <section className="aion-screen">
       <ScreenHead
         title="Explore"
-        description="The book of questions OMEN is tracking."
+        description="The full book of questions OMEN is tracking — broader than Pulse."
       />
+      <p className="aion-note aion-surface-count" data-testid="explore-count" role="status">
+        {visible.length} events in view · {events.length} in the book
+      </p>
       <label className="aion-search-large">
         <input
           value={query}
@@ -62,16 +65,9 @@ export function EventsScreen({ events }: { events: AionEvent[] }) {
           </button>
         ))}
       </div>
-      <div className="aion-event-list">
-        <div className="aion-event-list-head">
-          <span>Event</span>
-          <span>Probability</span>
-          <span>Change</span>
-          <span>Source</span>
-          <span />
-        </div>
+      <div className="aion-pulse-stream aion-explore-stream" data-testid="explore-stream">
         {visible.map((event) => (
-          <EventRow key={event.id} event={event} />
+          <EventCard key={event.id} event={event} density="book" />
         ))}
         {visible.length === 0 ? (
           <div className="aion-panel" role="status">
@@ -84,7 +80,9 @@ export function EventsScreen({ events }: { events: AionEvent[] }) {
           </div>
         ) : null}
       </div>
-      <p className="aion-note">{visible.length} events in view · {events.length} in the book</p>
+      <p className="aion-note" data-testid="explore-count-footer">
+        {visible.length} events in view · {events.length} in the book
+      </p>
     </section>
   )
 }

@@ -5,8 +5,8 @@ import { useMemo, useState } from "react"
 
 import { ScreenHead } from "@/components/common/screen-head"
 import { EventCard } from "@/components/events/event-card"
-import { filterEvents, sortEvents } from "@/lib/events"
 import { useWorkspace } from "@/components/layout/workspace-provider"
+import { capPulseEvents, filterEvents, orderPulseEvents, PULSE_SCAN_LIMIT } from "@/lib/events"
 import { EVENT_CATEGORIES, type AionEvent, type EventCategory } from "@/types/event"
 
 const SORTS: { label: string; value: "change" | "watchlist" }[] = [
@@ -26,20 +26,28 @@ export function PulseScreen({
   const [sort, setSort] = useState<(typeof SORTS)[number]["value"]>("change")
   const [query, setQuery] = useState("")
 
-  const visible = useMemo(() => {
-    const filtered = filterEvents(events, {
-      category,
-      query,
-      watchlist,
-      watchlistOnly: sort === "watchlist",
-    })
-    return sortEvents(filtered, sort === "watchlist" ? "change" : sort).slice(0, 12)
-  }, [events, category, query, sort, watchlist])
+  const filtered = useMemo(
+    () =>
+      filterEvents(events, {
+        category,
+        query,
+        watchlist,
+        watchlistOnly: sort === "watchlist",
+      }),
+    [events, category, query, sort, watchlist],
+  )
+
+  const ordered = useMemo(() => orderPulseEvents(filtered), [filtered])
+  const visible = useMemo(() => capPulseEvents(ordered), [ordered])
+  const capped = ordered.length > visible.length
 
   if (events.length === 0) {
     return (
       <section className="aion-screen">
-        <ScreenHead title="Pulse" description="What changed in the world's expectations." />
+        <ScreenHead
+          title="Pulse"
+          description="A high-signal scan of recorded moves — not the full book, and not personalized."
+        />
         <div className="aion-panel" role="status">
           <h2>No events in the book yet</h2>
           <p className="aion-note">Expectation moves appear here once events are recorded.</p>
@@ -52,8 +60,24 @@ export function PulseScreen({
     <section className="aion-screen">
       <ScreenHead
         title="Pulse"
-        description="What changed in the world's expectations."
+        description="Events worth scanning right now: largest recorded moves first. Not a recommendation engine."
       />
+      <p className="aion-note aion-surface-count" data-testid="pulse-count" role="status">
+        Showing {visible.length} of {filtered.length} matching · {events.length} in the book
+        {capped ? (
+          <>
+            {" "}
+            · capped at {PULSE_SCAN_LIMIT}.{" "}
+            <Link href="/events">Open Explore for the full book</Link>
+          </>
+        ) : (
+          <>
+            {" "}
+            · ordered by largest recorded move.{" "}
+            <Link href="/events">Browse Explore</Link>
+          </>
+        )}
+      </p>
       <label className="aion-search-large" style={{ marginBottom: 16 }}>
         <input
           value={query}
@@ -94,7 +118,7 @@ export function PulseScreen({
             <p className="aion-note">Clear filters or search a different catalyst.</p>
           </div>
         ) : (
-          visible.map((event) => <EventCard key={event.id} event={event} />)
+          visible.map((event) => <EventCard key={event.id} event={event} density="scan" />)
         )}
         {anomaly && category === "All" && !query ? (
           <article className="aion-pulse-card aion-anomaly">
@@ -117,7 +141,7 @@ export function PulseScreen({
             </p>
             <div className="aion-card-actions">
               <Link className="aion-button" data-quiet="true" href={`/events/${anomaly.id}`}>
-                Open event
+                View brief
               </Link>
             </div>
           </article>

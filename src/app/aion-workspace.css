@@ -293,10 +293,24 @@
   background: var(--a-border-0);
 }
 
+.aion-surface-count {
+  margin: -8px 0 16px;
+}
+
+.aion-surface-count a {
+  color: var(--a-tx-0);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .aion-pulse-stream {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--a-sp-3);
+}
+
+.aion-explore-stream {
+  gap: var(--a-sp-2);
 }
 
 .aion-pulse-card,
@@ -312,9 +326,13 @@
 
 .aion-pulse-card {
   position: relative;
-  padding: 16px 24px;
+  padding: var(--a-sp-4) var(--a-sp-5);
   cursor: pointer;
   transition: background 120ms, border-color 120ms;
+}
+
+.aion-pulse-card[data-density="book"] {
+  padding: var(--a-sp-3) var(--a-sp-4);
 }
 
 .aion-card-link {
@@ -348,16 +366,19 @@
 
 .aion-card-meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 9px;
+  gap: 8px 10px;
+  margin-bottom: var(--a-sp-2);
   color: var(--a-tx-2);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .aion-card-meta .category {
   color: var(--a-tx-1);
   letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 11px;
 }
 
 .aion-chip {
@@ -393,20 +414,37 @@
   background: var(--a-warn);
 }
 
-.aion-pulse-card h2 {
-  margin: 0 0 10px;
+.aion-pulse-card h2,
+.aion-card-question {
+  margin: 0 0 var(--a-sp-3);
   color: var(--a-tx-0);
-  font-size: 14.5px;
-  font-weight: 550;
-  letter-spacing: -0.005em;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.35;
+  max-width: 42rem;
+}
+
+.aion-pulse-card[data-density="book"] .aion-card-question {
+  font-size: 15.5px;
+  margin-bottom: var(--a-sp-2);
 }
 
 .aion-card-move {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: flex-end;
+  gap: var(--a-sp-4) var(--a-sp-5);
+  margin-bottom: var(--a-sp-3);
+}
+
+.aion-card-probability-block,
+.aion-card-change-block,
+.aion-card-horizon {
+  display: flex;
+  flex-direction: column;
   gap: 2px;
-  margin-bottom: 12px;
+  min-width: 0;
 }
 
 .aion-card-from {
@@ -416,8 +454,30 @@
 
 .aion-card-to {
   color: var(--a-tx-0);
-  font-size: 19px;
+  font-size: 28px;
+  font-weight: 550;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.aion-pulse-card[data-density="book"] .aion-card-to {
+  font-size: 24px;
+}
+
+.aion-card-change {
+  font-size: 15px;
   font-weight: 500;
+}
+
+.aion-card-interval {
+  color: var(--a-tx-2);
+  font-size: 12px;
+}
+
+.aion-card-horizon {
+  margin-bottom: var(--a-sp-3);
+  color: var(--a-tx-1);
+  font-size: 12.5px;
 }
 
 .aion-card-arrow {
@@ -519,10 +579,16 @@
 
 .aion-card-actions {
   display: flex;
-  gap: 4px;
-  margin-top: 14px;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: var(--a-sp-3);
   border-top: 1px solid var(--a-border-0);
-  padding-top: 12px;
+  padding-top: var(--a-sp-3);
+}
+
+.aion-card-actions .aion-button {
+  min-height: 44px;
+  padding: 10px 14px;
 }
 
 .aion-button {
@@ -1826,9 +1892,24 @@ a.aion-button {
     margin: 7px 0 0;
   }
 
+  .aion-card-move {
+    gap: var(--a-sp-3);
+  }
+
+  .aion-card-to {
+    font-size: 26px;
+  }
+
   .aion-card-actions {
+    flex-direction: column;
+    align-items: stretch;
     flex-wrap: wrap;
     overflow-x: visible;
+  }
+
+  .aion-card-actions .aion-button {
+    width: 100%;
+    justify-content: center;
   }
 
   .aion-event-actions {
@@ -1877,6 +1958,14 @@ a.aion-button {
   .aion-pulse-card,
   .aion-panel {
     padding: 14px;
+  }
+
+  .aion-card-question {
+    font-size: 16px;
+  }
+
+  .aion-card-to {
+    font-size: 24px;
   }
 
   .aion-event-figures {

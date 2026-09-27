@@ -32,4 +32,12 @@ describe("consumer workspace CSS foundation", () => {
     expect(css).toMatch(/--a-mobile-nav:\s*64px/)
     expect(css).toMatch(/min-height:\s*44px/)
   })
+
+  it("keeps scan-card actions wrapping without a horizontal-only overflow row", () => {
+    expect(css).toMatch(/\.aion-card-actions\s*\{[^}]*flex-wrap:\s*wrap/s)
+    expect(css).toMatch(/\.aion-card-actions\s*\{[^}]*overflow-x:\s*visible/s)
+    expect(css).toMatch(/\.aion-card-actions \.aion-button\s*\{[^}]*min-height:\s*44px/s)
+    expect(css).toMatch(/\.aion-card-question/)
+    expect(css).toMatch(/\.aion-card-to\s*\{[^}]*font-size:\s*28px/s)
+  })
 })
