@@ -142,18 +142,27 @@ describe("EventCard", () => {
         },
       ],
     }
-    const event = testEvent({
-      id: "evt-lone",
-      title: "Lone print",
-      question: "Will the lone print stand?",
-      provenance: "sourced",
-      probability: 99,
+    // buildEvent normalizes flat fields from the series; reintroduce conflicting
+    // legacy values on the FINAL object so the card must prefer the series.
+    const event = {
+      ...testEvent({
+        id: "evt-lone",
+        title: "Lone print",
+        question: "Will the lone print stand?",
+        provenance: "sourced",
+        sigma: 0,
+        explained: 0,
+        analogues: [],
+        probabilitySeries: [headline],
+      }),
       previousProbability: 1,
-      sigma: 0,
-      explained: 0,
-      analogues: [],
-      probabilitySeries: [headline],
-    })
+      probability: 99,
+    }
+
+    expect(event.probability).toBe(99)
+    expect(event.previousProbability).toBe(1)
+    expect(event.probabilitySeries[0]?.observations).toHaveLength(1)
+    expect(event.probabilitySeries[0]?.observations[0]?.probability).toBe(41)
 
     renderCard(event)
 
@@ -201,15 +210,23 @@ describe("EventCard", () => {
         },
       ],
     }
-    const event = testEvent({
-      id: "evt-legacy-previous",
-      title: "Legacy previous trap",
-      question: "Will the desk ignore the flat previous?",
-      provenance: "sourced",
-      probability: 99,
+    // buildEvent overwrites flat fields from the series; conflict must land on
+    // the FINAL rendered object after normalization or the regression is vacuous.
+    const event = {
+      ...testEvent({
+        id: "evt-legacy-previous",
+        title: "Legacy previous trap",
+        question: "Will the desk ignore the flat previous?",
+        provenance: "sourced",
+        probabilitySeries: [headline],
+      }),
       previousProbability: 11,
-      probabilitySeries: [headline],
-    })
+      probability: 99,
+    }
+
+    expect(event.probability).toBe(99)
+    expect(event.previousProbability).toBe(11)
+    expect(event.probabilitySeries[0]?.observations.map((point) => point.probability)).toEqual([44, 58])
 
     renderCard(event)
 
