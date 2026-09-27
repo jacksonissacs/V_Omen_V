@@ -54,8 +54,25 @@ export function EventCard({
 
       <div className="aion-card-move" data-testid="event-card-probability">
         <div className="aion-card-probability-block">
-          <span className="aion-label">Current probability</span>
-          {latest ? (
+          <span className="aion-label">{compared ? "Probability" : "Current probability"}</span>
+          {compared ? (
+            <p
+              className="aion-card-comparison"
+              data-testid="event-card-comparison"
+              aria-label={`${formatProbability(compared.from.probability)} to ${formatProbability(compared.to.probability)}`}
+            >
+              <b className="aion-mono aion-card-from" data-testid="event-card-previous-probability">
+                {formatProbability(compared.from.probability)}
+              </b>
+              <span className="aion-card-arrow" aria-hidden="true">
+                →
+              </span>
+              <span className="aion-sr-only"> to </span>
+              <b className="aion-mono aion-card-to" data-testid="event-card-current-probability">
+                {formatProbability(compared.to.probability)}
+              </b>
+            </p>
+          ) : latest ? (
             <b className="aion-mono aion-card-to" data-testid="event-card-current-probability">
               {formatProbability(latest.probability)}
             </b>

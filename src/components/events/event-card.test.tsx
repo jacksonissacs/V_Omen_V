@@ -6,7 +6,7 @@ import "@/test/next-navigation"
 import { EventCard } from "@/components/events/event-card"
 import { AppShell } from "@/components/layout/app-shell"
 import { getEvent } from "@/data/events"
-import { seriesId } from "@/lib/domain/probability-history"
+import { formatInterval, latestChange, seriesId } from "@/lib/domain/probability-history"
 import { testEvent } from "@/test/fake-repository"
 import type { ProbabilitySeries } from "@/types/event"
 
@@ -29,7 +29,9 @@ describe("EventCard", () => {
     expect(question).toHaveTextContent(event.question)
     expect(question).toHaveClass("aion-card-question")
 
+    expect(screen.getByTestId("event-card-previous-probability")).toHaveTextContent("51.0%")
     expect(screen.getByTestId("event-card-current-probability")).toHaveTextContent("68.0%")
+    expect(screen.getByTestId("event-card-comparison")).toHaveAttribute("aria-label", "51.0% to 68.0%")
     expect(screen.getByTestId("event-card-change")).toHaveTextContent("+17.0 pp")
     expect(screen.getByTestId("event-card-change")).toHaveAttribute("aria-label", "+17.0 pp")
     expect(screen.queryByText(/\+17\.0 pts/)).not.toBeInTheDocument()
@@ -61,6 +63,24 @@ describe("EventCard", () => {
     expect(screen.queryByText(/σ/)).not.toBeInTheDocument()
     expect(screen.queryByText(/confidence bar/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/community/i)).not.toBeInTheDocument()
+  })
+
+  it("renders previous → current, signed pp change, and interval from the headline series", () => {
+    const event = getEvent("evt-boc-cut")
+    if (!event) throw new Error("fixture missing")
+    const compared = latestChange(event.probabilitySeries[0])
+    if (!compared) throw new Error("fixture must have a comparable pair")
+
+    renderCard(event)
+
+    expect(screen.getByTestId("event-card-previous-probability")).toHaveTextContent("61.2%")
+    expect(screen.getByTestId("event-card-current-probability")).toHaveTextContent("73.8%")
+    expect(screen.getByTestId("event-card-comparison")).toHaveAttribute("aria-label", "61.2% to 73.8%")
+    expect(screen.getByTestId("event-card-change")).toHaveTextContent("+12.6 pp")
+    const interval = screen.getByText(formatInterval(compared.intervalMs)).closest(".aion-card-interval")
+    expect(interval).toHaveTextContent(`over ${formatInterval(compared.intervalMs)}`)
+    expect(screen.queryByText("Not computable")).not.toBeInTheDocument()
+    expect(screen.queryByText("One observation")).not.toBeInTheDocument()
   })
 
   it("shows resolution when recorded and honest unknown states otherwise", () => {
@@ -139,8 +159,11 @@ describe("EventCard", () => {
 
     expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("Will the lone print stand?")
     expect(screen.getByTestId("event-card-current-probability")).toHaveTextContent("41.0%")
+    expect(screen.queryByTestId("event-card-previous-probability")).not.toBeInTheDocument()
+    expect(screen.queryByTestId("event-card-comparison")).not.toBeInTheDocument()
     expect(screen.queryByText("99.0%")).not.toBeInTheDocument()
     expect(screen.queryByText("1.0%")).not.toBeInTheDocument()
+    expect(screen.queryByText("0.0%")).not.toBeInTheDocument()
     expect(screen.getByText("Not computable")).toBeInTheDocument()
     expect(screen.getByText("One observation")).toBeInTheDocument()
     expect(screen.getByTestId("analogue-count")).toHaveTextContent("n = 0")
@@ -155,12 +178,55 @@ describe("EventCard", () => {
     expect(screen.queryByText(/σ/)).not.toBeInTheDocument()
   })
 
+  it("ignores stale previousProbability when the headline series has a comparable pair", () => {
+    const identity = {
+      sourceKind: "provider" as const,
+      sourceName: "Desk",
+      probabilityType: "market_implied" as const,
+      provenance: "sourced" as const,
+    }
+    const headline: ProbabilitySeries = {
+      id: seriesId(identity),
+      ...identity,
+      observations: [
+        {
+          observedAt: "2026-09-01T12:00:00.000Z",
+          capturedAt: "2026-09-01T12:05:00.000Z",
+          probability: 44,
+        },
+        {
+          observedAt: "2026-09-04T18:00:00.000Z",
+          capturedAt: "2026-09-04T18:05:00.000Z",
+          probability: 58,
+        },
+      ],
+    }
+    const event = testEvent({
+      id: "evt-legacy-previous",
+      title: "Legacy previous trap",
+      question: "Will the desk ignore the flat previous?",
+      provenance: "sourced",
+      probability: 99,
+      previousProbability: 11,
+      probabilitySeries: [headline],
+    })
+
+    renderCard(event)
+
+    expect(screen.getByTestId("event-card-previous-probability")).toHaveTextContent("44.0%")
+    expect(screen.getByTestId("event-card-current-probability")).toHaveTextContent("58.0%")
+    expect(screen.getByTestId("event-card-change")).toHaveTextContent("+14.0 pp")
+    expect(screen.queryByText("11.0%")).not.toBeInTheDocument()
+    expect(screen.queryByText("99.0%")).not.toBeInTheDocument()
+  })
+
   it("supports a denser book density without changing honesty markup", () => {
     const event = getEvent("evt-boc-cut")
     if (!event) throw new Error("fixture missing")
 
     const { container } = renderCard(event, "book")
     expect(container.querySelector('[data-density="book"]')).toBeTruthy()
+    expect(screen.getByTestId("event-card-previous-probability")).toHaveTextContent("61.2%")
     expect(screen.getByTestId("event-card-current-probability")).toHaveTextContent("73.8%")
     expect(screen.getByTestId("event-card-change")).toHaveTextContent("+12.6 pp")
     expect(screen.getByTestId("event-provenance")).toBeInTheDocument()
