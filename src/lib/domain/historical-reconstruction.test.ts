@@ -5,10 +5,13 @@ import {
   assembleHistoricalReconstruction,
   HistoricalReconstructionError,
   HISTORY_CHECKPOINT_LIST_MAX,
+  missingNeighborCursors,
+  nextDiscoveryHasMore,
   parseHistoryListRequest,
   resolveCheckpointListQuery,
   validateReconstructionRequest,
   type HistoricalEvidence,
+  type HistoryCheckpointSummary,
   type HistoricalMoveLog,
   type HistoricalObservation,
   type HistoricalSemantics,
@@ -210,5 +213,47 @@ describe("historical reconstruction assembly", () => {
     expect(resolveCheckpointListQuery({ limit: HISTORY_CHECKPOINT_LIST_MAX + 1 })).toMatchObject({
       outcome: "invalid_request",
     })
+  })
+})
+
+function listedSummary(sequence: number): HistoryCheckpointSummary {
+  return {
+    id: `id-${1000 + sequence}`,
+    sequence,
+    contentMd5: "ab".repeat(16),
+    memberCount: 1,
+    semanticHistory: "recorded",
+  }
+}
+
+describe("checkpoint neighbor cursors", () => {
+  const firstPage = Array.from({ length: 20 }, (_, index) => listedSummary(30 - index))
+
+  it("asks for sequence + 2 only when the newer neighbor is missing", () => {
+    expect(missingNeighborCursors(firstPage, { sequence: 5 })).toEqual({
+      newerBeforeSequence: 7,
+      olderBeforeSequence: 5,
+    })
+    expect(missingNeighborCursors([...firstPage, listedSummary(6)], { sequence: 5 })).toEqual({
+      olderBeforeSequence: 5,
+    })
+    expect(missingNeighborCursors([...firstPage, listedSummary(6), listedSummary(4)], { sequence: 5 })).toEqual({})
+    expect(missingNeighborCursors(firstPage, { sequence: 10 })).toEqual({ olderBeforeSequence: 10 })
+    expect(missingNeighborCursors([listedSummary(2)], { sequence: 1 })).toEqual({})
+  })
+
+  it("does not request a beforeSequence past the integer cursor limit", () => {
+    expect(missingNeighborCursors([], { sequence: 2_147_483_646 })).toEqual({
+      olderBeforeSequence: 2_147_483_646,
+    })
+    expect(missingNeighborCursors([listedSummary(2_147_483_646)], { sequence: 2_147_483_647 })).toEqual({})
+  })
+
+  it("ends discovery when sequence 1 is loaded or an older page is exhausted", () => {
+    expect(nextDiscoveryHasMore(firstPage, true)).toBe(true)
+    expect(nextDiscoveryHasMore([listedSummary(2), listedSummary(1)], true)).toBe(false)
+    expect(nextDiscoveryHasMore(firstPage, true, { hasMore: false })).toBe(false)
+    expect(nextDiscoveryHasMore(firstPage, true, { hasMore: true })).toBe(true)
+    expect(nextDiscoveryHasMore([listedSummary(1)], false)).toBe(false)
   })
 })

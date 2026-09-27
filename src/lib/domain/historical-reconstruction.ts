@@ -117,6 +117,67 @@ export interface HistoryCheckpointSummary {
   semanticHistory: "recorded" | "unavailable"
 }
 
+export function checkpointSummaryFromReconstruction(
+  reconstruction: HistoricalReconstruction,
+): HistoryCheckpointSummary {
+  return {
+    id: reconstruction.checkpoint.id,
+    sequence: reconstruction.checkpoint.sequence,
+    contentMd5: reconstruction.checkpoint.contentMd5,
+    memberCount: reconstruction.checkpoint.memberCount,
+    semanticHistory: reconstruction.coverage.semanticHistory,
+  }
+}
+
+export function mergeCheckpointSummaries(
+  existing: HistoryCheckpointSummary[],
+  incoming: HistoryCheckpointSummary[],
+): HistoryCheckpointSummary[] {
+  const byId = new Map(existing.map((item) => [item.id, item]))
+  for (const item of incoming) byId.set(item.id, item)
+  return [...byId.values()].sort((a, b) => b.sequence - a.sequence)
+}
+
+function hasSequence(checkpoints: HistoryCheckpointSummary[], sequence: number): boolean {
+  return checkpoints.some((item) => item.sequence === sequence)
+}
+
+/**
+ * Bounded list cursors that contain the checkpoints immediately beside `active`.
+ * `beforeSequence` is exclusive (`sequence < beforeSequence`), so the newer
+ * neighbor (sequence + 1) is on the page requested with `sequence + 2`.
+ */
+export function missingNeighborCursors(
+  checkpoints: HistoryCheckpointSummary[],
+  active: Pick<HistoryCheckpointSummary, "sequence">,
+): { newerBeforeSequence?: number; olderBeforeSequence?: number } {
+  const cursors: { newerBeforeSequence?: number; olderBeforeSequence?: number } = {}
+  const newerSequence = active.sequence + 1
+  if (newerSequence <= PG_INT4_MAX && !hasSequence(checkpoints, newerSequence)) {
+    const beforeSequence = active.sequence + 2
+    if (beforeSequence <= PG_INT4_MAX) cursors.newerBeforeSequence = beforeSequence
+  }
+  if (active.sequence > 1 && !hasSequence(checkpoints, active.sequence - 1)) {
+    cursors.olderBeforeSequence = active.sequence
+  }
+  return cursors
+}
+
+/**
+ * Whether another older page exists.
+ * Sequence 1 is the first published checkpoint for an event.
+ * An older page that reports `hasMore: false` has reached that end.
+ */
+export function nextDiscoveryHasMore(
+  checkpoints: HistoryCheckpointSummary[],
+  reportedHasMore: boolean,
+  olderPage?: { hasMore: boolean },
+): boolean {
+  if (hasSequence(checkpoints, 1)) return false
+  if (olderPage && !olderPage.hasMore) return false
+  return reportedHasMore
+}
+
 export interface HistoryCheckpointPage {
   eventId: string
   limit: number

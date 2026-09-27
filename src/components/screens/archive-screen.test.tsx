@@ -75,6 +75,99 @@ describe("ArchiveView", () => {
     )
     await user.selectOptions(screen.getByLabelText("Event"), "evt-b")
     expect(mockPush).toHaveBeenCalledWith("/archive?event=evt-b", { scroll: false })
+    expect(screen.queryByText("Alpha historical title")).not.toBeInTheDocument()
+  })
+
+  it("clears the open reconstruction before the next event URL settles", async () => {
+    const pending = deferred<Response>()
+    mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a&checkpoint=11"))
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo) => {
+        const url = String(input)
+        if (url.includes("/history/11")) return pending.promise
+        return json({
+          outcome: "checkpoints",
+          eventId: "evt-a",
+          hasMore: false,
+          checkpoints: [summary("11", 1)],
+        })
+      }),
+    )
+    const user = userEvent.setup()
+    render(
+      <ArchiveView
+        {...archiveProps()}
+        initialCheckpoint="11"
+        initialStatus="ok"
+        initialReconstruction={reconstruction("evt-a", "11", "KEEP_UNTIL_EVENT_CHANGE")}
+      />,
+    )
+    expect(screen.getByText("KEEP_UNTIL_EVENT_CHANGE")).toBeInTheDocument()
+    await user.selectOptions(screen.getByLabelText("Event"), "evt-b")
+    expect(screen.queryByText("KEEP_UNTIL_EVENT_CHANGE")).not.toBeInTheDocument()
+    pending.resolve(json(replayBody("evt-a", "11", "LATE_AFTER_EVENT_CHANGE")))
+    await waitFor(() => {
+      expect(screen.queryByText("LATE_AFTER_EVENT_CHANGE")).not.toBeInTheDocument()
+    })
+    expect(screen.queryByText("KEEP_UNTIL_EVENT_CHANGE")).not.toBeInTheDocument()
+  })
+
+  it("does not keep a newer checkpoint on screen after navigating to an earlier one", async () => {
+    const pending = new Map<string, ReturnType<typeof deferred<Response>>>()
+    mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a&checkpoint=12"))
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo) => {
+        const url = String(input)
+        const replay = url.match(/\/history\/(\d+)/)
+        if (replay) {
+          const gate = deferred<Response>()
+          pending.set(replay[1]!, gate)
+          return gate.promise
+        }
+        return json({
+          outcome: "checkpoints",
+          eventId: "evt-a",
+          hasMore: false,
+          checkpoints: [summary("12", 2), summary("11", 1)],
+        })
+      }),
+    )
+    const view = render(
+      <ArchiveView
+        {...archiveProps()}
+        initialCheckpoint="12"
+        initialStatus="ok"
+        initialReconstruction={reconstruction("evt-a", "12", "LATER_ONLY")}
+      />,
+    )
+    expect(screen.getByText("LATER_ONLY")).toBeInTheDocument()
+
+    mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a&checkpoint=11"))
+    view.rerender(
+      <ArchiveView
+        {...archiveProps()}
+        initialCheckpoint="12"
+        initialStatus="ok"
+        initialReconstruction={reconstruction("evt-a", "12", "LATER_ONLY")}
+      />,
+    )
+    expect(screen.queryByText("LATER_ONLY")).not.toBeInTheDocument()
+    expect(screen.getByTestId("archive-checkpoint-loading")).toBeInTheDocument()
+
+    await waitFor(() => {
+      expect(pending.has("11")).toBe(true)
+    })
+    pending.get("11")!.resolve(json(replayBody("evt-a", "11", "EARLY_ONLY")))
+    await waitFor(() => {
+      expect(screen.getByText("EARLY_ONLY")).toBeInTheDocument()
+    })
+    if (pending.has("12")) pending.get("12")!.resolve(json(replayBody("evt-a", "12", "LATER_ONLY")))
+    await waitFor(() => {
+      expect(screen.getByText("EARLY_ONLY")).toBeInTheDocument()
+    })
+    expect(screen.queryByText("LATER_ONLY")).not.toBeInTheDocument()
   })
 
   it("does not keep an earlier checkpoint on screen after a newer selection resolves", async () => {
@@ -132,6 +225,41 @@ describe("ArchiveView", () => {
       expect(screen.getByText("LATER_ONLY")).toBeInTheDocument()
     })
     expect(screen.queryByText("EARLY_ONLY")).not.toBeInTheDocument()
+  })
+
+  it("keeps a successful checkpoint list when replay alone fails", async () => {
+    mockSearchParams.mockReturnValue(new URLSearchParams("event=evt-a&checkpoint=11"))
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo) => {
+        const url = String(input)
+        if (url.includes("/history/11")) {
+          return json({ outcome: "unavailable", error: "Event storage is unavailable" }, 503)
+        }
+        return json({
+          outcome: "checkpoints",
+          eventId: "evt-a",
+          hasMore: false,
+          checkpoints: [summary("12", 2), summary("11", 1)],
+        })
+      }),
+    )
+    render(
+      <ArchiveView
+        {...archiveProps()}
+        initialCheckpoint="11"
+        initialStatus="ok"
+        initialReconstruction={reconstruction("evt-a", "11", "STALE_REPLAY_TITLE")}
+      />,
+    )
+    await waitFor(() => {
+      expect(screen.getByTestId("archive-replay-retry")).toBeInTheDocument()
+    })
+    expect(screen.getByRole("button", { name: /id 11/ })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /id 12/ })).toBeInTheDocument()
+    expect(screen.queryByTestId("archive-unavailable")).not.toBeInTheDocument()
+    expect(screen.queryByText("STALE_REPLAY_TITLE")).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Retry replay" })).toBeEnabled()
   })
 
   it("drops a late older-page response after the operator changes events", async () => {
