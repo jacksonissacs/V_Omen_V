@@ -96,6 +96,23 @@ async function withReviewLock<T>(client: ClientBase, id: string, body: () => Pro
 
 export async function stageSourceReviewItem(client: ClientBase, input: unknown): Promise<SourceReviewItem> {
   const parsed = parseStageSourceReviewInput(input)
+  return stageValidatedReviewCandidate(client, parsed)
+}
+
+/**
+ * Insert a already-validated review candidate. Used by dedicated analyst staging
+ * after authoritative proposal validation — not by generic intake JSON.
+ */
+export async function stageValidatedReviewCandidate(
+  client: ClientBase,
+  parsed: {
+    id: string
+    eventId: string
+    stagedBy: string
+    intakeNote?: string
+    candidate: SourceReviewCandidate
+  },
+): Promise<SourceReviewItem> {
   const { rowCount: eventExists } = await client.query("SELECT 1 FROM events WHERE id = $1", [parsed.eventId])
   const createsEvent =
     parsed.candidate.kind === "bundle" && parsed.candidate.bundle.event !== undefined

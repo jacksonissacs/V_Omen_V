@@ -28,6 +28,8 @@ npm run analyst -- stage <proposalId> --by "Demo Operator"
 
 `publish approved` on an `analyst_proposal` review item is **refused**. Publish only after an operator converts the draft into an authored Move Log or evidence candidate and uses `npm run operator -- publish` with a new idempotency key.
 
+Generic `npm run operator -- intake stage` **rejects** `analyst_proposal` candidates. Stage through the dedicated analyst commands above.
+
 ## Proposal contract
 
 Accepted drafts include:
@@ -46,7 +48,11 @@ Validation **rejects specific regex patterns** associated with probabilities, de
 
 **Citation membership** checks that claim evidence ids were among the selected inputs. Membership does **not** prove that a source supports the claim text. Evaluation fixtures cover support-checking gaps and prompt-injection attempts inside source text (source text is untrusted data, never instructions).
 
-Approval is applied only when the row is still `draft` or `staged` and the reviewed `(content_identity, input_content_identity)` still match. Concurrent reject or edit makes the guarded approval UPDATE match no row; `isApprovalCurrent` is false for `rejected` / `superseded` and for identity mismatch.
+**Input identity** hashes the event question, prompt version, and selected evidence content identities. Proposals persist the reviewed question and prompt version. Approval and staging re-check the current authoritative question, prompt version, and evidence; a change invalidates prior eligibility. Legacy rows lacking reviewed context are treated as stale and require regeneration/review — approval is never silently refreshed.
+
+Approval is applied only when the row is still `draft` or `staged`, reviewed context is present, and the reviewed `(content_identity, input_content_identity)` still match. Concurrent reject or edit makes the guarded approval UPDATE match no row; `isApprovalCurrent` is false for `rejected` / `superseded`, missing reviewed context, and identity mismatch.
+
+Replacement validates the new body with the proposal schema and event-scoped evidence checks, computes the content hash internally, and refuses a stale `expectedProposalVersion`. Successful replacement atomically clears approval/staging and rejects the previous linked review item (audit row retained, no longer actionable). Rejection requires the reviewed `expectedProposalVersion` so a stale reject cannot close a newer revision.
 
 ## Providers
 
@@ -61,27 +67,23 @@ Missing live configuration → run status `unavailable`, not a successful propos
 
 `analyst_runs` stores run id, provider/model ids, `executionKind`, prompt version, exact input refs/content identities, status, timing, and usage when known. Unknown usage/cost stays null. Secrets are never stored.
 
-`analyst_proposals` stores the validated body, content identity, staging link to `source_review_items`, and human review attribution. Approval binds to `(content_identity, input_content_identity)`. Editing the proposal or changing inputs clears approval; a stale approval cannot authorize publication bypass.
+`analyst_proposals` stores the validated body, content identity, reviewed event question + prompt version, staging link to `source_review_items`, and human review attribution. Approval binds to `(content_identity, input_content_identity)`. Editing the proposal or changing inputs clears approval; a stale approval cannot authorize publication bypass.
 
 Identical proposal content for the same inputs stages at most once (unique on event + input identity + content identity).
 
 ## Remaining publication boundary
 
-This PR delivers proposal generation, validation, run persistence, and staging for human review.
+This path delivers proposal generation, validation, run persistence, and staging for human review.
 
-**Not in this PR:** automatic conversion of proposals into Move Log revisions, autonomous publishing, paid live-provider activation, accounts, or public write endpoints. After human review, operators still use the existing Move Log authorship fields (`observedChange`, `citedEvidenceIds`, `interpretation`, `remainsUnknown`) and `npm run operator -- publish` with idempotency keys and checkpoint verification.
+**Not included:** automatic conversion of proposals into Move Log revisions, autonomous publishing, paid live-provider activation, accounts, or public write endpoints. After human review, operators still use the existing Move Log authorship fields (`observedChange`, `citedEvidenceIds`, `interpretation`, `remainsUnknown`) and `npm run operator -- publish` with idempotency keys and checkpoint verification.
 
 ## Activation requirements
 
 1. Owner approval before enabling any paid live analyst provider.
-2. Independent review of this PR; merge is separate from deploy.
+2. Independent review of integrity hardening; merge is separate from deploy.
 3. Optional follow-up: guided “convert proposal → Move Log draft” operator command that preserves agent authorship and human review attribution on the published revision.
 
-## Follow-up from independent review (nonblocking)
+## Follow-up (nonblocking)
 
-Recorded for later work; not fixed in the B1 approval-race repair:
-
-- Wire `assertProposalApprovalNotStale` into any future proposal→Move Log conversion path before that path exists.
-- Editing a staged proposal clears the proposal’s review link but can leave the prior `source_review_items` row orphaned (still staged/approved with the old payload). Publish still refuses `analyst_proposal`.
+- Wire `assertProposalApprovalNotStale` (with current input identity) into any future proposal→Move Log conversion path before that path exists.
 - A configured but gated live provider throws at resolve time instead of recording an `unavailable` run.
-- Generic intake staging can accept unvalidated `analyst_proposal` JSON into the review queue (still not publishable).

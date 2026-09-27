@@ -32,6 +32,10 @@ import {
 } from "../src/lib/analyst"
 import type { TestAdapterMode } from "../src/lib/analyst/providers/test-adapter"
 import { AnalystProviderError, AnalystValidationError } from "../src/lib/analyst/types"
+import {
+  AnalystConflictError,
+  AnalystStaleContextError,
+} from "../src/lib/analyst"
 import { assertPostgresUrl, productionMarker, StorageConfigError } from "../src/lib/db/config"
 import { assertWritableDatabase, DatabaseSafetyError } from "../src/lib/db/migrate"
 import { PublicationValidationError } from "../src/lib/db/publication-bundle"
@@ -241,9 +245,12 @@ async function main() {
       await assertWritableDatabase(client)
       const id = action
       if (!id || !values.by) throw new Error("reject needs <proposalId> and --by")
+      const current = await getAnalystProposal(client, id)
+      if (!current) throw new Error(`Proposal ${id} was not found.`)
       const proposal = await rejectAnalystProposal(client, {
         id,
         rejectedBy: values.by,
+        expectedProposalVersion: current.proposalVersion,
         note: values.note,
       })
       console.log(JSON.stringify(proposal, null, 2))
@@ -261,6 +268,8 @@ main().catch((error: unknown) => {
   const known =
     error instanceof AnalystValidationError ||
     error instanceof AnalystProviderError ||
+    error instanceof AnalystStaleContextError ||
+    error instanceof AnalystConflictError ||
     error instanceof DatabaseSafetyError ||
     error instanceof StorageConfigError ||
     error instanceof PublicationValidationError

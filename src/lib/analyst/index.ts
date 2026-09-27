@@ -9,7 +9,9 @@ export {
   stageAnalystProposalForReview,
   assertProposalApprovalNotStale,
   proposalIsNotPublishableBundle,
+  analystProposalReviewId,
 } from "./stage"
+export type { StageAnalystProposalArgs, AnalystProposalCandidate } from "./stage"
 export {
   approveAnalystProposal,
   rejectAnalystProposal,
@@ -20,4 +22,12 @@ export {
   listAnalystProposals,
   listAnalystRuns,
 } from "./store"
-export type { ApproveAnalystProposalArgs } from "./store"
+export type { ApproveAnalystProposalArgs, RejectAnalystProposalArgs, ReplaceProposalBodyArgs } from "./store"
+export {
+  AnalystStaleContextError,
+  AnalystConflictError,
+  assertProposalInputFresh,
+  hasReviewedInputContext,
+  resolveCurrentInputContext,
+} from "./freshness"
+export { inputContentIdentity, proposalContentIdentity, evidenceContentIdentity } from "./content-identity"

@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest"
 
-import { proposalContentIdentity } from "@/lib/analyst/content-identity"
+import { proposalContentIdentity, inputContentIdentity } from "@/lib/analyst/content-identity"
 import { buildAnalystPrompt } from "@/lib/analyst/prompt"
 import { TestAnalystProvider } from "@/lib/analyst/providers/test-adapter"
 import { resolveAnalystProvider } from "@/lib/analyst/providers/resolve"
@@ -271,6 +271,8 @@ describe("stale approval does not carry over", () => {
       proposalVersion: 1,
       contentIdentity: "b".repeat(64),
       inputContentIdentity: "c".repeat(64),
+      reviewedEventQuestion: "Will the Bank of Canada cut the overnight rate at the 28–29 October 2026 decision?",
+      reviewedPromptVersion: "omen-analyst-proposal-v1",
       status: "staged",
       proposal: parseAnalystProposalBody(validBody(), ALLOWED),
       stagedAt: new Date().toISOString(),
@@ -288,6 +290,8 @@ describe("stale approval does not carry over", () => {
     expect(isApprovalCurrent(base)).toBe(true)
     expect(isApprovalCurrent({ ...base, contentIdentity: "d".repeat(64) })).toBe(false)
     expect(isApprovalCurrent({ ...base, inputContentIdentity: "e".repeat(64) })).toBe(false)
+    expect(isApprovalCurrent(base, "e".repeat(64))).toBe(false)
+    expect(isApprovalCurrent({ ...base, reviewedEventQuestion: null, reviewedPromptVersion: null })).toBe(false)
     expect(isApprovalCurrent({ ...base, approvedAt: null, approvalContentIdentity: null, approvalInputIdentity: null })).toBe(
       false,
     )
@@ -309,5 +313,37 @@ describe("stale approval does not carry over", () => {
       ALLOWED,
     )
     expect(proposalContentIdentity(original)).not.toBe(proposalContentIdentity(edited))
+  })
+})
+
+describe("analyst input identity", () => {
+  it("changes when the event question or prompt version changes", () => {
+    const evidence = [{ id: "ev-boc-1", contentIdentity: "a".repeat(64) }]
+    const base = inputContentIdentity({
+      eventQuestion: "Will rates be cut in October?",
+      promptVersion: "omen-analyst-proposal-v1",
+      evidence,
+    })
+    expect(
+      inputContentIdentity({
+        eventQuestion: "Will rates be cut in December?",
+        promptVersion: "omen-analyst-proposal-v1",
+        evidence,
+      }),
+    ).not.toBe(base)
+    expect(
+      inputContentIdentity({
+        eventQuestion: "Will rates be cut in October?",
+        promptVersion: "omen-analyst-proposal-v0",
+        evidence,
+      }),
+    ).not.toBe(base)
+    expect(
+      inputContentIdentity({
+        eventQuestion: "Will rates be cut in October?",
+        promptVersion: "omen-analyst-proposal-v1",
+        evidence,
+      }),
+    ).toBe(base)
   })
 })

@@ -2,15 +2,21 @@ import { randomBytes } from "node:crypto"
 
 import type { ClientBase } from "pg"
 
-import type {
-  AnalystProposalBody,
-  AnalystProposalRecord,
-  AnalystProposalStatus,
-  AnalystRunRecord,
-  AnalystRunStatus,
-  AnalystUsage,
-  EvidenceInputRef,
+import { proposalContentIdentity } from "./content-identity"
+import { AnalystConflictError, AnalystStaleContextError, assertProposalInputFresh } from "./freshness"
+import { loadSelectedEvidence } from "./load-evidence"
+import {
+  AnalystValidationError,
+  ANALYST_PROMPT_VERSION,
+  type AnalystProposalBody,
+  type AnalystProposalRecord,
+  type AnalystProposalStatus,
+  type AnalystRunRecord,
+  type AnalystRunStatus,
+  type AnalystUsage,
+  type EvidenceInputRef,
 } from "./types"
+import { parseAnalystProposalBody } from "./validate"
 
 interface RunRow {
   id: string
@@ -38,6 +44,8 @@ interface ProposalRow {
   proposal_version: number
   content_identity: string
   input_content_identity: string
+  reviewed_event_question: string | null
+  reviewed_prompt_version: string | null
   status: AnalystProposalStatus
   proposal: AnalystProposalBody
   staged_at: Date | null
@@ -58,8 +66,14 @@ const RUN_COLUMNS = `id, event_id, status, provider_id, model_id, execution_kind
             error_code, error_message, created_at`
 
 const PROPOSAL_COLUMNS = `id, run_id, event_id, proposal_version, content_identity, input_content_identity,
-            status, proposal, staged_at, staged_by, source_review_item_id, approved_at, approved_by,
-            approval_content_identity, approval_input_identity, rejected_at, rejected_by, reject_note, created_at`
+            reviewed_event_question, reviewed_prompt_version, status, proposal, staged_at, staged_by,
+            source_review_item_id, approved_at, approved_by, approval_content_identity, approval_input_identity,
+            rejected_at, rejected_by, reject_note, created_at`
+
+const SHA256 = /^[a-f0-9]{64}$/
+
+const SUPERSEDED_REVIEW_NOTE =
+  "Superseded: analyst proposal was edited. This review item is no longer an actionable current proposal."
 
 function newId(prefix: string): string {
   return `${prefix}-${randomBytes(8).toString("hex")}`
@@ -94,6 +108,8 @@ function rowToProposal(row: ProposalRow): AnalystProposalRecord {
     proposalVersion: row.proposal_version,
     contentIdentity: row.content_identity,
     inputContentIdentity: row.input_content_identity,
+    reviewedEventQuestion: row.reviewed_event_question,
+    reviewedPromptVersion: row.reviewed_prompt_version,
     status: row.status,
     proposal: row.proposal,
     stagedAt: row.staged_at?.toISOString() ?? null,
@@ -226,6 +242,8 @@ export async function insertProposal(
     eventId: string
     contentIdentity: string
     inputContentIdentity: string
+    reviewedEventQuestion: string
+    reviewedPromptVersion: string
     proposal: AnalystProposalBody
   },
 ): Promise<AnalystProposalRecord> {
@@ -237,12 +255,17 @@ export async function insertProposal(
   )
   if (existing) return existing
 
+  const reviewedEventQuestion = args.reviewedEventQuestion.trim()
+  const reviewedPromptVersion = args.reviewedPromptVersion.trim()
+  if (!reviewedEventQuestion) throw new Error("reviewedEventQuestion is required.")
+  if (!reviewedPromptVersion) throw new Error("reviewedPromptVersion is required.")
+
   const id = newId("aprop")
   const { rows } = await client.query<ProposalRow>(
     `INSERT INTO analyst_proposals (
         id, run_id, event_id, proposal_version, content_identity, input_content_identity,
-        status, proposal
-      ) VALUES ($1,$2,$3,1,$4,$5,'draft',$6::jsonb)
+        reviewed_event_question, reviewed_prompt_version, status, proposal
+      ) VALUES ($1,$2,$3,1,$4,$5,$6,$7,'draft',$8::jsonb)
       ON CONFLICT (event_id, input_content_identity, content_identity) DO NOTHING
       RETURNING ${PROPOSAL_COLUMNS}`,
     [
@@ -251,6 +274,8 @@ export async function insertProposal(
       args.eventId,
       args.contentIdentity,
       args.inputContentIdentity,
+      reviewedEventQuestion,
+      reviewedPromptVersion,
       JSON.stringify(args.proposal),
     ],
   )
@@ -271,6 +296,18 @@ export async function getAnalystProposal(
 ): Promise<AnalystProposalRecord | undefined> {
   const { rows } = await client.query<ProposalRow>(
     `SELECT ${PROPOSAL_COLUMNS} FROM analyst_proposals WHERE id = $1`,
+    [id],
+  )
+  return rows[0] ? rowToProposal(rows[0]) : undefined
+}
+
+/** Lock the proposal row for the remainder of the current transaction. */
+export async function getAnalystProposalForUpdate(
+  client: ClientBase,
+  id: string,
+): Promise<AnalystProposalRecord | undefined> {
+  const { rows } = await client.query<ProposalRow>(
+    `SELECT ${PROPOSAL_COLUMNS} FROM analyst_proposals WHERE id = $1 FOR UPDATE`,
     [id],
   )
   return rows[0] ? rowToProposal(rows[0]) : undefined
@@ -298,34 +335,80 @@ export async function listAnalystProposals(
   return rows.map(rowToProposal)
 }
 
+export interface MarkProposalStagedArgs {
+  id: string
+  stagedBy: string
+  sourceReviewItemId: string
+  /** Revision the staging caller locked and validated. */
+  expectedProposalVersion: number
+  expectedContentIdentity: string
+  expectedInputContentIdentity: string
+  stagedAt?: Date
+}
+
+/**
+ * Link a proposal to a staged review item. The version and content/input identity
+ * predicates refuse to attach a review built for a different revision.
+ */
 export async function markProposalStaged(
   client: ClientBase,
-  args: {
-    id: string
-    stagedBy: string
-    sourceReviewItemId: string
-    stagedAt?: Date
-  },
+  args: MarkProposalStagedArgs,
 ): Promise<AnalystProposalRecord> {
+  const stagedBy = args.stagedBy.trim()
+  if (!stagedBy) throw new Error("stagedBy is required.")
+  if (!Number.isInteger(args.expectedProposalVersion) || args.expectedProposalVersion < 1) {
+    throw new Error("expectedProposalVersion must be a positive integer.")
+  }
+  const expectedContentIdentity = args.expectedContentIdentity.trim()
+  const expectedInputContentIdentity = args.expectedInputContentIdentity.trim()
+  if (!SHA256.test(expectedContentIdentity)) {
+    throw new Error("expectedContentIdentity must be a sha256 hex digest.")
+  }
+  if (!SHA256.test(expectedInputContentIdentity)) {
+    throw new Error("expectedInputContentIdentity must be a sha256 hex digest.")
+  }
+
   const { rows } = await client.query<ProposalRow>(
     `UPDATE analyst_proposals
         SET status = 'staged',
             staged_at = $2,
             staged_by = $3,
             source_review_item_id = $4
-      WHERE id = $1 AND status IN ('draft', 'staged')
+      WHERE id = $1
+        AND status IN ('draft', 'staged')
+        AND proposal_version = $5
+        AND content_identity = $6
+        AND input_content_identity = $7
       RETURNING ${PROPOSAL_COLUMNS}`,
-    [args.id, args.stagedAt ?? new Date(), args.stagedBy, args.sourceReviewItemId],
+    [
+      args.id,
+      args.stagedAt ?? new Date(),
+      stagedBy,
+      args.sourceReviewItemId,
+      args.expectedProposalVersion,
+      expectedContentIdentity,
+      expectedInputContentIdentity,
+    ],
   )
   if (!rows[0]) {
     const existing = await getAnalystProposal(client, args.id)
     if (!existing) throw new Error(`Proposal ${args.id} was not found.`)
-    throw new Error(`Proposal ${args.id} is ${existing.status} and cannot be staged.`)
+    if (existing.status !== "draft" && existing.status !== "staged") {
+      throw new Error(`Proposal ${args.id} is ${existing.status} and cannot be staged.`)
+    }
+    if (
+      existing.proposalVersion !== args.expectedProposalVersion ||
+      existing.contentIdentity !== expectedContentIdentity ||
+      existing.inputContentIdentity !== expectedInputContentIdentity
+    ) {
+      throw new AnalystConflictError(
+        `Proposal ${args.id} staging is stale: expected version ${args.expectedProposalVersion} / content ${expectedContentIdentity.slice(0, 12)}…, current version ${existing.proposalVersion} / content ${existing.contentIdentity.slice(0, 12)}….`,
+      )
+    }
+    throw new Error(`Proposal ${args.id} cannot be staged in its current state.`)
   }
   return rowToProposal(rows[0])
 }
-
-const SHA256 = /^[a-f0-9]{64}$/
 
 export interface ApproveAnalystProposalArgs {
   id: string
@@ -348,6 +431,7 @@ export interface ApproveAnalystProposalArgs {
  * Record human approval of a proposal draft. Approval binds to content + input identities.
  * A changed input or edited proposal must not inherit this approval.
  * Eligibility is enforced in the UPDATE predicate — not only by a prior JavaScript read.
+ * Freshness against the current event question / prompt version / evidence is checked first.
  */
 export async function approveAnalystProposal(
   client: ClientBase,
@@ -364,6 +448,10 @@ export async function approveAnalystProposal(
     throw new Error("expectedInputContentIdentity must be a sha256 hex digest.")
   }
 
+  const current = await getAnalystProposal(client, args.id)
+  if (!current) throw new Error(`Proposal ${args.id} was not found.`)
+  await assertProposalInputFresh(client, current)
+
   if (args.beforeWrite) await args.beforeWrite()
 
   const { rows } = await client.query<ProposalRow>(
@@ -376,12 +464,21 @@ export async function approveAnalystProposal(
         AND status IN ('draft', 'staged')
         AND content_identity = $3
         AND input_content_identity = $4
+        AND reviewed_event_question IS NOT NULL
+        AND reviewed_prompt_version IS NOT NULL
+        AND reviewed_prompt_version = $5
+        AND reviewed_event_question = (SELECT question FROM events WHERE id = analyst_proposals.event_id)
       RETURNING ${PROPOSAL_COLUMNS}`,
-    [args.id, approvedBy, expectedContentIdentity, expectedInputContentIdentity],
+    [args.id, approvedBy, expectedContentIdentity, expectedInputContentIdentity, ANALYST_PROMPT_VERSION],
   )
   if (!rows[0]) {
     const existing = await getAnalystProposal(client, args.id)
     if (!existing) throw new Error(`Proposal ${args.id} was not found.`)
+    if (!existing.reviewedEventQuestion || !existing.reviewedPromptVersion) {
+      throw new AnalystStaleContextError(
+        `Proposal ${args.id} lacks reviewed event question / prompt version context. Regenerate and review; legacy approval cannot be reused.`,
+      )
+    }
     if (existing.status !== "draft" && existing.status !== "staged") {
       throw new Error(`Proposal ${args.id} is ${existing.status} and cannot be approved.`)
     }
@@ -392,12 +489,32 @@ export async function approveAnalystProposal(
   return rowToProposal(rows[0])
 }
 
+export interface RejectAnalystProposalArgs {
+  id: string
+  rejectedBy: string
+  /** Exact proposal_version the caller reviewed. A newer revision must not be rejected. */
+  expectedProposalVersion: number
+  note?: string
+  /** Test-only synchronization hook before the guarded UPDATE. */
+  beforeWrite?: () => Promise<void>
+}
+
+/**
+ * Reject a specific proposal revision. The version comparison is enforced in the UPDATE
+ * predicate so a stale rejection cannot reject a newer revision.
+ */
 export async function rejectAnalystProposal(
   client: ClientBase,
-  args: { id: string; rejectedBy: string; note?: string },
+  args: RejectAnalystProposalArgs,
 ): Promise<AnalystProposalRecord> {
   const rejectedBy = args.rejectedBy.trim()
   if (!rejectedBy) throw new Error("rejectedBy is required.")
+  if (!Number.isInteger(args.expectedProposalVersion) || args.expectedProposalVersion < 1) {
+    throw new Error("expectedProposalVersion must be a positive integer.")
+  }
+
+  if (args.beforeWrite) await args.beforeWrite()
+
   const { rows } = await client.query<ProposalRow>(
     `UPDATE analyst_proposals
         SET status = 'rejected',
@@ -408,64 +525,192 @@ export async function rejectAnalystProposal(
             approved_by = NULL,
             approval_content_identity = NULL,
             approval_input_identity = NULL
-      WHERE id = $1 AND status IN ('draft', 'staged')
+      WHERE id = $1
+        AND status IN ('draft', 'staged')
+        AND proposal_version = $4
       RETURNING ${PROPOSAL_COLUMNS}`,
-    [args.id, rejectedBy, args.note?.trim() || null],
+    [args.id, rejectedBy, args.note?.trim() || null, args.expectedProposalVersion],
   )
   if (!rows[0]) {
     const existing = await getAnalystProposal(client, args.id)
     if (!existing) throw new Error(`Proposal ${args.id} was not found.`)
+    if (existing.status !== "draft" && existing.status !== "staged") {
+      throw new Error(`Proposal ${args.id} is already ${existing.status}.`)
+    }
+    if (existing.proposalVersion !== args.expectedProposalVersion) {
+      throw new AnalystConflictError(
+        `Proposal ${args.id} rejection is stale: reviewed version ${args.expectedProposalVersion}, current version ${existing.proposalVersion}.`,
+      )
+    }
     throw new Error(`Proposal ${args.id} is already ${existing.status}.`)
   }
   return rowToProposal(rows[0])
 }
 
 /**
- * True only when the proposal is still reviewable and approval identities still match
- * the proposal's current content and input identities. Rejected/superseded rows never
- * count as currently approved.
+ * True only when the proposal is still reviewable, has reviewed input context, and
+ * approval identities still match the proposal's current content and input identities.
+ * Rejected/superseded/legacy rows never count as currently approved.
+ * When `currentInputIdentity` is supplied, it must also match (authoritative freshness).
  */
-export function isApprovalCurrent(proposal: AnalystProposalRecord): boolean {
+export function isApprovalCurrent(
+  proposal: AnalystProposalRecord,
+  currentInputIdentity?: string,
+): boolean {
   if (proposal.status === "rejected" || proposal.status === "superseded") return false
   if (proposal.status !== "draft" && proposal.status !== "staged") return false
+  if (!proposal.reviewedEventQuestion || !proposal.reviewedPromptVersion) return false
   if (!proposal.approvedAt || !proposal.approvalContentIdentity || !proposal.approvalInputIdentity) {
     return false
   }
-  return (
-    proposal.approvalContentIdentity === proposal.contentIdentity &&
-    proposal.approvalInputIdentity === proposal.inputContentIdentity
-  )
+  if (
+    proposal.approvalContentIdentity !== proposal.contentIdentity ||
+    proposal.approvalInputIdentity !== proposal.inputContentIdentity
+  ) {
+    return false
+  }
+  if (currentInputIdentity !== undefined && currentInputIdentity !== proposal.inputContentIdentity) {
+    return false
+  }
+  return true
+}
+
+export interface ReplaceProposalBodyArgs {
+  id: string
+  /** Replacement body; validated with schema + event-scoped evidence checks. */
+  proposal: unknown
+  /** Exact proposal_version the caller intends to replace. Guards concurrent newer edits. */
+  expectedProposalVersion: number
+  /** Test-only synchronization hook after validation and before the guarded UPDATE. */
+  beforeWrite?: () => Promise<void>
 }
 
 /**
- * Simulate an edit that changes proposal content: clears approval and bumps version.
- * Used when operators edit a draft; stale approval must not carry forward.
+ * Validate and replace a proposal body. Computes the content hash internally.
+ * Invalid replacements leave the database unchanged. Successful replacements
+ * atomically clear approval/staging and invalidate any linked review item.
  */
 export async function replaceProposalBody(
   client: ClientBase,
-  args: {
-    id: string
-    proposal: AnalystProposalBody
-    contentIdentity: string
-  },
+  args: ReplaceProposalBodyArgs,
 ): Promise<AnalystProposalRecord> {
-  const { rows } = await client.query<ProposalRow>(
-    `UPDATE analyst_proposals
-        SET proposal = $2::jsonb,
-            content_identity = $3,
-            proposal_version = proposal_version + 1,
-            approved_at = NULL,
-            approved_by = NULL,
-            approval_content_identity = NULL,
-            approval_input_identity = NULL,
-            status = CASE WHEN status = 'staged' THEN 'draft' ELSE status END,
-            staged_at = NULL,
-            staged_by = NULL,
-            source_review_item_id = NULL
-      WHERE id = $1 AND status IN ('draft', 'staged')
-      RETURNING ${PROPOSAL_COLUMNS}`,
-    [args.id, JSON.stringify(args.proposal), args.contentIdentity],
+  if (!Number.isInteger(args.expectedProposalVersion) || args.expectedProposalVersion < 1) {
+    throw new Error("expectedProposalVersion must be a positive integer.")
+  }
+
+  const existing = await getAnalystProposal(client, args.id)
+  if (!existing) throw new Error(`Proposal ${args.id} was not found.`)
+  if (existing.status !== "draft" && existing.status !== "staged") {
+    throw new Error(`Proposal ${args.id} cannot be edited in its current status.`)
+  }
+  if (existing.proposalVersion !== args.expectedProposalVersion) {
+    throw new AnalystConflictError(
+      `Proposal ${args.id} replacement is stale: expected version ${args.expectedProposalVersion}, current version ${existing.proposalVersion}.`,
+    )
+  }
+
+  // Validate before any mutation. On failure the database stays unchanged.
+  const allowed = new Set(existing.proposal.inputEvidence.map((ref) => ref.id))
+  let body: AnalystProposalBody
+  try {
+    body = parseAnalystProposalBody(args.proposal, allowed)
+  } catch (error) {
+    if (error instanceof AnalystValidationError) throw error
+    throw error
+  }
+  if (body.eventId !== existing.eventId) {
+    throw new AnalystValidationError(
+      `Replacement eventId ${body.eventId} does not match proposal event ${existing.eventId}.`,
+    )
+  }
+  for (const ref of body.inputEvidence) {
+    const prior = existing.proposal.inputEvidence.find((item) => item.id === ref.id)
+    if (!prior || prior.contentIdentity !== ref.contentIdentity) {
+      throw new AnalystValidationError(
+        `Replacement inputEvidence content identity mismatch for ${ref.id}.`,
+      )
+    }
+  }
+  // Event-scoped evidence membership: cited ids must still exist on this event.
+  await loadSelectedEvidence(
+    client,
+    existing.eventId,
+    body.inputEvidence.map((ref) => ref.id),
   )
-  if (!rows[0]) throw new Error(`Proposal ${args.id} cannot be edited in its current status.`)
-  return rowToProposal(rows[0])
+
+  const contentIdentity = proposalContentIdentity(body)
+
+  if (args.beforeWrite) await args.beforeWrite()
+
+  // Lock proposal, re-read the linked review id after the lock wait, invalidate, then
+  // replace. An explicit transaction avoids CTE snapshots that can miss a review link
+  // attached while this session waited on FOR UPDATE.
+  await client.query("BEGIN")
+  try {
+    const locked = await client.query<ProposalRow>(
+      `SELECT ${PROPOSAL_COLUMNS}
+         FROM analyst_proposals
+        WHERE id = $1
+          AND status IN ('draft', 'staged')
+          AND proposal_version = $2
+        FOR UPDATE`,
+      [args.id, args.expectedProposalVersion],
+    )
+    if (!locked.rows[0]) {
+      await client.query("ROLLBACK").catch(() => undefined)
+      const raced = await getAnalystProposal(client, args.id)
+      if (!raced) throw new Error(`Proposal ${args.id} was not found.`)
+      if (raced.proposalVersion !== args.expectedProposalVersion) {
+        throw new AnalystConflictError(
+          `Proposal ${args.id} replacement is stale: expected version ${args.expectedProposalVersion}, current version ${raced.proposalVersion}.`,
+        )
+      }
+      throw new Error(`Proposal ${args.id} cannot be edited in its current status.`)
+    }
+
+    const linkedReviewId = locked.rows[0].source_review_item_id
+    if (linkedReviewId) {
+      await client.query(
+        `UPDATE source_review_items
+            SET status = 'rejected',
+                reviewed_at = COALESCE(reviewed_at, now()),
+                reviewed_by = COALESCE(reviewed_by, 'omen-analyst-integrity'),
+                review_note = $2
+          WHERE id = $1
+            AND status IN ('staged', 'approved')`,
+        [linkedReviewId, SUPERSEDED_REVIEW_NOTE],
+      )
+    }
+
+    const { rows } = await client.query<ProposalRow>(
+      `UPDATE analyst_proposals
+          SET proposal = $2::jsonb,
+              content_identity = $3,
+              proposal_version = proposal_version + 1,
+              approved_at = NULL,
+              approved_by = NULL,
+              approval_content_identity = NULL,
+              approval_input_identity = NULL,
+              status = CASE WHEN status = 'staged' THEN 'draft' ELSE status END,
+              staged_at = NULL,
+              staged_by = NULL,
+              source_review_item_id = NULL
+        WHERE id = $1
+          AND status IN ('draft', 'staged')
+          AND proposal_version = $4
+        RETURNING ${PROPOSAL_COLUMNS}`,
+      [args.id, JSON.stringify(body), contentIdentity, args.expectedProposalVersion],
+    )
+    if (!rows[0]) {
+      await client.query("ROLLBACK").catch(() => undefined)
+      throw new AnalystConflictError(
+        `Proposal ${args.id} replacement is stale: expected version ${args.expectedProposalVersion}.`,
+      )
+    }
+    await client.query("COMMIT")
+    return rowToProposal(rows[0])
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => undefined)
+    throw error
+  }
 }

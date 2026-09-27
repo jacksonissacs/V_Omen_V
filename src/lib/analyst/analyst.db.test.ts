@@ -18,7 +18,6 @@ import {
 import { stageAnalystProposalForReview } from "@/lib/analyst/stage"
 import { TestAnalystProvider } from "@/lib/analyst/providers/test-adapter"
 import { UnavailableAnalystProvider } from "@/lib/analyst/providers/unavailable"
-import { proposalContentIdentity } from "@/lib/analyst/content-identity"
 import { parseEventBundle } from "@/lib/db/event-bundle"
 import { writeEventBundle } from "@/lib/db/event-store"
 import {
@@ -125,7 +124,7 @@ describe("analyst proposal workflow (PostgreSQL)", () => {
       const edited = await replaceProposalBody(client, {
         id: approved.id,
         proposal: editedBody,
-        contentIdentity: proposalContentIdentity(editedBody),
+        expectedProposalVersion: approved.proposalVersion,
       })
       expect(edited.proposalVersion).toBeGreaterThan(approved.proposalVersion)
       expect(isApprovalCurrent(edited)).toBe(false)
@@ -222,6 +221,7 @@ describe("analyst proposal workflow (PostgreSQL)", () => {
       const rejected = await rejectAnalystProposal(rejector, {
         id: proposalId,
         rejectedBy: "operator.reject",
+        expectedProposalVersion: current!.proposalVersion,
         note: "Concurrent reject wins",
       })
       expect(rejected.status).toBe("rejected")
@@ -263,6 +263,7 @@ describe("analyst proposal workflow (PostgreSQL)", () => {
       const rejected = await rejectAnalystProposal(client, {
         id: approved.id,
         rejectedBy: "operator.reject",
+        expectedProposalVersion: approved.proposalVersion,
       })
       expect(rejected.status).toBe("rejected")
       expect(rejected.approvedAt).toBeNull()
@@ -308,7 +309,7 @@ describe("analyst proposal workflow (PostgreSQL)", () => {
       const edited = await replaceProposalBody(editor, {
         id: seeded.id,
         proposal: editedBody,
-        contentIdentity: proposalContentIdentity(editedBody),
+        expectedProposalVersion: seeded.proposalVersion,
       })
       expect(edited.contentIdentity).not.toBe(seeded.contentIdentity)
       expect(isApprovalCurrent(edited)).toBe(false)

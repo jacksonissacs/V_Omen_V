@@ -148,7 +148,11 @@ export class TestAnalystProvider implements AnalystProvider {
       abstention: { abstained: false, reason: null },
     }
     // Touch content identity helpers so tests can assert stability without exporting internals.
-    void inputContentIdentity(refs)
+    void inputContentIdentity({
+      eventQuestion: request.eventQuestion,
+      promptVersion: request.promptVersion,
+      evidence: refs,
+    })
     void evidenceContentIdentity(first)
     return { ok: true, rawText: JSON.stringify(body), usage: null }
   }

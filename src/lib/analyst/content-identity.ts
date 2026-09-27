@@ -43,9 +43,28 @@ export function evidenceContentIdentity(evidence: Omit<StoredEvidenceInput, "con
   )
 }
 
-export function inputContentIdentity(refs: EvidenceInputRef[]): string {
-  const sorted = [...refs].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
-  return sha256Hex(canonicalJson(sorted))
+/**
+ * Canonical input identity for an analyst proposal.
+ * Includes the event question, prompt version, and selected evidence identities.
+ * A change to any of these invalidates prior approval/staging eligibility.
+ */
+export function inputContentIdentity(args: {
+  eventQuestion: string
+  promptVersion: string
+  evidence: EvidenceInputRef[]
+}): string {
+  const eventQuestion = args.eventQuestion.trim()
+  const promptVersion = args.promptVersion.trim()
+  if (!eventQuestion) throw new Error("eventQuestion is required for input identity.")
+  if (!promptVersion) throw new Error("promptVersion is required for input identity.")
+  const sorted = [...args.evidence].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+  return sha256Hex(
+    canonicalJson({
+      eventQuestion,
+      promptVersion,
+      evidence: sorted,
+    }),
+  )
 }
 
 export function proposalContentIdentity(body: unknown): string {
