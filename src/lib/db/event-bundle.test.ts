@@ -32,6 +32,27 @@ describe("parseEventBundle", () => {
     expect(correction.evidence[0]?.sourcePublishedAt).toBeNull()
   })
 
+  it("accepts the labelled synthetic workflow fixtures", () => {
+    const temporal = parseEventBundle(fixture("test-workflow/evt-temporal.json"))
+    expect(temporal.eventId).toBe("evt-test-temporal")
+    expect(temporal.event?.title).toMatch(/^\[SYNTHETIC TEST\]/)
+    expect(temporal.evidence[0]?.sourceUrl).toBe("https://example.test/synthetic/agency-bulletin-2026")
+    expect(temporal.evidence[1]?.sourcePublishedAt).toBeNull()
+
+    const later = parseEventBundle(fixture("test-workflow/evt-temporal.later.json"))
+    expect(later.event?.status).toBe("resolved")
+    expect(later.moveLogRevisions[0]?.version).toBe(2)
+    expect(later.moveLogRevisions[0]?.correctionNote).toMatch(/SYNTHETIC TEST correction/)
+
+    const single = parseEventBundle(fixture("test-workflow/evt-single.json"))
+    expect(single.observations).toHaveLength(1)
+    expect(single.evidence).toEqual([])
+
+    const sourced = parseEventBundle(fixture("test-workflow/evt-sourced.json"))
+    expect(sourced.event?.provenance).toBe("sourced")
+    expect(sourced.evidence[0]?.provenance).toBe("sourced")
+  })
+
   it("marks every fixture record as demo provenance", () => {
     for (const name of ["demo-evt-boc-cut.json", "demo-evt-boc-cut.correction.json"]) {
       const bundle = parseEventBundle(fixture(name))

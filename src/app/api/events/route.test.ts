@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest"
 
+import { GET as getEventHistory } from "@/app/api/events/[id]/history/[checkpointId]/route"
 import { GET as getEvent } from "@/app/api/events/[id]/route"
 import { GET as listEvents } from "@/app/api/events/route"
 import { __resetRepositoryForTests } from "@/lib/data/repository"
@@ -55,5 +56,57 @@ describe("GET /api/events/:id", () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined)
     __resetRepositoryForTests(failingRepository())
     expect((await getEvent(new Request("http://omen.test"), params("evt-demo"))).status).toBe(503)
+  })
+
+  it("returns 422 without the current event when a checkpoint is requested", async () => {
+    __resetRepositoryForTests(fakeRepository([sourced], { storage: "database" }))
+    const response = await getEvent(
+      new Request("http://omen.test/api/events/evt-sourced?checkpoint=ck-early"),
+      params("evt-sourced"),
+    )
+    expect(response.status).toBe(422)
+    const body = await response.json()
+    expect(body).toMatchObject({
+      storage: "database",
+      historical: { available: false, kind: "checkpoint", value: "ck-early", eventId: "evt-sourced" },
+    })
+    expect(body.error).toMatch(/cannot be reconstructed/)
+  })
+})
+
+describe("GET /api/events/:id/history/:checkpointId", () => {
+  const historyParams = (id: string, checkpointId: string) => ({
+    params: Promise.resolve({ id, checkpointId }),
+  })
+
+  it("returns 404 for an unknown event and 422 without current text for a known event", async () => {
+    __resetRepositoryForTests(fakeRepository([demo], { storage: "database" }))
+    expect(
+      (await getEventHistory(new Request("http://omen.test"), historyParams("evt-nope", "ck-1"))).status,
+    ).toBe(400)
+
+    const response = await getEventHistory(
+      new Request("http://omen.test"),
+      historyParams("evt-demo", "ck-1"),
+    )
+    expect(response.status).toBe(400)
+    const body = await response.json()
+    expect(body.event).toBeUndefined()
+    expect(body.outcome).toBe("invalid_request")
+  })
+
+  it("returns 503 without demo data when storage fails", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined)
+    __resetRepositoryForTests(failingRepository("connection refused", "database"))
+    const response = await getEventHistory(
+      new Request("http://omen.test"),
+      historyParams("evt-demo", "1"),
+    )
+    expect(response.status).toBe(503)
+    expect(await response.json()).toMatchObject({
+      storage: "database",
+      outcome: "unavailable",
+      error: "Event storage is unavailable",
+    })
   })
 })
