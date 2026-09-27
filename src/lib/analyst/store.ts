@@ -7,6 +7,7 @@ import { AnalystConflictError, AnalystStaleContextError, assertProposalInputFres
 import { loadSelectedEvidence } from "./load-evidence"
 import {
   AnalystValidationError,
+  ANALYST_PROMPT_VERSION,
   type AnalystProposalBody,
   type AnalystProposalRecord,
   type AnalystProposalStatus,
@@ -405,8 +406,10 @@ export async function approveAnalystProposal(
         AND input_content_identity = $4
         AND reviewed_event_question IS NOT NULL
         AND reviewed_prompt_version IS NOT NULL
+        AND reviewed_prompt_version = $5
+        AND reviewed_event_question = (SELECT question FROM events WHERE id = analyst_proposals.event_id)
       RETURNING ${PROPOSAL_COLUMNS}`,
-    [args.id, approvedBy, expectedContentIdentity, expectedInputContentIdentity],
+    [args.id, approvedBy, expectedContentIdentity, expectedInputContentIdentity, ANALYST_PROMPT_VERSION],
   )
   if (!rows[0]) {
     const existing = await getAnalystProposal(client, args.id)
