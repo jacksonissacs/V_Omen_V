@@ -1,8 +1,25 @@
 import type { AionEvent, EventCategory, EventSort } from "@/types/event"
 
+/** Pulse shows a capped high-signal scan, not the full book. */
+export const PULSE_SCAN_LIMIT = 12
+
 /** Absolute move in the headline series, or null when fewer than two observations were recorded. */
 export function eventChange(event: Pick<AionEvent, "change">): number | null {
   return event.change
+}
+
+/**
+ * Deterministic Pulse ordering: largest absolute recorded headline move first.
+ * Ties break by newer `timestamp`, then `id`. Events without a computable change
+ * sort after those with a recorded move. Does not personalize or invent a ranking model.
+ */
+export function orderPulseEvents(events: AionEvent[]): AionEvent[] {
+  return sortEvents(events, "change")
+}
+
+/** Cap the ordered Pulse set so the surface stays a scan, not the full book. */
+export function capPulseEvents(events: AionEvent[], limit = PULSE_SCAN_LIMIT): AionEvent[] {
+  return events.slice(0, limit)
 }
 
 export function eventQueryHaystack(event: AionEvent): string {
@@ -76,16 +93,23 @@ function recordedMove(event: AionEvent): number {
   return event.change === null ? Number.NEGATIVE_INFINITY : Math.abs(event.change)
 }
 
+/** Stable secondary key so equal absolute moves stay deterministic across engines. */
+function pulseTieBreak(a: AionEvent, b: AionEvent): number {
+  const byTime = b.timestamp.localeCompare(a.timestamp)
+  if (byTime !== 0) return byTime
+  return a.id.localeCompare(b.id)
+}
+
 export function sortEvents(events: AionEvent[], sort: EventSort): AionEvent[] {
   const copy = events.slice()
   switch (sort) {
     case "probability":
-      return copy.sort((a, b) => b.probability - a.probability)
+      return copy.sort((a, b) => b.probability - a.probability || pulseTieBreak(a, b))
     case "time":
-      return copy.sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+      return copy.sort((a, b) => b.timestamp.localeCompare(a.timestamp) || a.id.localeCompare(b.id))
     case "change":
     default:
-      return copy.sort((a, b) => recordedMove(b) - recordedMove(a))
+      return copy.sort((a, b) => recordedMove(b) - recordedMove(a) || pulseTieBreak(a, b))
   }
 }
 

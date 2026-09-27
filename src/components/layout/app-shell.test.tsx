@@ -107,8 +107,12 @@ describe("AppShell desktop navigation", () => {
     await renderPulse()
 
     await user.click(screen.getByRole("button", { name: "AI" }))
-    expect(screen.getByText("Frontier model released before December 1")).toBeInTheDocument()
-    expect(screen.queryByText("Bank of Canada cuts rates in October")).not.toBeInTheDocument()
+    expect(
+      screen.getByText("Will a U.S. frontier lab publicly release a new frontier-class model before 1 December 2026?"),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText("Will the Bank of Canada cut the overnight rate at the 28–29 October 2026 decision?"),
+    ).not.toBeInTheDocument()
 
     await user.click(screen.getByRole("button", { name: "Search" }))
     const palette = screen.getByRole("dialog", { name: "Command palette" })
