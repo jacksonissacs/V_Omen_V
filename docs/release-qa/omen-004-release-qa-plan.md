@@ -421,6 +421,15 @@ These do **not** block M0 by themselves:
 - Settings still describing a local mock repository, if Settings is unlinked and returns no events.
 - The marketing page’s labeled illustrative demo.
 
+## Preparation command smoke
+
+On 2026-10-03 the targeted unit command in [Automated commands](#automated-commands) was executed once against production code `aea8636c555736de9d61110abc8a05a173a67d79` to prove the paths resolve. This is not a journey pass and not M0 certification. `npm run test:workflow`, `npm run test:db`, lint, typecheck, the production build, and every browser row stayed **NOT RUN**.
+
+| Command | Result |
+| --- | --- |
+| `npx vitest run` of the 12 unit files listed above, except `archive-navigation.test.tsx` | Exit 0. 12 files, 106 tests passed. |
+| `npx vitest run src/components/archive/archive-navigation.test.tsx` | Exit 0. 1 file, 24 tests passed. |
+
 ## Certification record
 
 Fill this table on the final run. Until then every result is `NOT RUN` and the decision is `NOT CERTIFIED`.
