@@ -17,7 +17,11 @@ export interface ResolveProviderOptions {
  */
 export function resolveAnalystProvider(options: ResolveProviderOptions = {}): AnalystProvider {
   const env = options.env ?? process.env
-  const requested = (options.provider ?? env.OMEN_ANALYST_PROVIDER ?? "test").trim().toLowerCase()
+  const requested = (options.provider ?? env.OMEN_ANALYST_PROVIDER ?? "").trim().toLowerCase()
+
+  if (!requested) {
+    return new UnavailableAnalystProvider("unconfigured")
+  }
 
   if (requested === "test" || requested === "synthetic") {
     return new TestAnalystProvider(options.testMode ?? "valid")

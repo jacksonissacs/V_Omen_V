@@ -1,9 +1,12 @@
 import type { Metadata } from "next"
+import { notFound } from "next/navigation"
 
-import { AgentsScreen } from "@/components/screens/agents-screen"
+import { demoIntelligenceAllowed } from "@/lib/db/config"
 
 export const metadata: Metadata = { title: "Agents" }
 
-export default function AgentsPage() {
+export default async function AgentsPage() {
+  if (!demoIntelligenceAllowed()) notFound()
+  const { AgentsScreen } = await import("@/components/screens/agents-screen")
   return <AgentsScreen />
 }

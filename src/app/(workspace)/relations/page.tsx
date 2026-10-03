@@ -1,9 +1,12 @@
 import type { Metadata } from "next"
+import { notFound } from "next/navigation"
 
-import { RelationsScreen } from "@/components/screens/relations-screen"
+import { demoIntelligenceAllowed } from "@/lib/db/config"
 
 export const metadata: Metadata = { title: "Relations" }
 
-export default function RelationsPage() {
+export default async function RelationsPage() {
+  if (!demoIntelligenceAllowed()) notFound()
+  const { RelationsScreen } = await import("@/components/screens/relations-screen")
   return <RelationsScreen />
 }

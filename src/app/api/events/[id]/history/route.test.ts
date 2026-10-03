@@ -15,6 +15,7 @@ const params = (id: string) => ({ params: Promise.resolve({ id }) })
 
 afterEach(() => {
   __resetRepositoryForTests()
+  vi.unstubAllEnvs()
   vi.restoreAllMocks()
 })
 
@@ -117,5 +118,22 @@ describe("GET /api/events/:id/history", () => {
       outcome: "unavailable",
       error: "Event storage is unavailable",
     })
+  })
+
+  it("does not turn a production demo-mode request into checkpoint history", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined)
+    vi.stubEnv("NODE_ENV", "production")
+    vi.stubEnv("OMEN_STORAGE_MODE", "demo")
+    __resetRepositoryForTests()
+    const response = await GET(new Request("http://omen.test/api/events/evt-boc-cut/history"), params("evt-boc-cut"))
+    expect(response.status).toBe(503)
+    const body = await response.json()
+    expect(body).toEqual({
+      storage: "misconfigured",
+      outcome: "unavailable",
+      error: "Event storage is unavailable",
+    })
+    expect(JSON.stringify(body)).not.toContain("evt-boc-cut")
+    expect(body.checkpoints).toBeUndefined()
   })
 })

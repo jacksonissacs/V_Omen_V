@@ -1,7 +1,7 @@
 /**
  * Nonproduction OMEN analyst CLI (bounded proposal generation).
  *
- *   npm run analyst -- propose --event <id> --evidence <id>[,<id>...] [--provider test] [--mode valid] [--stage] [--by <operator>]
+ *   npm run analyst -- propose --event <id> --evidence <id>[,<id>...] --provider test [--mode valid] [--stage] [--by <operator>]
  *   npm run analyst -- show run <id>
  *   npm run analyst -- show proposal <id>
  *   npm run analyst -- list runs [--event <id>]
@@ -41,7 +41,7 @@ import { assertWritableDatabase, DatabaseSafetyError } from "../src/lib/db/migra
 import { PublicationValidationError } from "../src/lib/db/publication-bundle"
 
 const USAGE = `Usage: omen-analyst <command> [options]
-  propose --event <id> --evidence <id>[,<id>...] [--provider test|live] [--mode <test-mode>] [--stage] [--by <operator>]
+  propose --event <id> --evidence <id>[,<id>...] --provider test|live [--mode <test-mode>] [--stage] [--by <operator>]
   show run <id>
   show proposal <id>
   list runs [--event <id>]
@@ -113,8 +113,14 @@ async function main() {
         throw new Error("propose needs --event and --evidence")
       }
       const evidenceIds = values.evidence.split(",").map((id) => id.trim()).filter(Boolean)
+      const providerId = values.provider?.trim() || process.env.OMEN_ANALYST_PROVIDER?.trim() || ""
+      if (!providerId) {
+        throw new Error(
+          "propose requires an explicit --provider. A missing provider does not run a synthetic model.",
+        )
+      }
       const provider = resolveAnalystProvider({
-        provider: values.provider,
+        provider: providerId,
         testMode: (values.mode as TestAdapterMode | undefined) ?? "valid",
       })
       const result = await executeAnalystProposal(client, {

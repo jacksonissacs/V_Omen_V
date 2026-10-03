@@ -1,17 +1,33 @@
 import { describe, expect, it } from "vitest"
 
-import { productionMarker, readStorageConfig, StorageConfigError } from "@/lib/db/config"
+import { demoIntelligenceAllowed, productionMarker, readStorageConfig, StorageConfigError } from "@/lib/db/config"
 
 const SECRET_URL = "postgres://omen:s3cret-password@db.internal:5432/omen"
 
 describe("readStorageConfig", () => {
-  it("defaults to demo storage when the mode is unset or blank", () => {
-    expect(readStorageConfig({})).toEqual({ mode: "demo" })
-    expect(readStorageConfig({ OMEN_STORAGE_MODE: "  " })).toEqual({ mode: "demo" })
+  it("does not select demo storage when the mode is unset or blank", () => {
+    expect(() => readStorageConfig({})).toThrow(/OMEN_STORAGE_MODE is not set/)
+    expect(() => readStorageConfig({ OMEN_STORAGE_MODE: "  " })).toThrow(/OMEN_STORAGE_MODE is not set/)
+    expect(() => readStorageConfig({ NODE_ENV: "development" })).toThrow(/OMEN_STORAGE_MODE is not set/)
+    expect(() => readStorageConfig({ NODE_ENV: "production" })).toThrow(/NODE_ENV=production/)
   })
 
-  it("ignores DATABASE_URL in demo mode", () => {
-    expect(readStorageConfig({ OMEN_STORAGE_MODE: "demo", DATABASE_URL: SECRET_URL })).toEqual({ mode: "demo" })
+  it("allows demo storage only in an explicit development or test environment", () => {
+    expect(readStorageConfig({ OMEN_STORAGE_MODE: "demo", NODE_ENV: "development" })).toEqual({ mode: "demo" })
+    expect(readStorageConfig({ OMEN_STORAGE_MODE: "demo", NODE_ENV: "test" })).toEqual({ mode: "demo" })
+    expect(() => readStorageConfig({ OMEN_STORAGE_MODE: "demo" })).toThrow(/development or test/)
+    expect(() => readStorageConfig({ OMEN_STORAGE_MODE: "demo", NODE_ENV: "production" })).toThrow(
+      /NODE_ENV=production/,
+    )
+    expect(() =>
+      readStorageConfig({ OMEN_STORAGE_MODE: "demo", NODE_ENV: "development", VERCEL_ENV: "production" }),
+    ).toThrow(/VERCEL_ENV=production/)
+  })
+
+  it("ignores DATABASE_URL in an explicit demo environment", () => {
+    expect(
+      readStorageConfig({ OMEN_STORAGE_MODE: "demo", NODE_ENV: "test", DATABASE_URL: SECRET_URL }),
+    ).toEqual({ mode: "demo" })
   })
 
   it("returns the connection string in database mode", () => {
@@ -46,6 +62,21 @@ describe("readStorageConfig", () => {
     expect(error).toBeInstanceOf(StorageConfigError)
     expect((error as Error).message).toMatch(message)
     expect((error as Error).message).not.toContain("s3cret-password")
+  })
+})
+
+describe("demoIntelligenceAllowed", () => {
+  it("fails closed unless demo mode and a non-production environment are both explicit", () => {
+    expect(demoIntelligenceAllowed({})).toBe(false)
+    expect(demoIntelligenceAllowed({ OMEN_STORAGE_MODE: "demo" })).toBe(false)
+    expect(demoIntelligenceAllowed({ NODE_ENV: "development" })).toBe(false)
+    expect(demoIntelligenceAllowed({ NODE_ENV: "development", OMEN_STORAGE_MODE: "database" })).toBe(false)
+    expect(demoIntelligenceAllowed({ NODE_ENV: "production", OMEN_STORAGE_MODE: "demo" })).toBe(false)
+    expect(demoIntelligenceAllowed({ NODE_ENV: "test", OMEN_STORAGE_MODE: "demo", OMEN_DEPLOYMENT_ENV: "production" })).toBe(
+      false,
+    )
+    expect(demoIntelligenceAllowed({ NODE_ENV: "development", OMEN_STORAGE_MODE: "demo" })).toBe(true)
+    expect(demoIntelligenceAllowed({ NODE_ENV: "test", OMEN_STORAGE_MODE: " demo " })).toBe(true)
   })
 })
 

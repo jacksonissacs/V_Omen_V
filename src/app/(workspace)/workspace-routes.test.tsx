@@ -85,6 +85,7 @@ afterEach(() => {
   mockPush.mockClear()
   mockPathname.mockReset()
   mockPathname.mockReturnValue("/")
+  vi.unstubAllEnvs()
   vi.restoreAllMocks()
 })
 
@@ -372,13 +373,26 @@ describe("Workspace data labels", () => {
     expect(screen.getByText("PostgreSQL")).toBeInTheDocument()
   })
 
-  it("labels legacy demo-only screens as demo data even when the store holds sourced records", async () => {
+  it("labels legacy demo-only screens as demo data when the demo book is explicitly enabled", async () => {
+    vi.stubEnv("NODE_ENV", "test")
+    vi.stubEnv("OMEN_STORAGE_MODE", "demo")
     mockPathname.mockReturnValue("/markets")
     useRepository(fakeRepository([{ ...alpha, provenance: "sourced" }], { storage: "database" }))
     await renderRoute(Promise.resolve(<div>child</div>))
     expect(screen.getByText("Demo data")).toBeInTheDocument()
     expect(screen.queryByText("Sourced data")).not.toBeInTheDocument()
     expect(screen.queryByText("PostgreSQL")).not.toBeInTheDocument()
+  })
+
+  it("does not label quarantined fixture screens as demo data when the demo book is off", async () => {
+    vi.stubEnv("NODE_ENV", "production")
+    vi.stubEnv("OMEN_STORAGE_MODE", "database")
+    mockPathname.mockReturnValue("/markets")
+    useRepository(fakeRepository([{ ...alpha, provenance: "sourced" }], { storage: "database" }))
+    await renderRoute(Promise.resolve(<div>child</div>))
+    expect(screen.queryByText("Demo data")).not.toBeInTheDocument()
+    expect(screen.getByText("Unavailable")).toBeInTheDocument()
+    expect(screen.queryByText("Sourced data")).not.toBeInTheDocument()
   })
 })
 

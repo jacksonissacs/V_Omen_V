@@ -23,11 +23,46 @@ function useStorage(mode: string | undefined, url?: string) {
 }
 
 describe("getRepository storage selection", () => {
-  it("uses the demo adapter when the mode is unset", async () => {
+  it("does not serve the demo book when the mode is unset", async () => {
+    vi.stubEnv("NODE_ENV", "development")
     useStorage(undefined)
+    const repository = getRepository()
+    expect(repository).not.toBeInstanceOf(MockIntelligenceRepository)
+    expect(repository.storage).toBe("misconfigured")
+    await expect(repository.listEvents()).rejects.toThrow(/OMEN_STORAGE_MODE is not set/)
+    await expect(repository.getEvent("evt-boc-cut")).rejects.toThrow(RepositoryUnavailableError)
+  })
+
+  it("uses the demo adapter only when demo mode is explicit outside production", async () => {
+    vi.stubEnv("NODE_ENV", "development")
+    useStorage("demo")
     const repository = getRepository()
     expect(repository).toBeInstanceOf(MockIntelligenceRepository)
     expect(repository.storage).toBe("demo")
+    const events = await repository.listEvents()
+    expect(events.length).toBeGreaterThan(0)
+    expect(events.every((event) => event.provenance === "demo")).toBe(true)
+  })
+
+  it("refuses the demo adapter in production even when demo mode is set", async () => {
+    vi.stubEnv("NODE_ENV", "production")
+    useStorage("demo", "postgres://omen:s3cret@127.0.0.1:1/omen")
+    const repository = getRepository()
+    expect(repository).not.toBeInstanceOf(MockIntelligenceRepository)
+    const failure = await repository.listEvents().catch((error: unknown) => error)
+    expect(failure).toBeInstanceOf(RepositoryUnavailableError)
+    expect((failure as Error).message).toMatch(/NODE_ENV=production/)
+    expect((failure as Error).message).not.toContain("s3cret")
+    await expect(repository.getEvent("evt-boc-cut")).rejects.toThrow(RepositoryUnavailableError)
+  })
+
+  it("uses the PostgreSQL adapter in production database mode", () => {
+    vi.stubEnv("NODE_ENV", "production")
+    vi.stubEnv("VERCEL_ENV", "production")
+    useStorage("database", "postgres://omen:pw@127.0.0.1:1/omen_missing")
+    const repository = getRepository()
+    expect(repository).toBeInstanceOf(PostgresIntelligenceRepository)
+    expect(repository.storage).toBe("database")
   })
 
   it("uses the PostgreSQL adapter in database mode", () => {

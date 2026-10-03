@@ -82,9 +82,9 @@ Significance on an event is curated in the catalog for the MVP. Scoring helpers 
 
 `EventFilter.order` selects `"move"` (default: largest absolute move first) or `"catalog"` (curated book order). Screens request catalog order and apply their own client-side sort, so tie-breaking matches the pre-repository behavior.
 
-`MockIntelligenceRepository` (`src/lib/data/mock-repository.ts`, also `server-only`) implements the port against the seeded book in `src/data/events.ts` and `src/lib/data/mock-catalog.ts`. It stays the adapter for development and tests.
+`MockIntelligenceRepository` (`src/lib/data/mock-repository.ts`, also `server-only`) implements the port against the seeded book in `src/data/events.ts` and `src/lib/data/mock-catalog.ts`. It is constructed only when `OMEN_STORAGE_MODE=demo` and the process is development or test with no production marker. A missing mode does not select it.
 
-`PostgresIntelligenceRepository` (`src/lib/data/postgres-repository.ts`, `server-only`) implements the same port over PostgreSQL. `getRepository()` picks the adapter from `OMEN_STORAGE_MODE`. An invalid configuration returns an adapter whose every read rejects, so database mode never falls back to demo data. Schema, write command and setup are in [database.md](database.md). Do not leak SQL, HTTP, or vendor SDKs into components.
+`PostgresIntelligenceRepository` (`src/lib/data/postgres-repository.ts`, `server-only`) implements the same port over PostgreSQL. `getRepository()` picks the adapter from `OMEN_STORAGE_MODE`. An invalid configuration, a missing mode, or demo mode in production returns an adapter whose every read rejects, so those cases never fall back to demo data. Schema, write command and setup are in [database.md](database.md). Do not leak SQL, HTTP, or vendor SDKs into components.
 
 ## Server data boundary
 
@@ -134,7 +134,7 @@ The App Router pages read the repository in-process in server components (no ext
 
 ## Legacy demo-only screens
 
-These screens are outside the V0 core boundary and were **not migrated** to the repository. They are demo content only:
+These screens are outside the V0 core boundary and were **not migrated** to the repository. They render only when demo intelligence is explicitly enabled (`OMEN_STORAGE_MODE=demo` in development or test, with no production marker). Otherwise the route is not found and no fixture book is returned:
 
 | Route | Data source today |
 | --- | --- |

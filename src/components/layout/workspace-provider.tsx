@@ -30,6 +30,11 @@ export interface WorkspaceShellData {
   storage: ShellStorage
   /** Where the loaded records came from, summarised across the book. */
   provenance: ShellProvenance
+  /**
+   * True only when legacy fixture screens are explicitly enabled.
+   * Missing means they are off, so the shell does not label them as demo data.
+   */
+  fixtureScreens?: boolean
 }
 
 const EMPTY_SHELL_DATA: WorkspaceShellData = {
@@ -45,6 +50,7 @@ interface WorkspaceContextValue {
   shellDataAvailable: boolean
   storage: ShellStorage
   provenance: ShellProvenance
+  fixtureScreens: boolean
   findEventSummary: (id: string) => EventSummary | undefined
   collapsed: boolean
   toggleCollapsed: () => void
@@ -71,6 +77,7 @@ export function WorkspaceProvider({
   data?: WorkspaceShellData
 }) {
   const { eventIndex, followedEventIds, available: shellDataAvailable, storage, provenance } = data
+  const fixtureScreens = data.fixtureScreens ?? false
   const followingStore = useMemo(() => getFollowingStore(storage), [storage])
   followingStore.setRepositoryDefaults(followedEventIds)
 
@@ -134,6 +141,7 @@ export function WorkspaceProvider({
       shellDataAvailable,
       storage,
       provenance,
+      fixtureScreens,
       findEventSummary,
       collapsed,
       toggleCollapsed,
@@ -154,6 +162,7 @@ export function WorkspaceProvider({
       shellDataAvailable,
       storage,
       provenance,
+      fixtureScreens,
       findEventSummary,
       collapsed,
       toggleCollapsed,

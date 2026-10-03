@@ -11,12 +11,21 @@ export class NotFoundError extends Error {
   }
 }
 
+export class RedirectError extends Error {
+  constructor(public url: string) {
+    super(`REDIRECT:${url}`)
+  }
+}
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: mockReplace, prefetch: vi.fn() }),
   usePathname: () => mockPathname(),
   useSearchParams: () => mockSearchParams(),
   notFound: () => {
     throw new NotFoundError()
+  },
+  redirect: (url: string) => {
+    throw new RedirectError(url)
   },
 }))
 

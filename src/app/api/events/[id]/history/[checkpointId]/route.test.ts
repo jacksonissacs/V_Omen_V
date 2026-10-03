@@ -59,6 +59,7 @@ function keys(value: unknown, into = new Set<string>()): Set<string> {
 }
 
 afterEach(() => {
+  vi.unstubAllEnvs()
   __resetRepositoryForTests()
   vi.restoreAllMocks()
 })
@@ -218,5 +219,26 @@ describe("GET /api/events/:id/history/:checkpointId", () => {
       error: DEMO_RECONSTRUCTION_UNSUPPORTED,
     })
     expect(JSON.stringify(body)).not.toContain("Bank of Canada")
+  })
+
+  it("does not replay the demo book when production requests a checkpoint", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined)
+    vi.stubEnv("NODE_ENV", "production")
+    vi.stubEnv("OMEN_STORAGE_MODE", "demo")
+    __resetRepositoryForTests()
+    const response = await GET(
+      new Request(`http://omen.test/api/events/evt-boc-cut/history/${CHECKPOINT}`),
+      params("evt-boc-cut", CHECKPOINT),
+    )
+    expect(response.status).toBe(503)
+    const body = await response.json()
+    expect(body).toEqual({
+      storage: "misconfigured",
+      outcome: "unavailable",
+      error: "Event storage is unavailable",
+    })
+    expect(JSON.stringify(body)).not.toContain("Bank of Canada")
+    expect(body.observations).toBeUndefined()
+    expect(body.evidence).toBeUndefined()
   })
 })
