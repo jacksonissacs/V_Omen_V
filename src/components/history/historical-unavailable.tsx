@@ -1,5 +1,6 @@
 import Link from "next/link"
 
+import { ShareViewControl } from "@/components/common/share-view-control"
 import {
   historicalViewUnavailableMessage,
   type HistoricalRequest,
@@ -9,11 +10,22 @@ export function HistoricalUnavailable({
   eventId,
   request,
   detail,
+  share = false,
 }: {
   eventId?: string
   request: HistoricalRequest
   detail?: string
+  /** Checkpoint routes can copy the URL that produced this refusal. */
+  share?: boolean
 }) {
+  const returnHref = eventId ? `/events/${eventId}` : "/pulse"
+  const returnLabel = eventId ? "Return to present" : "Return to Pulse"
+  const returnLink = (
+    <Link className="aion-button" data-primary="true" href={returnHref}>
+      {returnLabel}
+    </Link>
+  )
+
   return (
     <section className="aion-screen" data-testid="historical-unavailable">
       <p className="aion-label">422</p>
@@ -22,14 +34,13 @@ export function HistoricalUnavailable({
       <p className="aion-note">
         This URL asked for a recorded checkpoint or a past instant. The current event text is not shown.
       </p>
-      {eventId ? (
-        <Link className="aion-button" data-primary="true" href={`/events/${eventId}`}>
-          Return to present
-        </Link>
+      {share ? (
+        <div className="aion-event-actions" data-checkpoint="true">
+          <ShareViewControl />
+          {returnLink}
+        </div>
       ) : (
-        <Link className="aion-button" data-primary="true" href="/pulse">
-          Return to Pulse
-        </Link>
+        returnLink
       )}
     </section>
   )

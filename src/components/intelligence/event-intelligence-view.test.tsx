@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 import "@/test/next-navigation"
 
@@ -48,6 +48,10 @@ function sourcedSeries(
 }
 
 const tableRows = () => within(screen.getByTestId("observation-table")).getAllByRole("row").slice(1)
+
+afterEach(() => {
+  window.history.pushState(null, "", "/")
+})
 
 describe("EventIntelligenceView", () => {
   it("answers the core questions from recorded observations", async () => {
@@ -250,6 +254,7 @@ describe("EventIntelligenceView", () => {
     expect(within(actions).getAllByRole("button").map((button) => button.textContent)).toEqual([
       "Inspect evidence",
       "Follow",
+      "Share",
     ])
     expect(screen.queryByRole("button", { name: "Make a call" })).not.toBeInTheDocument()
 
@@ -304,6 +309,30 @@ describe("EventIntelligenceView", () => {
     const { user } = renderView(event, related)
     await user.click(screen.getByRole("button", { name: `Follow ${event.title}` }))
     expect(screen.getByRole("button", { name: `Unfollow ${event.title}` })).toBeInTheDocument()
+  })
+
+  it("copies the current brief URL and leaves client-only chart state out of it", async () => {
+    window.history.pushState(null, "", "/events/evt-boc-cut#event-evidence")
+    const webShare = vi.fn()
+    Object.defineProperty(navigator, "share", { configurable: true, value: webShare })
+    const { event } = await loadEvent("evt-boc-cut")
+    const { user } = renderView(event)
+
+    expect(screen.getByRole("button", { name: "Share" })).toBeVisible()
+    await user.click(screen.getByRole("button", { name: "1W" }))
+    await user.click(screen.getByRole("button", { name: "Share" }))
+
+    expect(await screen.findByText("Link copied")).toBeInTheDocument()
+    const copied = await navigator.clipboard.readText()
+    expect(copied).toBe(window.location.href)
+    const url = new URL(copied)
+    expect(url.pathname).toBe("/events/evt-boc-cut")
+    expect(url.hash).toBe("#event-evidence")
+    expect(url.search).toBe("")
+    expect(url.pathname).not.toContain("/history/")
+    expect(copied).not.toMatch(/1W|range=|series=/)
+    expect(webShare).not.toHaveBeenCalled()
+    expect(screen.queryByRole("button", { name: /sign in|account|post/i })).not.toBeInTheDocument()
   })
 
   it("links only the related events it is given", async () => {

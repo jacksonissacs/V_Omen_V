@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useRef, useState, type ReactNode } from "react"
 
+import { ShareViewControl } from "@/components/common/share-view-control"
 import { TabGroup } from "@/components/common/tab-group"
 import { buildArchiveHref } from "@/lib/archive/archive-url"
 import { IntelligencePanel, type InspectorTab } from "@/components/intelligence/intelligence-panel"
@@ -106,6 +107,7 @@ export function EventIntelligenceView({
             <Link className="aion-button" href={buildArchiveHref(event.id)} data-testid="event-archive-link">
               Open recorded history
             </Link>
+            <ShareViewControl />
           </div>
         </div>
         <dl className="aion-event-record" data-testid="event-record">
