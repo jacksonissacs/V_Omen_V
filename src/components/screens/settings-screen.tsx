@@ -53,7 +53,8 @@ export function SettingsScreen() {
         <Kv label="List checkpoints" value="GET /api/events/:id/history" />
         <Kv label="Replay checkpoint" value="GET /api/events/:id/history/:checkpointId" />
         <p className="aion-note">
-          Local mock repository. No API keys are stored in this application.
+          No API keys are stored in this application. Storage is selected by the
+          server environment, not by this screen.
         </p>
       </div>
     </section>
