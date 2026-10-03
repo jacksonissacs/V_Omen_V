@@ -117,7 +117,7 @@ Domains: `technology`, `finance`, `geopolitics`, `supply_chain`.
 
 ### Storage
 
-`OMEN_STORAGE_MODE=demo` (the default) serves the in-process demo book. `OMEN_STORAGE_MODE=database` reads PostgreSQL from `DATABASE_URL` and fails visibly rather than falling back. Records keep their own provenance: illustrative records stored in PostgreSQL are still labelled demo data. Copy `.env.example` to `.env.local` and follow [docs/database.md](docs/database.md) for local setup, the schema, and the write command.
+`OMEN_STORAGE_MODE=demo` serves the in-process demo book only when `NODE_ENV` is `development` or `test` and no production marker is set. An unset mode does not select that book. `OMEN_STORAGE_MODE=database` reads PostgreSQL from `DATABASE_URL` and fails visibly rather than falling back. Records keep their own provenance: illustrative records stored in PostgreSQL are still labelled demo data. Copy `.env.example` to `.env.local` and follow [docs/database.md](docs/database.md) for local setup, the schema, and the write command.
 
 ## Architecture in brief
 

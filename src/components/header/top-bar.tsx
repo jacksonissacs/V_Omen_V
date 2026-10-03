@@ -6,11 +6,12 @@ import { usePathname, useSearchParams } from "next/navigation"
 import { useWorkspace } from "@/components/layout/workspace-provider"
 import { routeHeadings } from "@/data/workspace"
 import { requestedHistoricalView } from "@/lib/history/historical-request"
+import { LEGACY_FIXTURE_ROUTE } from "@/lib/legacy-fixture-routes"
 
 export function TopBar() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const { setPaletteOpen, findEventSummary, storage } = useWorkspace()
+  const { setPaletteOpen, findEventSummary, storage, fixtureScreens } = useWorkspace()
   const onArchive = pathname === "/archive"
   const archiveCheckpoint = onArchive ? searchParams.get("checkpoint") : null
   const historical = requestedHistoricalView(searchParams, {
@@ -42,7 +43,15 @@ export function TopBar() {
         ) : null}
         <b>{heading}</b>
       </div>
-      {readsStore ? <DataChip /> : <LegacyDemoChip />}
+      {readsStore ? (
+        <DataChip />
+      ) : LEGACY_FIXTURE_ROUTE.test(pathname) && !fixtureScreens ? (
+        <span className="aion-chip" title="This screen is not available. No substitute book is shown.">
+          Unavailable
+        </span>
+      ) : (
+        <LegacyDemoChip />
+      )}
       {readsStore && storage === "database" ? (
         <span className="aion-chip" title="Records are read from the configured PostgreSQL database.">
           PostgreSQL

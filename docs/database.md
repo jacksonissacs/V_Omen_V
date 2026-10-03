@@ -4,11 +4,13 @@ The core workspace reads through `IntelligenceRepository` (`src/lib/data/reposit
 
 | `OMEN_STORAGE_MODE` | Adapter | Reads from |
 | --- | --- | --- |
-| unset, empty or `demo` | `MockIntelligenceRepository` | the in-process demo book in `src/data/events.ts` |
+| unset or empty | none: every read fails | — |
+| `demo`, and `NODE_ENV` is `development` or `test`, and no production marker is set | `MockIntelligenceRepository` | the in-process demo book in `src/data/events.ts` |
+| `demo` in any other environment, including when `NODE_ENV`, `VERCEL_ENV`, or `OMEN_DEPLOYMENT_ENV` is `production` | none: every read fails | — |
 | `database` | `PostgresIntelligenceRepository` | the PostgreSQL database named by `DATABASE_URL` |
 | anything else | none: every read fails | — |
 
-Database mode never falls back to demo data. The following all make every read fail with `RepositoryUnavailableError`:
+A missing `OMEN_STORAGE_MODE` does not select the demo book. Demo mode is refused unless the process is an explicit development or test environment and none of `NODE_ENV`, `VERCEL_ENV`, or `OMEN_DEPLOYMENT_ENV` is `production`. Database mode never falls back to demo data. The following all make every read fail with `RepositoryUnavailableError`:
 
 - `DATABASE_URL` is missing or malformed;
 - the server is unreachable or rejects the credentials;
@@ -23,7 +25,7 @@ Workspace routes render per request (`await connection()` in the workspace layou
 Storage says where records are kept. Provenance says where they came from. Every event, observation, evidence item and Move Log revision carries `provenance`, which is either `demo` or `sourced`.
 
 - Illustrative records stay `demo` after they're written to PostgreSQL. The committed fixtures are all `demo`.
-- On the core routes (Pulse, Events, event detail, Watchlists), the top bar shows provenance ("Demo data", "Sourced data", "Demo + sourced data", or "Data unavailable"). In database mode it also shows a separate "PostgreSQL" storage chip. Legacy demo-only screens always show "Demo data", because they never read the store.
+- On the core routes (Pulse, Events, event detail, Watchlists), the top bar shows provenance ("Demo data", "Sourced data", "Demo + sourced data", or "Data unavailable"). In database mode it also shows a separate "PostgreSQL" storage chip. Legacy fixture screens show "Demo data" only while demo intelligence is explicitly enabled; otherwise those routes are not found and the shell does not label them as demo data.
 - `/api/events` returns `storage` and `provenance` as separate fields. Each event also carries its own `provenance`.
 - `sourced` means entered from a cited source. It does **not** mean live. Nothing in V0 is a live feed.
 

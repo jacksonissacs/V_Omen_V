@@ -162,6 +162,28 @@ describe("analyst prompt treats source text as untrusted data", () => {
 })
 
 describe("analyst providers", () => {
+  it("does not select a synthetic provider when none is configured", async () => {
+    const provider = resolveAnalystProvider({ env: { NODE_ENV: "test" } })
+    expect(provider).toBeInstanceOf(UnavailableAnalystProvider)
+    const result = await provider.generate({
+      eventId: "evt-boc-cut",
+      eventQuestion: "Will the Bank of Canada cut?",
+      evidence: [EVIDENCE],
+      promptVersion: "omen-analyst-proposal-v1",
+      system: "sys",
+      user: "user",
+      signal: new AbortController().signal,
+    })
+    expect(result.ok).toBe(false)
+  })
+
+  it("still resolves an explicit test provider", () => {
+    expect(resolveAnalystProvider({ provider: "test", env: { NODE_ENV: "test" } })).toBeInstanceOf(TestAnalystProvider)
+    expect(resolveAnalystProvider({ env: { NODE_ENV: "test", OMEN_ANALYST_PROVIDER: "synthetic" } })).toBeInstanceOf(
+      TestAnalystProvider,
+    )
+  })
+
   it("marks the test adapter synthetic", () => {
     const provider = new TestAnalystProvider("valid")
     expect(provider.executionKind).toBe("synthetic")

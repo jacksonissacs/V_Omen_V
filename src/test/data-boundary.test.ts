@@ -76,6 +76,20 @@ describe("server data boundary", () => {
     expect(offenders).toEqual([])
   })
 
+  it("keeps the test fake repository out of runtime modules", () => {
+    const offenders = sourceFiles(SRC).filter((file) =>
+      readFileSync(file, "utf8").includes("@/test/fake-repository"),
+    )
+    expect(offenders).toEqual([])
+  })
+
+  it("keeps the seeded event catalog out of API route modules", () => {
+    const offenders = sourceFiles(path.join(SRC, "app/api")).filter((file) =>
+      readFileSync(file, "utf8").includes("@/data/events"),
+    )
+    expect(offenders).toEqual([])
+  })
+
   it("keeps seeded event fixtures out of core workspace client modules", () => {
     const offenders = clientModules
       .filter(({ source }) => imports(source).includes("@/data/events"))

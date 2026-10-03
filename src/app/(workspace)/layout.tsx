@@ -4,6 +4,7 @@ import type { ReactNode } from "react"
 import { AppShell } from "@/components/layout/app-shell"
 import type { WorkspaceShellData } from "@/components/layout/workspace-provider"
 import { getRepository, summarizeProvenance } from "@/lib/data/repository"
+import { demoIntelligenceAllowed } from "@/lib/db/config"
 import { toEventSummary } from "@/lib/events"
 
 async function loadShellData(): Promise<WorkspaceShellData> {
@@ -19,6 +20,7 @@ async function loadShellData(): Promise<WorkspaceShellData> {
       available: true,
       storage: repository.storage,
       provenance: summarizeProvenance(events),
+      fixtureScreens: demoIntelligenceAllowed(),
     }
   } catch (error) {
     console.error("Workspace shell data unavailable", error)
@@ -28,6 +30,7 @@ async function loadShellData(): Promise<WorkspaceShellData> {
       available: false,
       storage: repository.storage,
       provenance: "none",
+      fixtureScreens: false,
     }
   }
 }

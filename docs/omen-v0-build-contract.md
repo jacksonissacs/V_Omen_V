@@ -37,8 +37,8 @@ Owner-approved **beta coverage order**, out-of-scope surfaces, and the future **
 - The core workspace (Pulse, Events, event detail, related events, Following/watchlists, ⌘K event search) reads data through the async `IntelligenceRepository` in `src/lib/data/repository.ts`.
 - Data is loaded in server components or route handlers and passed to client components as serializable props.
 - Client components must not import the repository, its adapters, or seeded fixtures (`@/data/events`). `src/test/data-boundary.test.ts` enforces this.
-- The mock adapter stays available for development and tests.
-- `OMEN_STORAGE_MODE` selects demo or PostgreSQL storage. Database mode must fail visibly and never fall back to demo data. `DATABASE_URL` stays server-side and must never be exposed through a `NEXT_PUBLIC_` variable. See [database.md](database.md).
+- The mock adapter stays available for development and tests only when `OMEN_STORAGE_MODE=demo` is set explicitly and the process is not production. A missing mode does not enable it.
+- `OMEN_STORAGE_MODE` selects demo or PostgreSQL storage. Production never serves the mock adapter. Database mode must fail visibly and never fall back to demo data. `DATABASE_URL` stays server-side and must never be exposed through a `NEXT_PUBLIC_` variable. See [database.md](database.md).
 
 ## Every task delivers
 
