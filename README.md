@@ -4,11 +4,16 @@ Agentic event-intelligence and prediction operating system.
 
 Cursor × Bloomberg Terminal × Palantir × Linear.
 
+> **GitHub Pages is not the OMEN application.**
+> [https://jacksonissacs.github.io/V_Omen_V/](https://jacksonissacs.github.io/V_Omen_V/) serves this README and other static repository material only. It is not a hosted preview, staging site, or public product. Paths such as `/pulse`, `/events`, and `/watchlists` do not run here. The consumer app is **not publicly hosted yet**. Use the [local demo](#local-demo) below.
+
 OMEN is the public brand; internal identifiers (`AionMark`, `.aion-app`, `--a-*` tokens, `AionEvent`) keep their historical AION names to avoid an unnecessary refactor.
 
 OMEN tracks important events and shows what changed, when it changed, the size and significance of the move, likely causes, supporting evidence, remaining uncertainty, related events and markets, historical analogues, and how previous expectations evolved.
 
-This repository is the **Phase 0 foundation**: a local Next.js application over a typed mock catalog. There are no payments, no production authentication, and no paid external APIs.
+The first launch slice is **AI and technology in North America** (United States, Canada, and relevant Mexico coverage). Material international developments that affect that slice remain in scope.
+
+This repository is the **Phase 0 foundation**: a local Next.js application with optional demo or PostgreSQL storage. There are no payments, no production authentication, no paid external APIs, and no public host for the consumer workspace.
 
 ## Product docs
 
@@ -25,28 +30,27 @@ This repository is the **Phase 0 foundation**: a local Next.js application over 
 - shadcn/ui
 - Vitest + Testing Library
 
-## Routes
+## Local application routes
+
+These paths exist only in a locally running Next.js process. They are **not** available on GitHub Pages.
 
 | Path | Surface |
 | --- | --- |
-| `/` | Public landing page (marketing route group, no `AppShell`) |
-| `/pulse` | Intelligence / Pulse — workspace home |
-| `/events` | Event book |
+| `/` | Marketing landing (local Next.js only; not a public host) |
+| `/pulse` | Pulse — workspace home |
+| `/events` | Explore / event book |
 | `/events/[id]` | Event intelligence |
-| `/markets` | Linked markets |
-| `/signals` | Cross-market signals |
-| `/agents` | Forecasters and models |
-| `/watchlists` | Followed events |
-| `/research` | Personal forecast record |
-| `/archive` | Point-in-time reconstruction |
-| `/relations` | Relationship graph |
-| `/alerts` | Threshold monitors |
-| `/settings` | Workspace preferences |
+| `/watchlists` | Following |
+| `/archive` | Recorded checkpoint replay |
+| `/settings` | Local display preferences (unpromoted) |
+
+Legacy fixture screens (`/markets`, `/signals`, `/agents`, `/research`, `/relations`, `/alerts`) are not the consumer product. After OMEN-001 they render only when demo intelligence is explicitly enabled locally; otherwise they are not found.
 
 ## Landing page
 
-`/` is the public OMEN landing, built from the Fable design in `design-reference/omen-site`
-(see `design-reference/README.md` for decisions, deviations and open items).
+In the local Next.js app, `/` is the OMEN marketing landing, built from the Fable design in
+`design-reference/omen-site` (see `design-reference/README.md` for decisions, deviations and open
+items). It is not hosted on GitHub Pages.
 
 - Route group `src/app/(marketing)/` with its own header and footer; styles are scoped under
   `.omen-marketing` in `src/app/(marketing)/marketing.css` (`--m-*` tokens, no global resets).
@@ -56,35 +60,39 @@ This repository is the **Phase 0 foundation**: a local Next.js application over 
   (fixed seed, 7 s loop, 30 fps cap) with full lifecycle management and a static fallback.
 - Demo content is typed fixture data in `src/lib/marketing/demo-data.ts`; every card, chart and
   evidence list derives from the same point-in-time cutoff.
-- Every primary CTA is **Explore the demo → `/pulse`**. There is no signup or access-request form.
+- In the local app, every primary CTA is **Explore the demo → `/pulse`**. There is no signup or access-request form. Those buttons do not work on GitHub Pages.
 
 ## Workspace
 
-The workspace (`/pulse` and the routes below) is labelled as demo data and uses the OMEN reference
-visual language across routed pages:
+The local workspace (`/pulse` and the consumer routes below) is labelled as demo data and uses the
+OMEN reference visual language. It is not served by GitHub Pages.
 
 - **Pulse** — expectation moves, category filters, search, sort, watchlist
 - **Event intelligence** — recorded probability history with range filtering, observed changes, evidence with publication and capture times, and separate Observed / Interpretation / Still unknown sections
-- **Events / Markets / Signals** — reusable rows, cards, and signal tiles
-- **Agents** — institution and model records
-- **Watchlists** — local follow/unfollow
-- **Archive / Relations / Research** — reference screens, now addressable by URL (Archive is a labelled demo)
+- **Explore** — event book
+- **Following** — local follow/unfollow
+- **Archive** — recorded checkpoint replay
 - `⌘K` / `Ctrl+K` — search and navigate
 
 The seeded book contains 32 events across AI, technology, economics, geopolitics, companies, regulation, financial markets, energy, crypto, and science.
 
 ## Setup
 
-Requires Node.js 20+ and npm.
+Requires Node.js 20+ and npm. This is the only supported way to run Pulse and the workspace.
+
+### Local demo
 
 ```bash
-git clone <this-repo>
-cd accessible-me-assignment
+git clone https://github.com/jacksonissacs/V_Omen_V.git
+cd V_Omen_V
+cp .env.example .env.local
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+`.env.example` sets `OMEN_STORAGE_MODE=demo`. After OMEN-001 an unset mode does not load the demo book.
+
+Open [http://localhost:3000](http://localhost:3000) for the local marketing page, then [http://localhost:3000/pulse](http://localhost:3000/pulse) for Pulse. Those URLs are this machine’s Next.js server, not GitHub Pages.
 
 ### Other commands
 
