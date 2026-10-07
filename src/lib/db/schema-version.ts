@@ -1,5 +1,5 @@
 /** Highest migration in `db/migrations`. The PostgreSQL adapter refuses older schemas. */
-export const EXPECTED_SCHEMA_VERSION = 8
+export const EXPECTED_SCHEMA_VERSION = 9
 
 export const MIGRATIONS_TABLE = "omen_schema_migrations"
 export const IDENTITY_TABLE = "omen_database_identity"

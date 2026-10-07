@@ -38,6 +38,8 @@ npm run operator -- checkpoint verify --id <checkpointId>
 
 `npm run db:upsert` remains available for fixture bundles. Prefer `operator publish` when you need review metadata, idempotency, or retry after a checkpoint failure.
 
+`publish run` can create an event. A review item cannot: `source_review_items.event_id` references an event that already exists. Stage, approve, and `publish approved` append to that event.
+
 ## Intake JSON
 
 ```json
