@@ -1,0 +1,52 @@
+=== empty GET /api/events ===
+HTTP/1.1 200 OK
+vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch
+content-type: application/json
+Date: Wed, 07 Oct 2026 13:47:51 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Transfer-Encoding: chunked
+
+{"storage":"database","provenance":"none","events":[]}
+=== demo production GET /api/events ===
+HTTP/1.1 503 Service Unavailable
+vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch
+content-type: application/json
+Date: Wed, 07 Oct 2026 13:47:51 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Transfer-Encoding: chunked
+
+{"storage":"misconfigured","error":"Event storage is unavailable"}
+=== demo production GET /api/events/evt-boc-cut ===
+HTTP/1.1 503 Service Unavailable
+vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch
+content-type: application/json
+Date: Wed, 07 Oct 2026 13:47:51 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Transfer-Encoding: chunked
+
+{"storage":"misconfigured","error":"Event storage is unavailable"}
+=== unset GET /api/events ===
+HTTP/1.1 503 Service Unavailable
+vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch
+content-type: application/json
+Date: Wed, 07 Oct 2026 13:47:51 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Transfer-Encoding: chunked
+
+{"storage":"misconfigured","error":"Event storage is unavailable"}
+=== route statuses on demo production ===
+markets 404
+signals 404
+agents 404
+research 404
+relations 404
+alerts 404
+graph 404
+pulse 200
+events 200
+watchlists 200
+archive 200

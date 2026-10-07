@@ -1,6 +1,6 @@
 # OMEN-004 October release QA
 
-**October decision: baseline not yet recorded in this revision.** The matrix is filled only after the clean-checkout run. Until that record exists, the milestone is not a pass.
+**October decision: FAIL.** Recorded 2026-10-07 on clean `main` `aea8636c555736de9d61110abc8a05a173a67d79`. Checks 6 and 7 passed. Checks 1, 2, 3, 4, 5, and 8 failed because no real AI-tech event is available with demo intelligence disabled. The pack is [baseline-2026-10-07](baseline-2026-10-07/README.md). Share was not scored.
 
 Same-agent continuity: this file is updated by the same Grok 4.7 cloud agent that opened pull request #33 (`bc-105e4c9a-0993-440d-b397-f14cc50b9491`, https://cursor.com/agents/bc-105e4c9a-0993-440d-b397-f14cc50b9491). Operator coordinating the handoff: Codex. No other model is delegated the run, the review, or the decision.
 
@@ -168,16 +168,16 @@ Share is not in this table.
 
 ## October matrix
 
-Filled by the baseline commit that follows this contract revision. If this section still says `NOT RECORDED`, the October decision is not complete.
+Recorded 2026-10-07. Detail and artifact paths: [baseline-2026-10-07/matrix.md](baseline-2026-10-07/matrix.md).
 
 | # | Check | Result | Class | Evidence |
 | --- | --- | --- | --- | --- |
-| 1 | Discover | NOT RECORDED | | |
-| 2 | Understand | NOT RECORDED | | |
-| 3 | Evidence / provenance | NOT RECORDED | | |
-| 4 | Follow | NOT RECORDED | | |
-| 5 | Return | NOT RECORDED | | |
-| 6 | Reality guard | NOT RECORDED | | |
-| 7 | Regression | NOT RECORDED | | |
-| 8 | Proof run | NOT RECORDED | | |
-| | **October decision** | **NOT RECORDED** | | Share is not a row. |
+| 1 | Discover | **FAIL** | product-failed | Empty production database. Pulse and Explore: no events. |
+| 2 | Understand | **FAIL** | product-failed | No event to open. |
+| 3 | Evidence / provenance | **FAIL** | product-failed | No source identity. Chip is **No data**. |
+| 4 | Follow | **FAIL** | product-failed | `/watchlists` says **Nothing followed**. |
+| 5 | Return | **FAIL** | product-failed | No followed event and no real checkpoint. |
+| 6 | Reality guard | **PASS** | pass | Workflow exit 0. Production demo mode does not serve the seeded book. |
+| 7 | Regression | **PASS** | pass | All baseline harness commands exited 0. See `commands.log`. |
+| 8 | Proof run | **FAIL** | product-failed | Walk stopped at Pulse: **No events in the book yet**. |
+| | **October decision** | **FAIL** | | Share is not a row. |

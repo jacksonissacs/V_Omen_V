@@ -1,0 +1,309 @@
+{
+  "shots": [
+    {
+      "requested": "http://127.0.0.1:3210/",
+      "finalUrl": "http://127.0.0.1:3210/",
+      "httpStatus": 200,
+      "file": "proof-01-marketing-1440.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "OMEN — Every probability, with its history",
+      "h1": "Every probability, with its history.",
+      "chips": [],
+      "overflow": 0,
+      "eventHrefs": [],
+      "seededHits": [
+        "Bank of Canada cuts rates in October",
+        "Frontier model released before December 1"
+      ],
+      "textLength": 9762,
+      "textExcerpt": "OMEN\nDemo\nPulse\nArchive\nLedger\nMethodology\nFAQ\nExplore the demo\nPause motion\nEvery probability, with its history.\n\nOMEN records what the world expected, when it expected it, and why that changed. Watch a probability move, inspect the evidence behind the move, and rewind to see exactly what was known at any moment.\n\nExplore the demo\nSee how it works\n\nThe demo below and the workspace it opens use illustrative data. Nothing on this page is a live feed or a performance claim.\n\nOne event, read the way OMEN reads it\n\nA single market as it appears in the workspace: the probability now, how far it moved, when it was observed, what evidence arrived, and how much of the move is actually explained.\n\nEvent\nBank of Canada · Macro\nDemo — illustrative data, not live\nMacro\nTier 1 source\nResolves Oct 29 2026\nDemo — illustrative data, not live.\nBank of Canada cuts rates in October\nProbability\n73.8%\nMovement since 14:00\n+12.8 pts\n4.7σ over 18 min\nAs of\nSep 10 2026 · 15:00:00 EDT\nlatest observation\n60%\n65%\n70%\n75%\n80%\n14:00\n14:15\n14:30\n14:45\n15:00\nCPI 14:30\nEvidence\nPrimary catalyst identified\n14:30:00\nStatistics Canada CPI release\n14:30:42\nCAD begins repricing\n−0.4%\n14:31:08\nCanadian 2Y yields move\n+17 bps\n14:31:51\nOMEN detects abnormal movement\n14:32:07\nProbability rises\n+4.2 pts\n14:34:16\nRelated rate market reacts\n+6 pts\n14:38:42\nMove reaches full size\n+12.6 pts\nUncertainty\nOMEN estimate\n71.2% ± 3.4\nExplained by identified signals\n69%\nIdentification confidence\n89%\nHistorical analogues\nn = 41\n\nThe CPI release is the most likely trigger, but comparable releases account for about 69% of a move this size. The remainder is unexplained and shown as such.\n\nProbability\nThe current consensus, to one decimal, in tabular figures.\nMovement\nChange since the start of the window, with its size in stan"
+    },
+    {
+      "requested": "click a.btn-primary from /",
+      "finalUrl": "http://127.0.0.1:3210/pulse",
+      "file": "proof-02-after-cta-pulse-1440.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "Pulse · OMEN",
+      "h1": "Pulse",
+      "chips": [
+        {
+          "text": "No data",
+          "display": "flex"
+        },
+        {
+          "text": "PostgreSQL",
+          "display": "flex"
+        }
+      ],
+      "overflow": 0,
+      "eventHrefs": [],
+      "seededHits": [],
+      "textLength": 248,
+      "textExcerpt": "OMEN\nPulse\nExplore\nFollowing\nMore\ncollapse\nPulse\nNo data\nPostgreSQL\nSearch\n⌘K\nPulse\n\nA high-signal scan of recorded moves — not the full book, and not personalized.\n\nNo events in the book yet\n\nExpectation moves appear here once events are recorded."
+    },
+    {
+      "requested": "http://127.0.0.1:3210/pulse",
+      "finalUrl": "http://127.0.0.1:3210/pulse",
+      "httpStatus": 200,
+      "file": "discover-pulse-1440.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "Pulse · OMEN",
+      "h1": "Pulse",
+      "chips": [
+        {
+          "text": "No data",
+          "display": "flex"
+        },
+        {
+          "text": "PostgreSQL",
+          "display": "flex"
+        }
+      ],
+      "overflow": 0,
+      "eventHrefs": [],
+      "seededHits": [],
+      "textLength": 248,
+      "textExcerpt": "OMEN\nPulse\nExplore\nFollowing\nMore\ncollapse\nPulse\nNo data\nPostgreSQL\nSearch\n⌘K\nPulse\n\nA high-signal scan of recorded moves — not the full book, and not personalized.\n\nNo events in the book yet\n\nExpectation moves appear here once events are recorded."
+    },
+    {
+      "requested": "http://127.0.0.1:3210/pulse",
+      "finalUrl": "http://127.0.0.1:3210/pulse",
+      "httpStatus": 200,
+      "file": "discover-pulse-390.png",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "title": "Pulse · OMEN",
+      "h1": "Pulse",
+      "chips": [
+        {
+          "text": "No data",
+          "display": "flex"
+        },
+        {
+          "text": "PostgreSQL",
+          "display": "flex"
+        }
+      ],
+      "overflow": 0,
+      "eventHrefs": [],
+      "seededHits": [],
+      "textLength": 232,
+      "textExcerpt": "Pulse\nNo data\nPostgreSQL\nSearch\nPulse\n\nA high-signal scan of recorded moves — not the full book, and not personalized.\n\nNo events in the book yet\n\nExpectation moves appear here once events are recorded.\n\nPulse\nExplore\nFollowing\nMore"
+    },
+    {
+      "requested": "http://127.0.0.1:3210/events",
+      "finalUrl": "http://127.0.0.1:3210/events",
+      "httpStatus": 200,
+      "file": "discover-explore-1440.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "Explore · OMEN",
+      "h1": "Explore",
+      "chips": [
+        {
+          "text": "No data",
+          "display": "flex"
+        },
+        {
+          "text": "PostgreSQL",
+          "display": "flex"
+        }
+      ],
+      "overflow": 0,
+      "eventHrefs": [],
+      "seededHits": [],
+      "textLength": 421,
+      "textExcerpt": "OMEN\nPulse\nExplore\nFollowing\nMore\ncollapse\nExplore\nNo data\nPostgreSQL\nSearch\n⌘K\nExplore\n\nThe full book of questions OMEN is tracking — broader than Pulse.\n\n0 events in view · 0 in the book\n\nAll\nAI\nTechnology\nEconomics\nGeopolitics\nCompanies\nRegulation\nMarkets\nEnergy\nCrypto\nScience\nChange\nProbability\nTime\nNo events in the book yet\n\nTracked questions appear here once events are recorded.\n\n0 events in view · 0 in the book"
+    },
+    {
+      "requested": "http://127.0.0.1:3210/events",
+      "finalUrl": "http://127.0.0.1:3210/events",
+      "httpStatus": 200,
+      "file": "discover-explore-390.png",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "title": "Explore · OMEN",
+      "h1": "Explore",
+      "chips": [
+        {
+          "text": "No data",
+          "display": "flex"
+        },
+        {
+          "text": "PostgreSQL",
+          "display": "flex"
+        }
+      ],
+      "overflow": 0,
+      "eventHrefs": [],
+      "seededHits": [],
+      "textLength": 405,
+      "textExcerpt": "Explore\nNo data\nPostgreSQL\nSearch\nExplore\n\nThe full book of questions OMEN is tracking — broader than Pulse.\n\n0 events in view · 0 in the book\n\nAll\nAI\nTechnology\nEconomics\nGeopolitics\nCompanies\nRegulation\nMarkets\nEnergy\nCrypto\nScience\nChange\nProbability\nTime\nNo events in the book yet\n\nTracked questions appear here once events are recorded.\n\n0 events in view · 0 in the book\n\nPulse\nExplore\nFollowing\nMore"
+    },
+    {
+      "requested": "http://127.0.0.1:3210/watchlists",
+      "finalUrl": "http://127.0.0.1:3210/watchlists",
+      "httpStatus": 200,
+      "file": "return-following-1440.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "Following · OMEN",
+      "h1": "Following",
+      "chips": [
+        {
+          "text": "No data",
+          "display": "flex"
+        },
+        {
+          "text": "PostgreSQL",
+          "display": "flex"
+        }
+      ],
+      "overflow": 0,
+      "eventHrefs": [],
+      "seededHits": [],
+      "textLength": 290,
+      "textExcerpt": "OMEN\nPulse\nExplore\nFollowing\nMore\ncollapse\nFollowing\nNo data\nPostgreSQL\nSearch\n⌘K\nFollowing\n\nMarkets, entities and event classes you follow. Saved in this browser.\n\nItem\nCurrent state\nLargest recent move\nLast catalyst\nNext event\nNothing followed\n\nOpen an event and follow it to pin it here."
+    },
+    {
+      "requested": "http://127.0.0.1:3210/archive",
+      "finalUrl": "http://127.0.0.1:3210/archive",
+      "httpStatus": 200,
+      "file": "return-archive-1440.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "Archive · OMEN",
+      "h1": "Archive",
+      "chips": [
+        {
+          "text": "No data",
+          "display": "flex"
+        },
+        {
+          "text": "PostgreSQL",
+          "display": "flex"
+        }
+      ],
+      "overflow": 0,
+      "eventHrefs": [],
+      "seededHits": [],
+      "textLength": 782,
+      "textExcerpt": "OMEN\nPulse\nExplore\nFollowing\nMore\ncollapse\nArchive\nNo data\nPostgreSQL\nSearch\n⌘K\nArchive\n\nReplay verified history checkpoints from stored observations, evidence and Move Log revisions.\n\nChoose an event and a published checkpoint. Share the URL to reproduce the same stored reconstruction.\n\nEvent\nCoverage limitations\nReplay uses published checkpoint membership only — not wall-clock cutoffs or fabricated checkpoint ids.\nSemantic title and status appear only when an eligible event_revisions row is a checkpoint member.\nDemo storage does not publish checkpoints; use PostgreSQL mode for stored reconstruction.\n\nStorage: database · Data unavailable.\n\nCheckpoint reconstruction\n\nSelect a published checkpoint from the list below, or open a shareable /archive?event=…&checkpoint=… link."
+    },
+    {
+      "requested": "http://127.0.0.1:3212/pulse",
+      "finalUrl": "http://127.0.0.1:3212/pulse",
+      "httpStatus": 200,
+      "file": "quarantine-pulse-1440.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "Pulse · OMEN",
+      "h1": "",
+      "chips": [
+        {
+          "text": "Data unavailable",
+          "display": "flex"
+        }
+      ],
+      "overflow": 0,
+      "eventHrefs": [],
+      "seededHits": [],
+      "textLength": 208,
+      "textExcerpt": "OMEN\nPulse\nExplore\nFollowing\nMore\ncollapse\nPulse\nData unavailable\nSearch\n⌘K\nWorkspace data unavailable\n\nThe event repository could not be read, so this screen cannot be shown. Reference 4099879155.\n\nTry again"
+    },
+    {
+      "requested": "http://127.0.0.1:3212/markets",
+      "finalUrl": "http://127.0.0.1:3212/markets",
+      "httpStatus": 404,
+      "file": "quarantine-markets-1440.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "Markets · OMEN",
+      "h1": "This view is not available",
+      "chips": [
+        {
+          "text": "Unavailable",
+          "display": "flex"
+        }
+      ],
+      "overflow": 0,
+      "eventHrefs": [],
+      "seededHits": [],
+      "textLength": 176,
+      "textExcerpt": "OMEN\nPulse\nExplore\nFollowing\nMore\ncollapse\nMarkets\nUnavailable\nSearch\n⌘K\n\n404\n\nThis view is not available\n\nOMEN is not serving a substitute book for this screen.\n\nBack to Pulse"
+    },
+    {
+      "requested": "http://127.0.0.1:3212/agents",
+      "finalUrl": "http://127.0.0.1:3212/agents",
+      "httpStatus": 404,
+      "file": "quarantine-agents-1440.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "Agents · OMEN",
+      "h1": "This view is not available",
+      "chips": [
+        {
+          "text": "Unavailable",
+          "display": "flex"
+        }
+      ],
+      "overflow": 0,
+      "eventHrefs": [],
+      "seededHits": [],
+      "textLength": 175,
+      "textExcerpt": "OMEN\nPulse\nExplore\nFollowing\nMore\ncollapse\nAgents\nUnavailable\nSearch\n⌘K\n\n404\n\nThis view is not available\n\nOMEN is not serving a substitute book for this screen.\n\nBack to Pulse"
+    },
+    {
+      "requested": "http://127.0.0.1:3214/pulse",
+      "finalUrl": "http://127.0.0.1:3214/pulse",
+      "httpStatus": 200,
+      "file": "unset-mode-pulse-1440.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "Pulse · OMEN",
+      "h1": "",
+      "chips": [
+        {
+          "text": "Data unavailable",
+          "display": "flex"
+        }
+      ],
+      "overflow": 0,
+      "eventHrefs": [],
+      "seededHits": [],
+      "textLength": 208,
+      "textExcerpt": "OMEN\nPulse\nExplore\nFollowing\nMore\ncollapse\nPulse\nData unavailable\nSearch\n⌘K\nWorkspace data unavailable\n\nThe event repository could not be read, so this screen cannot be shown. Reference 1092793459.\n\nTry again"
+    }
+  ]
+}
