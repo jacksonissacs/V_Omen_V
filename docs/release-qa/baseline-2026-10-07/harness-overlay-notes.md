@@ -21,6 +21,6 @@ No product file was edited. No fixture was added to pass Discover. `next dev` wa
 
 ## Files that exist only on the pull-request branch
 
-`harness-overlay/run-baseline.sh`, `harness-overlay/browser.sh`, and `harness-overlay/capture.mjs` are the scripts used from `/tmp` to log the clean checkout and to photograph production `next start`. They were not present in the baseline tree while it ran. They are evidence of how the pack was captured, not a product change.
+`harness-overlay/omen-004-run-baseline.sh`, `harness-overlay/omen-004-browser.sh`, and `harness-overlay/omen-004-capture.mjs` are the scripts used from `/tmp` to log the clean checkout and to photograph production `next start`. They were not present in the baseline tree while it ran. They are evidence of how the pack was captured, not a product change.
 
 The October contract text in `docs/release-qa/omen-004-release-qa-plan.md` is also only on this branch. Share was removed from the acceptance rows before the baseline ran.
