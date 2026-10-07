@@ -1,8 +1,8 @@
 # Current-state reconciliation — 2026-10-07
 
-Refresh of the already accepted October Task 7 findings. This file does not complete Task 7 again, and it does not reopen OMEN-004. OMEN-004 stays done: its baseline on `main` is **FAIL 2/8**. Task 13 is the separate journey map in [2026-10-07-v0-user-journey.md](2026-10-07-v0-user-journey.md).
+Refresh of the already accepted October Task 7 findings. This file does not complete Task 7 again, and it does not reopen OMEN-004. OMEN-004 stays done: the recorded baseline of `main` code `aea8636c` is **FAIL 2/8**. Task 13 mapping is complete in [2026-10-07-v0-user-journey.md](2026-10-07-v0-user-journey.md): six steps, one weakest transition, and a smallest proposed fix. Task 14 remains proposed. Finishing the map is separate from approving Task 14 or merging any pull request.
 
-Checked on 2026-10-07 against GitHub, not against the stale sentences still on the OMEN Execution Center and the October plan. Those Notion pages were read and not edited.
+Checked on 2026-10-07 against GitHub. Notion was read at the timestamps in the last section and was not edited from this branch. Coordination updates followed that read.
 
 ## Heads
 
@@ -15,12 +15,14 @@ Checked on 2026-10-07 against GitHub, not against the stale sentences still on t
 
 `git diff --stat 79596c4 1fa9141` touches only `docs/release-qa/`. The application tree of the evidence head is the tested code. Neither SHA is on `main`. Neither is deployed.
 
+`main` is code at `aea8636c`, not a database and not a deployment. The empty book below is the recorded OMEN-004 run: a clean disposable schema-only database, zero `events` rows, production `next start`. That run does not describe every database that can be attached to this SHA, and it was not an inspection of a production deployment.
+
 ## Candidate versus `main`
 
-| | `main` `aea8636c` | Draft candidate |
+| | `main` code `aea8636c`, recorded disposable baseline | Draft candidate, its own disposable database |
 | --- | --- | --- |
-| October 8/8 | **FAIL 2/8**. Reality guard and regression pass. Discover, Understand, Evidence, Follow, Return, and the proof walk fail because the book is empty. [Matrix](https://github.com/jacksonissacs/V_Omen_V/blob/752499d0569f3c782b95fa00eec5ad810d8ff8fc/docs/release-qa/baseline-2026-10-07/matrix.md). | **PASS 8/8** on disposable PostgreSQL after stage → approve → publish. [Matrix](https://github.com/jacksonissacs/V_Omen_V/blob/1fa914127bf6bb56978eb8debe7fcd61eb645734/docs/release-qa/d1-2026-10-07/matrix.md). |
-| Real event | `GET /api/events` is `200` with `events: []` and provenance `none`. Pulse shows “No events in the book yet”. [Shot](https://github.com/jacksonissacs/V_Omen_V/blob/752499d0569f3c782b95fa00eec5ad810d8ff8fc/docs/release-qa/baseline-2026-10-07/browser/discover-pulse-1440.png). | One sourced question, “Gemini 4.0 released by October 31, 2026?”, id `evt-gemini-4-public-2026-10-31`, market-implied 94.5%. |
+| October 8/8 | **FAIL 2/8** on that clean disposable database. Reality guard and regression pass. Discover, Understand, Evidence, Follow, Return, and the proof walk fail because that database’s book is empty. [Matrix](https://github.com/jacksonissacs/V_Omen_V/blob/752499d0569f3c782b95fa00eec5ad810d8ff8fc/docs/release-qa/baseline-2026-10-07/matrix.md). | **PASS 8/8** on a separate disposable PostgreSQL database after stage → approve → publish. [Matrix](https://github.com/jacksonissacs/V_Omen_V/blob/1fa914127bf6bb56978eb8debe7fcd61eb645734/docs/release-qa/d1-2026-10-07/matrix.md). |
+| Real event | On that baseline, `GET /api/events` is `200` with `events: []` and provenance `none`. Pulse shows “No events in the book yet”. [Shot](https://github.com/jacksonissacs/V_Omen_V/blob/752499d0569f3c782b95fa00eec5ad810d8ff8fc/docs/release-qa/baseline-2026-10-07/browser/discover-pulse-1440.png). | One sourced question, “Gemini 4.0 released by October 31, 2026?”, id `evt-gemini-4-public-2026-10-31`, market-implied 94.5%. |
 | First publication from an empty book | Not available. PR #34 exists because review and publication rows could not precede the event row. | Migrations `0008`–`0010`, canonical idempotency JSON, and the operator bundle. Product diff against `main` is 21 files, +521 / −18, outside `docs/`. |
 | Evidence reliability | `reliability` is a number and the panel prints `toFixed(2)`. | Null is stored and the panel prints “Not recorded”. [Panel](https://github.com/jacksonissacs/V_Omen_V/blob/79596c41232b092dbf5640979039d14f49a0d83c/src/components/intelligence/intelligence-panel.tsx#L58-L61). |
 | Local checks in the evidence log | 338 unit, 79 database, 33 workflow, all exit 0. | 342 unit, 81 database, 33 workflow, all exit 0. [commands.log](https://github.com/jacksonissacs/V_Omen_V/blob/1fa914127bf6bb56978eb8debe7fcd61eb645734/docs/release-qa/d1-2026-10-07/commands.log). |
@@ -37,7 +39,7 @@ Present at `aea8636c`, without the Gemini publication:
 - Consumer chrome is Pulse `/pulse`, Explore `/events`, Following `/watchlists`, and More. Archive is only inside More, at `/archive`. [Nav](https://github.com/jacksonissacs/V_Omen_V/blob/aea8636c555736de9d61110abc8a05a173a67d79/src/data/workspace.ts#L4-L21).
 - Event brief, evidence inspector, browser-local Follow, and checkpoint Archive. The journey shell files are unchanged between `aea8636c` and `79596c4`, except the null-reliability label above.
 - Server reads go through `IntelligenceRepository`. Production demo mode and an unset storage mode refuse the book (baseline reality guard **PASS**). PR #31 quarantine stays merged: `/markets`, `/signals`, `/agents`, `/research`, `/relations`, `/alerts`, and `/graph` are not a substitute book.
-- Operator and analyst foundations from earlier merged work stay on `main`. They do not by themselves put a real AI-tech event in an empty production database.
+- Operator and analyst foundations from earlier merged work stay on `main`. That code does not include the Gemini publication, and on this SHA a review row cannot be reserved before the event row exists. No production database was inspected.
 
 ## BUILT and verified only on the draft candidate
 
@@ -56,8 +58,8 @@ That pass is the candidate. It is not `main`, and it is not a running deployment
 
 Observed, not inferred:
 
-- **On `main`, the October loop has no real event.** One defect fails six checks. Disposable schema-only database, zero rows, production `next start`. [Defects](https://github.com/jacksonissacs/V_Omen_V/blob/752499d0569f3c782b95fa00eec5ad810d8ff8fc/docs/release-qa/baseline-2026-10-07/defects.md).
-- **On `main`, a reviewed bundle cannot become that first event.** PR #34 is the repair. It is not merged, so the empty-book failure remains the behavior of `main`.
+- **Recorded baseline of `main` code: the clean disposable book has no real event.** One defect fails six checks. Schema-only database, zero rows, production `next start`. [Defects](https://github.com/jacksonissacs/V_Omen_V/blob/752499d0569f3c782b95fa00eec5ad810d8ff8fc/docs/release-qa/baseline-2026-10-07/defects.md). This is that run’s database, not a property of every database attached to `aea8636c`, and not an inspected production deployment.
+- **On `main` code, a reviewed bundle cannot be reserved before the event row exists.** PR #34 is the unmerged repair for that limit. The disposable baseline separately recorded an empty book. It did not inspect a production database, and an empty result on that one database is not the state of every database that can be attached to `aea8636c`.
 - **On the candidate phone brief, the next controls are off the first screen.** At 390×844, `brief-evidence-390.png` ends on current probability and “Previous observation / None recorded”. Inspect evidence, Follow, and Open recorded history are below the resolution criteria. The evidence check passed only after a later scroll harness. This is the Task 13 weakest transition. It is not an 8/8 failure. Detail is in the journey doc.
 
 Candidate limits that were recorded and are not check failures: one observation, so change is not computable and no move log exists; `observedAt` is the gamma market `updatedAt`, not a last-trade time; reliability is null; the public Polymarket embed’s 0.95/0.06 is not the stored 0.945. [defects.md](https://github.com/jacksonissacs/V_Omen_V/blob/1fa914127bf6bb56978eb8debe7fcd61eb645734/docs/release-qa/d1-2026-10-07/defects.md).
@@ -74,15 +76,15 @@ Owner decisions. This document does not grant them.
 
 ## NEXT
 
-1. Owner decision on draft PR #34. Until it is merged, `main` remains the 2/8 baseline. This file does not approve the merge.
+1. Owner decision on draft PR #34. Until it is merged, `main` code stays the SHA whose recorded clean disposable baseline is FAIL 2/8. This file does not approve the merge.
 2. If it is merged, verify the new `main` SHA and its CI. That verification is still not a deployment.
 3. Task 14, proposed in the journey doc and not approved: put Inspect evidence, Follow, and Open recorded history above the resolution criteria so a 390×844 first viewport can reach them.
 4. Share, if the owner still wants the older M0 track: open a PR from `cursor/share-control-f024` at `a36c87f`. It does not unblock the October loop.
 5. Owner keep-or-close of the older drafts. Do not close them from a docs branch.
 
-## Notion sentences this refresh replaces
+## Notion read, then coordination update
 
-Read at Execution Center `page_last_edited_at` 2026-10-07T13:12:26Z and October plan `page_last_edited_at` 2026-10-07T11:54:17Z. Both still say PR #33 is only QA preparation, the 8/8 proof has not run, and the next step is to run the OMEN-004 baseline. Those statements are stale. The baseline has run and failed 2/8. The candidate rerun passed 8/8 and is unmerged. Task 7 stays accepted. OMEN-004 stays done. Task 13 stays open until the owner accepts the journey doc.
+This branch read the OMEN Execution Center at `page_last_edited_at` 2026-10-07T13:12:26Z and the October plan at `page_last_edited_at` 2026-10-07T11:54:17Z. At those timestamps both pages said PR #33 was only QA preparation, the 8/8 proof had not run, and the next step was to run the OMEN-004 baseline. That wording is the historical text of the read. This branch did not write Notion. Codex then updated the Execution Center and October Task 7 to the main-versus-candidate facts. Task 7 stays accepted. OMEN-004 stays done. Task 13 mapping is complete in the journey doc. Task 14 remains proposed.
 
 ## Uncertainty
 
