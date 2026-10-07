@@ -26,6 +26,8 @@ This directory is the evidence commit. It is not part of that code SHA. `main` a
 
 `docs/release-qa/d1-2026-10-07-blocker/sources/` is the earlier fetch. Its HTTP Date values are not the stored OMEN clocks. See `superseded-http-date-capture/README.txt`.
 
+`receipt/poly.body.html` is the original recaptured Polymarket page (1,128,174 bytes, sha256 `0f4b9da60bd733965dcefdbc39b097ea1b2cb434245b35639e3a583d98cd42d1`). The blocker `poly.html` is a different body. `supplement.md` records that copy and the scrolled evidence screenshots.
+
 ## Operator proof
 
 Disposable database only. No production database.
@@ -50,6 +52,10 @@ The database regression `stages and approves a previously absent event, then pub
 - Demo refusal: `127.0.0.1:3212`, `OMEN_STORAGE_MODE=demo`
 - Unset refusal: `127.0.0.1:3214`
 
+## Browser evidence section
+
+`harness/capture-evidence-section.mjs` scrolls `#event-evidence` on `http://127.0.0.1:3210/events/evt-gemini-4-public-2026-10-31` and writes `browser/evidence-section/`. At 390×844 the named sources, unknown publication, unknown reliability, and Sourced provenance are in the viewport. Details are in `supplement.md`.
+
 ## Independent review
 
-Review this evidence commit against code SHA `79596c41232b092dbf5640979039d14f49a0d83c`, not against `e3b0dd53f85a4e228e00f0ba397a84748f3677a9`. Do not merge or deploy from this pack. The eight-row result is in `matrix.md`.
+Review this evidence commit against code SHA `79596c41232b092dbf5640979039d14f49a0d83c`, not against `e3b0dd53f85a4e228e00f0ba397a84748f3677a9`. Do not merge or deploy from this pack. The eight-row result is in `matrix.md`. Independent clearance of that result is still pending.

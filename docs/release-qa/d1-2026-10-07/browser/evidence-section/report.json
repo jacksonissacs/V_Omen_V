@@ -1,0 +1,138 @@
+{
+  "pageUrl": "http://127.0.0.1:3210/events/evt-gemini-4-public-2026-10-31",
+  "sourceUrls": [
+    "https://gamma-api.polymarket.com/events?slug=gemini-4pt0-released-by-june-30-2026",
+    "https://polymarket.com/event/gemini-4pt0-released-by-june-30-2026",
+    "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-argon/"
+  ],
+  "shots": [
+    {
+      "file": "evidence-390-polymarket-gamma-api.png",
+      "url": "http://127.0.0.1:3210/events/evt-gemini-4-public-2026-10-31",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrolledTo": "Polymarket gamma API",
+      "visibleNames": [
+        "Polymarket gamma API",
+        "Polymarket"
+      ],
+      "visibleAssertions": [
+        "Sourced",
+        "Polymarket gamma API",
+        "Not recorded",
+        "Not stated by source"
+      ],
+      "hrefs": [
+        "https://gamma-api.polymarket.com/events?slug=gemini-4pt0-released-by-june-30-2026"
+      ]
+    },
+    {
+      "file": "evidence-390-google-blog.png",
+      "url": "http://127.0.0.1:3210/events/evt-gemini-4-public-2026-10-31",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrolledTo": "Google blog",
+      "visibleNames": [
+        "Polymarket",
+        "Google blog"
+      ],
+      "visibleAssertions": [
+        "Sourced",
+        "Google blog",
+        "Not recorded",
+        "30 Sept"
+      ],
+      "hrefs": [
+        "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-argon/"
+      ]
+    },
+    {
+      "file": "evidence-390-polymarket.png",
+      "url": "http://127.0.0.1:3210/events/evt-gemini-4-public-2026-10-31",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrolledTo": "Polymarket",
+      "visibleNames": [
+        "Polymarket gamma API",
+        "Polymarket",
+        "Google blog"
+      ],
+      "visibleAssertions": [
+        "Sourced",
+        "Polymarket",
+        "Not recorded",
+        "Not stated by source"
+      ],
+      "hrefs": [
+        "https://polymarket.com/event/gemini-4pt0-released-by-june-30-2026"
+      ]
+    },
+    {
+      "file": "evidence-390-panel.png",
+      "url": "http://127.0.0.1:3210/events/evt-gemini-4-public-2026-10-31",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "isMobile": true,
+        "hasTouch": true,
+        "deviceScaleFactor": 1
+      },
+      "scrolledTo": "element screenshot of #event-evidence",
+      "names": [
+        "Polymarket gamma API",
+        "Polymarket",
+        "Google blog"
+      ],
+      "hrefs": [
+        "https://gamma-api.polymarket.com/events?slug=gemini-4pt0-released-by-june-30-2026",
+        "https://polymarket.com/event/gemini-4pt0-released-by-june-30-2026",
+        "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-argon/"
+      ]
+    },
+    {
+      "file": "record-390-sourced.png",
+      "url": "http://127.0.0.1:3210/events/evt-gemini-4-public-2026-10-31",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "scrolledTo": "Record tab",
+      "visibleProvenance": "Sourced"
+    },
+    {
+      "file": "evidence-1440-viewport.png",
+      "url": "http://127.0.0.1:3210/events/evt-gemini-4-public-2026-10-31",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "visibleNames": [
+        "Polymarket gamma API",
+        "Polymarket"
+      ]
+    },
+    {
+      "file": "evidence-1440-panel.png",
+      "url": "http://127.0.0.1:3210/events/evt-gemini-4-public-2026-10-31",
+      "viewport": {
+        "width": 1440,
+        "height": 900,
+        "isMobile": false,
+        "hasTouch": false,
+        "deviceScaleFactor": 1
+      },
+      "scrolledTo": "element screenshot of #event-evidence",
+      "names": [
+        "Polymarket gamma API",
+        "Polymarket",
+        "Google blog"
+      ]
+    }
+  ]
+}
