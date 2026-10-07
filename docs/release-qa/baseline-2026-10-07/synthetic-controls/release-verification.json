@@ -1,0 +1,15 @@
+{
+  "baseBranch": "main",
+  "baseSha": "d044ead2e627169b764ec223723f14af4680a919",
+  "originMainSha": "aea8636c555736de9d61110abc8a05a173a67d79",
+  "headSha": "aea8636c555736de9d61110abc8a05a173a67d79",
+  "verificationHead": "aea8636c555736de9d61110abc8a05a173a67d79",
+  "integrationBranch": "release/omen-v0-integration",
+  "checkpointIdentity": "checkpoint_id/content_md5",
+  "laterWriteApplied": true,
+  "intakePublished": true,
+  "earlyCheckpoint": "1",
+  "laterCheckpoint": "7",
+  "intakeCheckpoint": "5",
+  "externalSourceSmoke": "separate from this deterministic suite; see CI job external-source-smoke"
+}

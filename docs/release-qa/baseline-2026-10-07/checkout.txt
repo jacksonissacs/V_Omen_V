@@ -1,0 +1,13 @@
+recorded_at=2026-10-07T13:45:22Z
+worktree=/tmp/omen-004-baseline
+HEAD=aea8636c555736de9d61110abc8a05a173a67d79
+branch=HEAD (no branch)
+git_status_porcelain_before_tests=
+(empty)
+git_status_sb=## HEAD (no branch)
+origin_main_fetched=aea8636c555736de9d61110abc8a05a173a67d79
+porcelain_after_each_command=empty
+porcelain_after_browser_capture=empty
+product_tree_modified=no
+acceptance_server=next start, NODE_ENV=production
+next_dev_used=no

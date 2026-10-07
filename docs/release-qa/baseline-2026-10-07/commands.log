@@ -1,0 +1,253 @@
+=== CHECKOUT BEFORE TESTS 2026-10-07T13:45:22Z ===
+aea8636c555736de9d61110abc8a05a173a67d79
+PORCELAIN_BEGIN
+PORCELAIN_END
+## HEAD (no branch)
+=== END CHECKOUT ===
+=== CMD: npm ci ===
+START 2026-10-07T13:45:23Z
+npm warn deprecated eslint@9.39.5: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+
+added 807 packages, and audited 808 packages in 11s
+
+261 packages are looking for funding
+  run `npm fund` for details
+
+26 vulnerabilities (3 moderate, 19 high, 4 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+EXIT 0
+PORCELAIN_AFTER_BEGIN
+PORCELAIN_AFTER_END
+=== END CMD ===
+=== CMD: npm run lint ===
+START 2026-10-07T13:45:34Z
+
+> aion@0.1.0 lint
+> eslint
+
+EXIT 0
+PORCELAIN_AFTER_BEGIN
+PORCELAIN_AFTER_END
+=== END CMD ===
+=== CMD: npx next typegen ===
+START 2026-10-07T13:45:39Z
+Generating route types...
+✓ Types generated successfully
+EXIT 0
+PORCELAIN_AFTER_BEGIN
+PORCELAIN_AFTER_END
+=== END CMD ===
+=== CMD: npm run typecheck ===
+START 2026-10-07T13:45:40Z
+
+> aion@0.1.0 typecheck
+> tsc --noEmit
+
+EXIT 0
+PORCELAIN_AFTER_BEGIN
+PORCELAIN_AFTER_END
+=== END CMD ===
+=== CMD: npm test ===
+START 2026-10-07T13:45:44Z
+
+> aion@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /tmp/omen-004-baseline
+
+ ✓ src/components/intelligence/event-intelligence-view.test.tsx (17 tests) 1001ms
+ ✓ src/app/(workspace)/workspace-routes.test.tsx (26 tests) 1249ms
+ ✓ src/components/screens/archive-screen.test.tsx (8 tests) 369ms
+ ✓ src/components/events/event-card.test.tsx (7 tests) 292ms
+ ✓ src/lib/domain/historical-reconstruction.test.ts (10 tests) 8ms
+ ✓ src/lib/domain/probability-history.test.ts (17 tests) 7ms
+ ✓ src/lib/archive/load-archive-page.test.tsx (4 tests) 24ms
+ ✓ src/components/archive/archive-navigation.test.tsx (24 tests) 4437ms
+   ✓ archive checkpoint navigation > keeps the first page and steps by sequence across page boundaries  3349ms
+ ✓ src/components/layout/app-shell.test.tsx (8 tests) 1011ms
+   ✓ AppShell desktop navigation > promotes Pulse, Explore, Following, and More — not unfinished destinations  411ms
+ ✓ src/components/marketing/spectrum-stage.test.tsx (5 tests) 249ms
+ ✓ src/lib/data/mock-repository.test.ts (13 tests) 9ms
+ ✓ src/lib/following/following.browser.test.tsx (8 tests) 482ms
+ ✓ src/lib/db/event-bundle.test.ts (9 tests) 8ms
+ ✓ src/lib/db/config.test.ts (11 tests) 6ms
+ ✓ src/data/build-event.test.ts (3 tests) 3ms
+ ✓ src/test/data-boundary.test.ts (9 tests) 14ms
+ ✓ src/lib/db/publication-bundle.test.ts (3 tests) 4ms
+ ✓ src/components/marketing/landing-page.test.tsx (4 tests) 579ms
+ ✓ src/components/screens/pulse-screen.test.tsx (4 tests) 469ms
+ ✓ src/lib/db/event-reader.test.ts (2 tests) 4ms
+ ✓ src/lib/events.test.ts (4 tests) 9ms
+ ✓ src/lib/marketing/demo-data.test.ts (9 tests) 7ms
+ ✓ src/app/(workspace)/events/[id]/history/[checkpointId]/page.test.tsx (2 tests) 128ms
+ ✓ src/app/(workspace)/legacy-fixture-routes.test.tsx (11 tests) 217ms
+ ✓ src/components/screens/events-screen.test.tsx (3 tests) 420ms
+ ✓ src/components/marketing/walkthrough.test.tsx (2 tests) 296ms
+ ✓ src/lib/domain/event-chronology.test.ts (2 tests) 11ms
+ ✓ src/lib/following/persistence.test.ts (6 tests) 4ms
+ ✓ src/lib/history/historical-request.test.ts (4 tests) 3ms
+ ✓ src/app/aion-workspace.css.test.ts (6 tests) 3ms
+ ✓ src/lib/search/command-index.test.ts (4 tests) 3ms
+ ✓ src/lib/domain/scoring.test.ts (5 tests) 3ms
+ ✓ src/lib/db/bigint-id.test.ts (2 tests) 3ms
+ ✓ src/components/sidebar/sidebar.test.tsx (3 tests) 2ms
+ ✓ src/lib/http-url.test.ts (2 tests) 4ms
+ ✓ src/components/screens/agents-screen.test.tsx (1 test) 55ms
+ ✓ src/lib/intake/refresh.test.ts (18 tests) 52ms
+ ✓ src/lib/analyst/proposal.test.ts (19 tests) 9ms
+ ✓ src/lib/format.test.ts (2 tests) 2ms
+ ✓ src/lib/intake/network.test.ts (7 tests) 18ms
+ ✓ src/app/api/events/[id]/history/[checkpointId]/route.test.ts (5 tests) 12ms
+ ✓ src/app/api/events/[id]/history/route.test.ts (4 tests) 10ms
+ ✓ src/lib/data/repository.test.ts (9 tests) 10ms
+ ✓ src/app/api/events/route.test.ts (7 tests) 11ms
+ ✓ src/lib/analyst/safety.test.ts (2 tests) 6ms
+ ✓ src/lib/intake/safety.test.ts (2 tests) 6ms
+ ✓ src/lib/intake/text.test.ts (4 tests) 3ms
+ ✓ src/lib/intake/command.test.ts (1 test) 3ms
+
+ Test Files  48 passed (48)
+      Tests  338 passed (338)
+   Start at  13:45:44
+   Duration  14.18s (transform 1.29s, setup 4.44s, collect 3.66s, tests 11.54s, environment 15.67s, prepare 2.18s)
+
+EXIT 0
+PORCELAIN_AFTER_BEGIN
+PORCELAIN_AFTER_END
+=== END CMD ===
+=== CMD: npm run build ===
+START 2026-10-07T13:45:59Z
+
+> aion@0.1.0 build
+> next build
+
+▲ Next.js 16.3.4 (Turbopack)
+✓ Running next.config.ts took 18ms
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 3.6s
+  Running TypeScript ...
+  Finished TypeScript in 4.5s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/21) ...
+  Generating static pages using 3 workers (5/21) 
+  Generating static pages using 3 workers (10/21) 
+  Generating static pages using 3 workers (15/21) 
+✓ Generating static pages using 3 workers (21/21) in 248ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /agents
+├ ƒ /alerts
+├ ƒ /api-access
+├ ƒ /api/events
+├ ƒ /api/events/[id]
+├ ƒ /api/events/[id]/history
+├ ƒ /api/events/[id]/history/[checkpointId]
+├ ○ /apple-icon.png
+├ ƒ /archive
+├ ƒ /events
+├ ƒ /events/[id]
+├ ƒ /events/[id]/history/[checkpointId]
+├ ○ /graph
+├ ○ /icon.png
+├ ƒ /markets
+├ ƒ /pulse
+├ ƒ /relations
+├ ƒ /research
+├ ƒ /settings
+├ ƒ /signals
+├ ƒ /team
+└ ƒ /watchlists
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+EXIT 0
+PORCELAIN_AFTER_BEGIN
+PORCELAIN_AFTER_END
+=== END CMD ===
+=== CMD: npm run test:db ===
+START 2026-10-07T13:46:08Z
+
+> aion@0.1.0 test:db
+> vitest run --config vitest.db.config.ts
+
+
+ RUN  v3.2.7 /tmp/omen-004-baseline
+
+ ✓ src/lib/db/postgres.db.test.ts (46 tests) 8801ms
+   ✓ migrations > identifies an empty database, applies every migration once and records checksums  390ms
+   ✓ persistence across processes > reads in this process what separate CLI processes wrote, and a third process reads it back  854ms
+   ✓ persistence across processes > refuses to write from a production process or to an unidentified database  654ms
+   ✓ persistence across processes > reports an unreachable database without printing the connection string or password  357ms
+   ✓ temporal visibility checkpoints > keeps an earlier transaction timestamp from ranking as earlier visibility  314ms
+ ✓ src/lib/analyst/integrity.db.test.ts (15 tests) 4314ms
+ ✓ src/lib/db/historical-reconstruction.db.test.ts (7 tests) 807ms
+ ✓ src/lib/db/intake-publication.db.test.ts (6 tests) 1415ms
+   ✓ intake publication bridge > imports, reviews, publishes, corrects, and retries without inventing a probability or a publication time  458ms
+ ✓ src/lib/analyst/analyst.db.test.ts (4 tests) 1274ms
+   ✓ analyst proposal workflow (PostgreSQL) > runs synthetic propose → stage → refuse publish → stale approval on edit → idempotent restage  331ms
+ ✓ src/lib/db/operator-publishing.db.test.ts (1 test) 346ms
+   ✓ operator publishing workflow > reviews intake, publishes evidence and an authored Move Log, corrects, and retries checkpoint publication  321ms
+
+ Test Files  6 passed (6)
+      Tests  79 passed (79)
+   Start at  13:46:09
+   Duration  18.33s (transform 339ms, setup 0ms, collect 655ms, tests 16.96s, environment 1ms, prepare 218ms)
+
+EXIT 0
+PORCELAIN_AFTER_BEGIN
+PORCELAIN_AFTER_END
+=== END CMD ===
+=== CMD: npm run test:workflow ===
+START 2026-10-07T13:46:27Z
+
+> aion@0.1.0 test:workflow
+> vitest run --config vitest.workflow.config.ts
+
+
+ RUN  v3.2.7 /tmp/omen-004-baseline
+
+ ✓ src/test/workflow/integrated-workflow.workflow.test.ts (32 tests) 12513ms
+   ✓ browser workspace > opens Pulse from the homepage with a real click  993ms
+   ✓ browser workspace > opens event evidence and the published Move Log from the card  321ms
+   ✓ browser workspace > reaches the same checkpoint from Archive and keeps the URL shareable  650ms
+   ✓ browser workspace > opens a shared checkpoint URL in a fresh browser session  376ms
+   ✓ browser workspace > keeps mobile layout inside the viewport  338ms
+   ✓ browser workspace > supports keyboard navigation from the homepage CTA, command palette and checkpoint list  638ms
+   ✓ browser workspace > honours browser back and forward across the workflow  902ms
+   ✓ intake review publication and checkpoint stability > stages an intake import without publishing evidence  448ms
+   ✓ intake review publication and checkpoint stability > requires an explicit review before publication  862ms
+   ✓ intake review publication and checkpoint stability > does not duplicate evidence, Move Logs or checkpoints when publication is retried  405ms
+   ✓ intake review publication and checkpoint stability > keeps the earlier checkpoint stable after later evidence, metadata edits and corrections  542ms
+   ✓ intake review publication and checkpoint stability > opens an off-page checkpoint and crosses the first page with real pagination  1088ms
+ ✓ src/test/workflow/analyst-proposal.workflow.test.ts (1 test) 1387ms
+   ✓ analyst proposal staging workflow > generates a synthetic proposal, stages it, and refuses publish bypass  949ms
+
+ Test Files  2 passed (2)
+      Tests  33 passed (33)
+   Start at  13:46:27
+   Duration  14.40s (transform 134ms, setup 0ms, collect 256ms, tests 13.90s, environment 0ms, prepare 72ms)
+
+EXIT 0
+PORCELAIN_AFTER_BEGIN
+PORCELAIN_AFTER_END
+=== END CMD ===
+=== ALL COMMANDS FINISHED 2026-10-07T13:46:42Z ===

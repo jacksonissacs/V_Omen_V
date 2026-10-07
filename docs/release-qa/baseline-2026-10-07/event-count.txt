@@ -1,0 +1,9 @@
+ events 
+--------
+      0
+(1 row)
+
+ id | title | provenance 
+----+-------+------------
+(0 rows)
+

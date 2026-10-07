@@ -1,0 +1,6 @@
+
+> aion@0.1.0 db:migrate
+> tsx scripts/omen-db.ts migrate --identify test --label OMEN-004 October baseline empty book
+
+Database identity: test (OMEN-004 October baseline empty book)
+Applied 0001_core_event_storage, 0002_trustworthy_temporal_storage, 0003_history_visibility_checkpoints, 0004_operator_publishing, 0005_intake_review_bridge, 0006_analyst_proposals, 0007_analyst_proposal_integrity.
