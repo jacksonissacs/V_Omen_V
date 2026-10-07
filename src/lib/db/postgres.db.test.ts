@@ -1963,8 +1963,8 @@ describe("sourced operator bundle", () => {
       expect(observation.rows).toEqual([
         {
           probability_pct: "94.50",
-          observed_at: new Date("2026-10-07T14:20:36.391Z"),
-          captured_at: new Date("2026-10-07T14:22:56.000Z"),
+          observed_at: new Date("2026-10-07T14:50:34.604Z"),
+          captured_at: new Date("2026-10-07T14:53:51.789Z"),
         },
       ])
       const evidence = await client.query<{ id: string; reliability: number | null; source_published_at: Date | null }>(

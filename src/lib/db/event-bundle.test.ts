@@ -127,11 +127,13 @@ describe("parseEventBundle", () => {
         sourceName: "Polymarket",
         probabilityType: "market_implied",
         probabilityPct: 94.5,
-        observedAt: "2026-10-07T14:20:36.391Z",
-        capturedAt: "2026-10-07T14:22:56.000Z",
+        observedAt: "2026-10-07T14:50:34.604Z",
+        capturedAt: "2026-10-07T14:53:51.789Z",
         provenance: "sourced",
       }),
     ])
+    expect(bundle.observations[0]?.note).toMatch(/not a last-trade time/)
+    expect(bundle.observations[0]?.note).toMatch(/HTTP Date is not stored/)
     expect(bundle.moveLogRevisions).toEqual([])
     expect(bundle.evidence.map((item) => item.reliability)).toEqual([null, null, null])
     const gamma = bundle.evidence.find((item) => item.id === "ev-gamma-gemini-4-2026-10-31")
@@ -140,7 +142,11 @@ describe("parseEventBundle", () => {
     expect(gamma?.sourcePublishedAt).toBeNull()
     expect(page?.sourcePublishedAt).toBeNull()
     expect(google?.sourcePublishedAt).toBe("2026-09-30T20:00:00.000Z")
-    expect(gamma?.firstObservedAt).not.toBe(gamma?.sourcePublishedAt)
+    expect(gamma?.firstObservedAt).toBe("2026-10-07T14:53:51.789Z")
+    expect(gamma?.capturedAt).toBe("2026-10-07T14:53:51.789Z")
+    expect(page?.firstObservedAt).toBe("2026-10-07T14:53:52.306Z")
+    expect(google?.firstObservedAt).toBe("2026-10-07T14:53:52.456Z")
+    expect(gamma?.firstObservedAt).not.toBe("2026-10-07T14:53:51.000Z")
     expect(bundle.observations[0]?.observedAt).not.toBe(bundle.observations[0]?.capturedAt)
   })
 
