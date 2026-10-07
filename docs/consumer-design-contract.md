@@ -111,7 +111,7 @@ The inspector (or the stacked panel below 1080px) is the evidence layer:
 - Stance: Supports, Contradicts, or Context.
 - Whether the current move log cites it.
 - Source published time, first observed by OMEN, and captured by OMEN, each independently “Not recorded” or “Not stated by source” when absent.
-- Recorder’s reliability as a recorded rating out of 1, labeled as the recorder’s rating.
+- Recorder’s reliability as a recorded rating out of 1 when one was stored, labeled as the recorder’s rating. When no rating was stored, the line says “Not recorded.”
 - An “Open source” link only for `http` and `https` URLs without embedded credentials. The existing `navigableHttpUrl` rule stays.
 
 ### Verified history

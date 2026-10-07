@@ -33,14 +33,14 @@ Storage says where records are kept. Provenance says where they came from. Every
 
 Migrations live in `db/migrations/NNNN_name.sql`, numbered consecutively. They are applied in order and recorded with a SHA-256 checksum in `omen_schema_migrations`. Editing an applied migration is refused; add a new one instead. The highest migration number must equal `EXPECTED_SCHEMA_VERSION` in `src/lib/db/schema-version.ts`, and a test checks that they match.
 
-`0001_core_event_storage.sql` through `0007_analyst_proposal_integrity.sql` create the following tables.
+`0001_core_event_storage.sql` through `0008_evidence_reliability_optional.sql` create the following tables.
 
 | Table | Holds | Mutability |
 | --- | --- | --- |
 | `events` | Current projection: precise question (must end in `?`), status (`watch`/`active`/`resolved`), deadline, resolution criteria (≥ 20 chars), category, significance, provenance, catalog/follow flags, and a `display` JSON object with presentation-only context (signals, analogues, timeline…) | Semantic columns update only through the write path (see below). Cannot be deleted while it has history. |
 | `event_revisions` | Append-only versions of reconstructible event metadata: title, question, status, deadline, resolution criteria, category, significance, region, summary, tags, related events, provenance. Excludes `display`, catalog position and follow flags. | Append-only |
 | `probability_observations` | Event, source kind (`provider`/`author`) and name, probability type (`market_implied`/`forecaster_estimate`/`model_estimate`), value, `observed_at`, `captured_at`, `record_available_at`, provenance | Append-only |
-| `evidence` | Source name/URL, `source_published_at` (nullable: the source may carry no date), `first_observed_at` (when OMEN first saw it), `captured_at`, `record_available_at`, stance, reliability 0–1, `recorded_by`, provenance | Append-only |
+| `evidence` | Source name/URL, `source_published_at` (nullable: the source may carry no date), `first_observed_at` (when OMEN first saw it), `captured_at`, `record_available_at`, stance, reliability (0–1 when a recorder rating is stored, otherwise NULL), `recorded_by`, provenance | Append-only |
 | `move_logs` | One row per move on an event | Append-only |
 | `move_log_revisions` | Version, `published_at`, `recorded_at`, `record_available_at`, author, what changed, likely cause, explained % (nullable when no share is recorded), unexplained factors, linked `evidence_ids`, correction note, provenance | Append-only |
 | `source_review_items` | Staged operator intake. Status is `staged`, `approved`, or `rejected`. A file-queue capture keeps source id, captured version, canonical URL, source clock time, calendar date, fetch time, and content identity. Re-import of the same version updates nothing. Candidate kinds include evidence, Move Log, bundle, and source capture. Analyst proposals are staged only through the dedicated analyst workflow (not generic intake); they remain review-only and are not publishable as a bundle | Review outcome is durable. Payload is not rewritten after staging |
@@ -55,7 +55,7 @@ Every event must have at least one observation. This is a deferred constraint tr
 
 ### Probability scale
 
-Every probability is stored in **percentage points**, as `numeric(5,2)` constrained to `0.00–100.00` inclusive, so `73.8` means 73.8%. The same scale applies to `explained_pct` when it is recorded; otherwise the column stays `NULL` and readers report that the explained share is not recorded. `reliability` is a 0–1 fraction. The write command rejects values with more than two decimals, and PostgreSQL rounds any more-precise value written directly.
+Every probability is stored in **percentage points**, as `numeric(5,2)` constrained to `0.00–100.00` inclusive, so `73.8` means 73.8%. The same scale applies to `explained_pct` when it is recorded; otherwise the column stays `NULL` and readers report that the explained share is not recorded. `reliability` is a 0–1 fraction when a recorder rating is stored. When no rating is recorded the column stays `NULL`, and readers report that it is not recorded. A missing rating is not filled with a number. The write command rejects values with more than two decimals, and PostgreSQL rounds any more-precise value written directly.
 
 ### Source time, recording time, snapshot capture, and publication
 

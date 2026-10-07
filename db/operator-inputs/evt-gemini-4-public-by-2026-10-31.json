@@ -1,0 +1,77 @@
+{
+  "event": {
+    "id": "evt-gemini-4-public-2026-10-31",
+    "title": "Gemini 4.0 released by October 31, 2026",
+    "question": "Gemini 4.0 released by October 31, 2026?",
+    "status": "active",
+    "deadline": "2026-11-01T03:59:00.000Z",
+    "resolutionCriteria": "This market will resolve to \"Yes\" if Google's Gemini 4.0 is made available to the general public by the listed date. Otherwise, this market will resolve to \"No\".\n\nFor this market to resolve to \"Yes,\" Gemini 4.0 must be launched and publicly accessible, including via open beta or open rolling waitlist signups. A closed beta or any form of private access will not suffice. The release must be clearly defined and publicly announced by Google as being accessible to the general public.\n\nIf a qualifying model is made publicly accessible and explicitly labeled with the relevant version name within the company’s official website, this will qualify as “publicly announced”. Labeling errors, placeholder text, or version names displayed on the website that do not correspond to a model that is actually accessible to the general public under the rules will not qualify.\n\nGemini 4.0 refers to a product explicitly named Gemini 4.0 or one that is recognized as a successor to Gemini 3 similar to the progression from Gemini 2.0 to Gemini 3. Products labeled as Gemini 3.0 Flash, Gemini 2.5, or similar will not count for this market's resolution.\n\nThe primary resolution source for this market will be official information from Google, with additional verification from a consensus of credible reporting.",
+    "category": "AI",
+    "significance": "medium",
+    "region": "United States",
+    "summary": "Tracked question copied from the Polymarket market for a public Gemini 4.0 release by that contract's listed date. The current state is one market-implied price from the gamma record for that market. The public Polymarket page and Google's 30 September 2026 Gemini 4 Argon post are stored beside it. No move log is recorded.",
+    "tags": [
+      "Gemini",
+      "Google"
+    ],
+    "relatedEventIds": [],
+    "provenance": "sourced",
+    "followedByDefault": false,
+    "catalogPosition": 0,
+    "display": {}
+  },
+  "observations": [
+    {
+      "sourceKind": "provider",
+      "sourceName": "Polymarket",
+      "probabilityType": "market_implied",
+      "probabilityPct": 94.5,
+      "observedAt": "2026-10-07T14:20:36.391848Z",
+      "capturedAt": "2026-10-07T14:22:56.000Z",
+      "note": "Gamma outcomePrices Yes is 0.945 on slug gemini-4pt0-released-by-october-31-2026, stored as 94.5 percentage points. observedAt is that market object's updatedAt 2026-10-07T14:20:36.391848Z, truncated to milliseconds by the bundle clock parser. It is not a last-trade time. The same object listed lastTradePrice 0.94, bestBid 0.94, and bestAsk 0.95. A cached public page embed of this slug listed outcomePrices 0.95 and 0.06 and is not this observation.",
+      "provenance": "sourced"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev-gamma-gemini-4-2026-10-31",
+      "sourceName": "Polymarket gamma API",
+      "sourceUrl": "https://gamma-api.polymarket.com/events?slug=gemini-4pt0-released-by-june-30-2026",
+      "sourcePublishedAt": null,
+      "firstObservedAt": "2026-10-07T14:22:56.000Z",
+      "capturedAt": "2026-10-07T14:22:56.000Z",
+      "summary": "Market slug gemini-4pt0-released-by-october-31-2026, question copied onto the event. outcomePrices Yes 0.945 and No 0.055. bestBid 0.94, bestAsk 0.95, lastTradePrice 0.94, spread 0.01. updatedAt 2026-10-07T14:20:36.391848Z is the observation clock, not a publication time. endDate 2026-11-01T03:59:00Z. closed false. resolutionSource was empty. The parent event description says the contract resolves on a Gemini 4.0 Flash model; this market description does not, and it is the resolution criteria. HTTP Date is not stored as source publication time.",
+      "stance": "contextual",
+      "reliability": null,
+      "recordedBy": "omen.operator",
+      "provenance": "sourced"
+    },
+    {
+      "id": "ev-polymarket-page-gemini-4-2026-10-31",
+      "sourceName": "Polymarket",
+      "sourceUrl": "https://polymarket.com/event/gemini-4pt0-released-by-june-30-2026",
+      "sourcePublishedAt": null,
+      "firstObservedAt": "2026-10-07T14:22:55.000Z",
+      "capturedAt": "2026-10-07T14:22:55.000Z",
+      "summary": "The fetched event page embedded slug gemini-4pt0-released-by-october-31-2026 with outcomePrices 0.95 and 0.06, bestBid 0.94, and bestAsk 0.95, and no updatedAt on that object. That embed is not the stored probability. No publication clock from this page is stored.",
+      "stance": "contextual",
+      "reliability": null,
+      "recordedBy": "omen.operator",
+      "provenance": "sourced"
+    },
+    {
+      "id": "ev-google-gemini-4-argon",
+      "sourceName": "Google blog",
+      "sourceUrl": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-argon/",
+      "sourcePublishedAt": "2026-09-30T20:00:00.000Z",
+      "firstObservedAt": "2026-10-07T14:22:55.000Z",
+      "capturedAt": "2026-10-07T14:22:55.000Z",
+      "summary": "NewsArticle datePublished and meta published_time both state 2026-09-30T20:00:00+00:00. article:published_time states the calendar date 2026-09-30 only. dateModified 2026-10-01T21:09:53.663080+00:00 is not the publication time. The article says Google is announcing Gemini 4 Argon, rolling out to trusted cyber defenders through the Fairwind Program, and that wider access to developers, enterprises, and consumers would follow as soon as possible, starting with paid API customers and Google AI Ultra subscribers. It does not state that a product named Gemini 4.0 was publicly available.",
+      "stance": "contextual",
+      "reliability": null,
+      "recordedBy": "omen.operator",
+      "provenance": "sourced"
+    }
+  ],
+  "moveLogRevisions": []
+}

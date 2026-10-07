@@ -297,6 +297,30 @@ describe("EventIntelligenceView", () => {
     expect(within(item).getByText("Source published").nextSibling).toHaveTextContent("04 Sept, 10:00 UTC")
     expect(within(item).getByText("First observed by OMEN").nextSibling).toHaveTextContent("04 Sept, 10:02 UTC")
     expect(within(item).getByText("Captured by OMEN").nextSibling).toHaveTextContent("04 Sept, 10:03 UTC")
+    expect(within(item).getByText("Recorder's reliability rating").nextSibling).toHaveTextContent("0.90 of 1")
+  })
+
+  it("shows an unrated evidence row as not recorded", () => {
+    const event = testEvent({
+      id: "evt-unrated",
+      title: "Unrated source",
+      evidence: [
+        {
+          id: "ev-unrated",
+          name: "Primary page",
+          publishedAt: null,
+          firstObservedAt: "2026-10-07T14:22:55.000Z",
+          capturedAt: "2026-10-07T14:22:55.000Z",
+          summary: "The source stated no reliability rating.",
+          stance: "contextual",
+          reliability: null,
+        },
+      ],
+    })
+    renderView(event)
+    const item = screen.getByTestId("evidence-item")
+    expect(within(item).getByText("Recorder's reliability rating").nextSibling).toHaveTextContent("Not recorded")
+    expect(within(item).getByText("Source published").nextSibling).toHaveTextContent("Not stated by source")
   })
 
   it("toggles the watchlist from the intelligence view", async () => {

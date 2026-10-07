@@ -55,7 +55,10 @@ export function IntelligencePanel({ event, tab }: { event: AionEvent; tab: Inspe
             value={item.firstObservedAt ? formatDateTime(item.firstObservedAt) : "Not recorded"}
           />
           <Kv label="Captured by OMEN" value={item.capturedAt ? formatDateTime(item.capturedAt) : "Not recorded"} />
-          <Kv label="Recorder's reliability rating" value={`${item.reliability.toFixed(2)} of 1`} />
+          <Kv
+            label="Recorder's reliability rating"
+            value={item.reliability == null ? "Not recorded" : `${item.reliability.toFixed(2)} of 1`}
+          />
           {sourceHref ? (
             <a className="aion-evidence-link" href={sourceHref} target="_blank" rel="noreferrer">
               Open source ↗

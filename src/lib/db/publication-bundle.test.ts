@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs"
+import path from "node:path"
+
 import { describe, expect, it } from "vitest"
 
 import {
@@ -111,5 +114,16 @@ describe("publication-bundle", () => {
         { stance: "contextual", reliability: 0.4, recordedBy: "reviewer.test" },
       ),
     ).toThrow(/calendar date/)
+  })
+
+  it("stages the sourced Gemini bundle with null reliability and no move log", () => {
+    const file = path.resolve(__dirname, "../../../db/operator-inputs/evt-gemini-4-public-by-2026-10-31.review.json")
+    const staged = parseStageSourceReviewInput(JSON.parse(readFileSync(file, "utf8")))
+    expect(staged.id).toBe("src-gemini-4-public-2026-10-31")
+    expect(staged.candidate.kind).toBe("bundle")
+    if (staged.candidate.kind !== "bundle") return
+    expect(staged.candidate.bundle.evidence.every((item) => item.reliability === null)).toBe(true)
+    expect(staged.candidate.bundle.moveLogRevisions).toEqual([])
+    expect(staged.candidate.bundle.observations[0]?.probabilityPct).toBe(94.5)
   })
 })

@@ -66,7 +66,8 @@ export interface EvidenceInput {
   capturedAt?: string
   summary: string
   stance: EvidenceStance
-  reliability: number
+  /** Null when no recorder rating is stored. Not a substitute score. */
+  reliability: number | null
   recordedBy: string
   provenance: Provenance
 }
@@ -216,6 +217,13 @@ class Reader {
   }
 }
 
+/** Omit or null stores no rating. A number still has to sit on the 0–1 scale. */
+function readOptionalFraction(item: Reader, raw: Json, key: string): number | null {
+  const value = raw[key]
+  if (value === undefined || value === null) return null
+  return item.number(key, { min: 0, max: 1, decimals: 2 })
+}
+
 function isObject(value: unknown): value is Json {
   return typeof value === "object" && value !== null && !Array.isArray(value)
 }
@@ -323,7 +331,7 @@ export function parseEventBundle(input: unknown): EventBundle {
       capturedAt: item.timestamp("capturedAt", { optional: true }),
       summary: item.string("summary"),
       stance: item.oneOf("stance", STANCES),
-      reliability: item.number("reliability", { min: 0, max: 1, decimals: 2 }),
+      reliability: readOptionalFraction(item, raw, "reliability"),
       recordedBy: item.string("recordedBy"),
       provenance: item.oneOf("provenance", PROVENANCE),
     }

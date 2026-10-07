@@ -32,7 +32,8 @@ export interface EventSource {
   capturedAt?: string
   summary: string
   stance: EvidenceStance
-  reliability: number
+  /** Null when no recorder rating is stored. */
+  reliability: number | null
   url?: string
 }
 

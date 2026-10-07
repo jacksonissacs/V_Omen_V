@@ -84,4 +84,5 @@ After publishing, open Pulse and the event detail route for the target event. Co
 - Following persistence is browser `localStorage` only; there is no per-user server watchlist.
 - Simulated checkpoint failures in tests use a mocked publisher; production retry depends on PostgreSQL availability at publish time.
 - File-queue import stages a captured source version. It does not approve or publish it, and a calendar date is not stored as a publication timestamp.
+- Evidence `reliability` may be null on a bundle. Null means no recorder rating was stored. Source-capture approval still requires an explicit stance and reliability; import does not invent either one.
 - Checkpoint ids are decimal text end to end, including values that are not safe JavaScript numbers.

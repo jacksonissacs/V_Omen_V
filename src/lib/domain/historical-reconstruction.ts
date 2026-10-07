@@ -59,7 +59,7 @@ export interface HistoricalEvidence {
   capturedAt: string
   summary: string
   stance: EventSource["stance"]
-  reliability: number
+  reliability: number | null
   recordedBy: string
   provenance: Provenance
 }
