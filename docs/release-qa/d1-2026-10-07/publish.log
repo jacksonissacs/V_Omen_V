@@ -1,0 +1,562 @@
+HEAD 79596c41232b092dbf5640979039d14f49a0d83c
+===== migrate =====
+
+> aion@0.1.0 db:migrate
+> tsx scripts/omen-db.ts migrate --identify development --label d1 receipt disposable
+
+Database identity: development (d1 receipt disposable)
+Applied 0001_core_event_storage, 0002_trustworthy_temporal_storage, 0003_history_visibility_checkpoints, 0004_operator_publishing, 0005_intake_review_bridge, 0006_analyst_proposals, 0007_analyst_proposal_integrity, 0008_evidence_reliability_optional, 0009_publication_may_precede_event, 0010_review_may_precede_event.
+MIGRATE_EXIT 0
+===== events before stage =====
+ events 
+--------
+      0
+(1 row)
+
+===== stage =====
+
+> aion@0.1.0 operator
+> tsx scripts/omen-operator.ts intake stage --file db/operator-inputs/evt-gemini-4-public-by-2026-10-31.review.json
+
+{
+  "id": "src-gemini-4-public-2026-10-31",
+  "eventId": "evt-gemini-4-public-2026-10-31",
+  "status": "staged",
+  "payload": {
+    "kind": "bundle",
+    "bundle": {
+      "event": {
+        "id": "evt-gemini-4-public-2026-10-31",
+        "tags": [
+          "Gemini",
+          "Google"
+        ],
+        "title": "Gemini 4.0 released by October 31, 2026",
+        "region": "United States",
+        "status": "active",
+        "display": {},
+        "summary": "Tracked question copied from the Polymarket market for a public Gemini 4.0 release by that contract's listed date. The current state is one market-implied price from the gamma record for that market. The public Polymarket page and Google's 30 September 2026 Gemini 4 Argon post are stored beside it. OMEN first-observed and capture times are local body-receipt clocks, not HTTP Date headers. No move log is recorded.",
+        "category": "AI",
+        "deadline": "2026-11-01T03:59:00.000Z",
+        "question": "Gemini 4.0 released by October 31, 2026?",
+        "provenance": "sourced",
+        "significance": "medium",
+        "catalogPosition": 0,
+        "relatedEventIds": [],
+        "followedByDefault": false,
+        "resolutionCriteria": "This market will resolve to \"Yes\" if Google's Gemini 4.0 is made available to the general public by the listed date. Otherwise, this market will resolve to \"No\".\n\nFor this market to resolve to \"Yes,\" Gemini 4.0 must be launched and publicly accessible, including via open beta or open rolling waitlist signups. A closed beta or any form of private access will not suffice. The release must be clearly defined and publicly announced by Google as being accessible to the general public.\n\nIf a qualifying model is made publicly accessible and explicitly labeled with the relevant version name within the company’s official website, this will qualify as “publicly announced”. Labeling errors, placeholder text, or version names displayed on the website that do not correspond to a model that is actually accessible to the general public under the rules will not qualify.\n\nGemini 4.0 refers to a product explicitly named Gemini 4.0 or one that is recognized as a successor to Gemini 3 similar to the progression from Gemini 2.0 to Gemini 3. Products labeled as Gemini 3.0 Flash, Gemini 2.5, or similar will not count for this market's resolution.\n\nThe primary resolution source for this market will be official information from Google, with additional verification from a consensus of credible reporting."
+      },
+      "eventId": "evt-gemini-4-public-2026-10-31",
+      "evidence": [
+        {
+          "id": "ev-gamma-gemini-4-2026-10-31",
+          "stance": "contextual",
+          "summary": "Market id 3584362, slug gemini-4pt0-released-by-october-31-2026, question copied onto the event. outcomePrices Yes 0.945 and No 0.055. bestBid 0.94, bestAsk 0.95, lastTradePrice 0.94, spread 0.01. updatedAt 2026-10-07T14:50:34.604743Z is the market record's update clock on the same object as outcomePrices. It is not a last-trade time and not a publication time. The same updatedAt appears on other markets in this response with different prices. endDate 2026-11-01T03:59:00Z. closed false. resolutionSource was empty. The parent event description says the contract resolves on a Gemini 4.0 Flash model; this market description does not, and it is the resolution criteria. firstObservedAt and capturedAt are the local body-receipt clock. The response was a cache HIT with age 142. HTTP Date is not stored.",
+          "sourceUrl": "https://gamma-api.polymarket.com/events?slug=gemini-4pt0-released-by-june-30-2026",
+          "capturedAt": "2026-10-07T14:53:51.789Z",
+          "provenance": "sourced",
+          "recordedBy": "omen.operator",
+          "sourceName": "Polymarket gamma API",
+          "reliability": null,
+          "firstObservedAt": "2026-10-07T14:53:51.789Z",
+          "sourcePublishedAt": null
+        },
+        {
+          "id": "ev-polymarket-page-gemini-4-2026-10-31",
+          "stance": "contextual",
+          "summary": "The fetched event page embedded slug gemini-4pt0-released-by-october-31-2026 with outcomePrices 0.95 and 0.06, bestBid 0.94, and bestAsk 0.95, and no updatedAt on that object. That embed is not the stored probability. No publication clock from this page is stored. firstObservedAt and capturedAt are the local body-receipt clock. HTTP Date is not stored.",
+          "sourceUrl": "https://polymarket.com/event/gemini-4pt0-released-by-june-30-2026",
+          "capturedAt": "2026-10-07T14:53:52.306Z",
+          "provenance": "sourced",
+          "recordedBy": "omen.operator",
+          "sourceName": "Polymarket",
+          "reliability": null,
+          "firstObservedAt": "2026-10-07T14:53:52.306Z",
+          "sourcePublishedAt": null
+        },
+        {
+          "id": "ev-google-gemini-4-argon",
+          "stance": "contextual",
+          "summary": "NewsArticle datePublished and meta published_time both state 2026-09-30T20:00:00+00:00. article:published_time states the calendar date 2026-09-30 only. dateModified 2026-10-01T21:09:53.663080+00:00 is not the publication time. The article says Google is announcing Gemini 4 Argon, rolling out to trusted cyber defenders through the Fairwind Program, and that wider access to developers, enterprises, and consumers would follow as soon as possible, starting with paid API customers and Google AI Ultra subscribers. It does not state that a product named Gemini 4.0 was publicly available. firstObservedAt and capturedAt are the local body-receipt clock. HTTP Date is not stored.",
+          "sourceUrl": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-argon/",
+          "capturedAt": "2026-10-07T14:53:52.456Z",
+          "provenance": "sourced",
+          "recordedBy": "omen.operator",
+          "sourceName": "Google blog",
+          "reliability": null,
+          "firstObservedAt": "2026-10-07T14:53:52.456Z",
+          "sourcePublishedAt": "2026-09-30T20:00:00.000Z"
+        }
+      ],
+      "observations": [
+        {
+          "note": "Gamma market id 3584362, slug gemini-4pt0-released-by-october-31-2026, outcomePrices Yes is 0.945, stored as 94.5 percentage points. observedAt is that same object's updatedAt 2026-10-07T14:50:34.604743Z, truncated to milliseconds by the bundle clock parser. It is the market record's update clock, not a last-trade time: lastTradePrice on that object is 0.94 and has no timestamp of its own. The same updatedAt string is on other markets in this response that have different outcomePrices. An earlier gamma body for this market carried the same Yes price 0.945 with updatedAt 2026-10-07T14:20:36.391848Z, so this clock is not the moment 94.5 began. bestBid 0.94, bestAsk 0.95. A public page embed listed outcomePrices 0.95 and 0.06 and no updatedAt; that embed is not this observation. capturedAt is the local gamma body-receipt clock. HTTP Date is not stored.",
+          "capturedAt": "2026-10-07T14:53:51.789Z",
+          "observedAt": "2026-10-07T14:50:34.604Z",
+          "provenance": "sourced",
+          "sourceKind": "provider",
+          "sourceName": "Polymarket",
+          "probabilityPct": 94.5,
+          "probabilityType": "market_implied"
+        }
+      ],
+      "moveLogRevisions": []
+    }
+  },
+  "intakeNote": "Reliability is null because no documented numeric rating scale exists. Probability 94.5 is the gamma outcomePrices Yes price 0.945 on the percentage-point scale in docs/database.md. observedAt is that market object's updatedAt, truncated to milliseconds. It is the record update clock on the same object as the quote, not a last-trade time and not an HTTP Date. OMEN firstObservedAt and capturedAt are local body-receipt clocks, not HTTP Date. Polymarket evidence sourcePublishedAt is null. Google sourcePublishedAt is the page datePublished. Significance medium is the buildEvent value when no probability change is computable (src/data/build-event.ts). No explained share and no move log.",
+  "stagedAt": "2026-10-07T14:59:58.645Z",
+  "stagedBy": "omen.operator",
+  "reviewedAt": null,
+  "reviewedBy": null,
+  "reviewNote": null,
+  "intakeSourceId": null,
+  "intakeItemId": null,
+  "capturedVersion": null,
+  "contentIdentity": null,
+  "canonicalUrl": null,
+  "sourcePublishedAt": null,
+  "sourcePublishedDate": null,
+  "firstFetchedAt": null,
+  "reviewStance": null,
+  "reviewReliability": null
+}
+STAGE_EXIT 0
+===== events after stage =====
+ events 
+--------
+      0
+(1 row)
+
+               id               | status 
+--------------------------------+--------
+ src-gemini-4-public-2026-10-31 | staged
+(1 row)
+
+===== approve =====
+
+> aion@0.1.0 operator
+> tsx scripts/omen-operator.ts review approve src-gemini-4-public-2026-10-31 --by omen.operator --note Approved the staged bundle. No reliability score was added.
+
+{
+  "id": "src-gemini-4-public-2026-10-31",
+  "eventId": "evt-gemini-4-public-2026-10-31",
+  "status": "approved",
+  "payload": {
+    "kind": "bundle",
+    "bundle": {
+      "event": {
+        "id": "evt-gemini-4-public-2026-10-31",
+        "tags": [
+          "Gemini",
+          "Google"
+        ],
+        "title": "Gemini 4.0 released by October 31, 2026",
+        "region": "United States",
+        "status": "active",
+        "display": {},
+        "summary": "Tracked question copied from the Polymarket market for a public Gemini 4.0 release by that contract's listed date. The current state is one market-implied price from the gamma record for that market. The public Polymarket page and Google's 30 September 2026 Gemini 4 Argon post are stored beside it. OMEN first-observed and capture times are local body-receipt clocks, not HTTP Date headers. No move log is recorded.",
+        "category": "AI",
+        "deadline": "2026-11-01T03:59:00.000Z",
+        "question": "Gemini 4.0 released by October 31, 2026?",
+        "provenance": "sourced",
+        "significance": "medium",
+        "catalogPosition": 0,
+        "relatedEventIds": [],
+        "followedByDefault": false,
+        "resolutionCriteria": "This market will resolve to \"Yes\" if Google's Gemini 4.0 is made available to the general public by the listed date. Otherwise, this market will resolve to \"No\".\n\nFor this market to resolve to \"Yes,\" Gemini 4.0 must be launched and publicly accessible, including via open beta or open rolling waitlist signups. A closed beta or any form of private access will not suffice. The release must be clearly defined and publicly announced by Google as being accessible to the general public.\n\nIf a qualifying model is made publicly accessible and explicitly labeled with the relevant version name within the company’s official website, this will qualify as “publicly announced”. Labeling errors, placeholder text, or version names displayed on the website that do not correspond to a model that is actually accessible to the general public under the rules will not qualify.\n\nGemini 4.0 refers to a product explicitly named Gemini 4.0 or one that is recognized as a successor to Gemini 3 similar to the progression from Gemini 2.0 to Gemini 3. Products labeled as Gemini 3.0 Flash, Gemini 2.5, or similar will not count for this market's resolution.\n\nThe primary resolution source for this market will be official information from Google, with additional verification from a consensus of credible reporting."
+      },
+      "eventId": "evt-gemini-4-public-2026-10-31",
+      "evidence": [
+        {
+          "id": "ev-gamma-gemini-4-2026-10-31",
+          "stance": "contextual",
+          "summary": "Market id 3584362, slug gemini-4pt0-released-by-october-31-2026, question copied onto the event. outcomePrices Yes 0.945 and No 0.055. bestBid 0.94, bestAsk 0.95, lastTradePrice 0.94, spread 0.01. updatedAt 2026-10-07T14:50:34.604743Z is the market record's update clock on the same object as outcomePrices. It is not a last-trade time and not a publication time. The same updatedAt appears on other markets in this response with different prices. endDate 2026-11-01T03:59:00Z. closed false. resolutionSource was empty. The parent event description says the contract resolves on a Gemini 4.0 Flash model; this market description does not, and it is the resolution criteria. firstObservedAt and capturedAt are the local body-receipt clock. The response was a cache HIT with age 142. HTTP Date is not stored.",
+          "sourceUrl": "https://gamma-api.polymarket.com/events?slug=gemini-4pt0-released-by-june-30-2026",
+          "capturedAt": "2026-10-07T14:53:51.789Z",
+          "provenance": "sourced",
+          "recordedBy": "omen.operator",
+          "sourceName": "Polymarket gamma API",
+          "reliability": null,
+          "firstObservedAt": "2026-10-07T14:53:51.789Z",
+          "sourcePublishedAt": null
+        },
+        {
+          "id": "ev-polymarket-page-gemini-4-2026-10-31",
+          "stance": "contextual",
+          "summary": "The fetched event page embedded slug gemini-4pt0-released-by-october-31-2026 with outcomePrices 0.95 and 0.06, bestBid 0.94, and bestAsk 0.95, and no updatedAt on that object. That embed is not the stored probability. No publication clock from this page is stored. firstObservedAt and capturedAt are the local body-receipt clock. HTTP Date is not stored.",
+          "sourceUrl": "https://polymarket.com/event/gemini-4pt0-released-by-june-30-2026",
+          "capturedAt": "2026-10-07T14:53:52.306Z",
+          "provenance": "sourced",
+          "recordedBy": "omen.operator",
+          "sourceName": "Polymarket",
+          "reliability": null,
+          "firstObservedAt": "2026-10-07T14:53:52.306Z",
+          "sourcePublishedAt": null
+        },
+        {
+          "id": "ev-google-gemini-4-argon",
+          "stance": "contextual",
+          "summary": "NewsArticle datePublished and meta published_time both state 2026-09-30T20:00:00+00:00. article:published_time states the calendar date 2026-09-30 only. dateModified 2026-10-01T21:09:53.663080+00:00 is not the publication time. The article says Google is announcing Gemini 4 Argon, rolling out to trusted cyber defenders through the Fairwind Program, and that wider access to developers, enterprises, and consumers would follow as soon as possible, starting with paid API customers and Google AI Ultra subscribers. It does not state that a product named Gemini 4.0 was publicly available. firstObservedAt and capturedAt are the local body-receipt clock. HTTP Date is not stored.",
+          "sourceUrl": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-argon/",
+          "capturedAt": "2026-10-07T14:53:52.456Z",
+          "provenance": "sourced",
+          "recordedBy": "omen.operator",
+          "sourceName": "Google blog",
+          "reliability": null,
+          "firstObservedAt": "2026-10-07T14:53:52.456Z",
+          "sourcePublishedAt": "2026-09-30T20:00:00.000Z"
+        }
+      ],
+      "observations": [
+        {
+          "note": "Gamma market id 3584362, slug gemini-4pt0-released-by-october-31-2026, outcomePrices Yes is 0.945, stored as 94.5 percentage points. observedAt is that same object's updatedAt 2026-10-07T14:50:34.604743Z, truncated to milliseconds by the bundle clock parser. It is the market record's update clock, not a last-trade time: lastTradePrice on that object is 0.94 and has no timestamp of its own. The same updatedAt string is on other markets in this response that have different outcomePrices. An earlier gamma body for this market carried the same Yes price 0.945 with updatedAt 2026-10-07T14:20:36.391848Z, so this clock is not the moment 94.5 began. bestBid 0.94, bestAsk 0.95. A public page embed listed outcomePrices 0.95 and 0.06 and no updatedAt; that embed is not this observation. capturedAt is the local gamma body-receipt clock. HTTP Date is not stored.",
+          "capturedAt": "2026-10-07T14:53:51.789Z",
+          "observedAt": "2026-10-07T14:50:34.604Z",
+          "provenance": "sourced",
+          "sourceKind": "provider",
+          "sourceName": "Polymarket",
+          "probabilityPct": 94.5,
+          "probabilityType": "market_implied"
+        }
+      ],
+      "moveLogRevisions": []
+    }
+  },
+  "intakeNote": "Reliability is null because no documented numeric rating scale exists. Probability 94.5 is the gamma outcomePrices Yes price 0.945 on the percentage-point scale in docs/database.md. observedAt is that market object's updatedAt, truncated to milliseconds. It is the record update clock on the same object as the quote, not a last-trade time and not an HTTP Date. OMEN firstObservedAt and capturedAt are local body-receipt clocks, not HTTP Date. Polymarket evidence sourcePublishedAt is null. Google sourcePublishedAt is the page datePublished. Significance medium is the buildEvent value when no probability change is computable (src/data/build-event.ts). No explained share and no move log.",
+  "stagedAt": "2026-10-07T14:59:58.645Z",
+  "stagedBy": "omen.operator",
+  "reviewedAt": "2026-10-07T14:59:58.944Z",
+  "reviewedBy": "omen.operator",
+  "reviewNote": "Approved the staged bundle. No reliability score was added.",
+  "intakeSourceId": null,
+  "intakeItemId": null,
+  "capturedVersion": null,
+  "contentIdentity": null,
+  "canonicalUrl": null,
+  "sourcePublishedAt": null,
+  "sourcePublishedDate": null,
+  "firstFetchedAt": null,
+  "reviewStance": null,
+  "reviewReliability": null
+}
+APPROVE_EXIT 0
+===== events after approve =====
+ events 
+--------
+      0
+(1 row)
+
+===== publish approved =====
+
+> aion@0.1.0 operator
+> tsx scripts/omen-operator.ts publish approved --review-item src-gemini-4-public-2026-10-31 --idempotency-key gemini-4-public-2026-10-31-v1
+
+{
+  "operation": {
+    "id": "pub-aad78c215d4b1f72",
+    "idempotencyKey": "gemini-4-public-2026-10-31-v1",
+    "eventId": "evt-gemini-4-public-2026-10-31",
+    "status": "completed",
+    "bundle": {
+      "event": {
+        "id": "evt-gemini-4-public-2026-10-31",
+        "tags": [
+          "Gemini",
+          "Google"
+        ],
+        "title": "Gemini 4.0 released by October 31, 2026",
+        "region": "United States",
+        "status": "active",
+        "display": {},
+        "summary": "Tracked question copied from the Polymarket market for a public Gemini 4.0 release by that contract's listed date. The current state is one market-implied price from the gamma record for that market. The public Polymarket page and Google's 30 September 2026 Gemini 4 Argon post are stored beside it. OMEN first-observed and capture times are local body-receipt clocks, not HTTP Date headers. No move log is recorded.",
+        "category": "AI",
+        "deadline": "2026-11-01T03:59:00.000Z",
+        "question": "Gemini 4.0 released by October 31, 2026?",
+        "provenance": "sourced",
+        "significance": "medium",
+        "catalogPosition": 0,
+        "relatedEventIds": [],
+        "followedByDefault": false,
+        "resolutionCriteria": "This market will resolve to \"Yes\" if Google's Gemini 4.0 is made available to the general public by the listed date. Otherwise, this market will resolve to \"No\".\n\nFor this market to resolve to \"Yes,\" Gemini 4.0 must be launched and publicly accessible, including via open beta or open rolling waitlist signups. A closed beta or any form of private access will not suffice. The release must be clearly defined and publicly announced by Google as being accessible to the general public.\n\nIf a qualifying model is made publicly accessible and explicitly labeled with the relevant version name within the company’s official website, this will qualify as “publicly announced”. Labeling errors, placeholder text, or version names displayed on the website that do not correspond to a model that is actually accessible to the general public under the rules will not qualify.\n\nGemini 4.0 refers to a product explicitly named Gemini 4.0 or one that is recognized as a successor to Gemini 3 similar to the progression from Gemini 2.0 to Gemini 3. Products labeled as Gemini 3.0 Flash, Gemini 2.5, or similar will not count for this market's resolution.\n\nThe primary resolution source for this market will be official information from Google, with additional verification from a consensus of credible reporting."
+      },
+      "eventId": "evt-gemini-4-public-2026-10-31",
+      "evidence": [
+        {
+          "id": "ev-gamma-gemini-4-2026-10-31",
+          "stance": "contextual",
+          "summary": "Market id 3584362, slug gemini-4pt0-released-by-october-31-2026, question copied onto the event. outcomePrices Yes 0.945 and No 0.055. bestBid 0.94, bestAsk 0.95, lastTradePrice 0.94, spread 0.01. updatedAt 2026-10-07T14:50:34.604743Z is the market record's update clock on the same object as outcomePrices. It is not a last-trade time and not a publication time. The same updatedAt appears on other markets in this response with different prices. endDate 2026-11-01T03:59:00Z. closed false. resolutionSource was empty. The parent event description says the contract resolves on a Gemini 4.0 Flash model; this market description does not, and it is the resolution criteria. firstObservedAt and capturedAt are the local body-receipt clock. The response was a cache HIT with age 142. HTTP Date is not stored.",
+          "sourceUrl": "https://gamma-api.polymarket.com/events?slug=gemini-4pt0-released-by-june-30-2026",
+          "capturedAt": "2026-10-07T14:53:51.789Z",
+          "provenance": "sourced",
+          "recordedBy": "omen.operator",
+          "sourceName": "Polymarket gamma API",
+          "reliability": null,
+          "firstObservedAt": "2026-10-07T14:53:51.789Z",
+          "sourcePublishedAt": null
+        },
+        {
+          "id": "ev-polymarket-page-gemini-4-2026-10-31",
+          "stance": "contextual",
+          "summary": "The fetched event page embedded slug gemini-4pt0-released-by-october-31-2026 with outcomePrices 0.95 and 0.06, bestBid 0.94, and bestAsk 0.95, and no updatedAt on that object. That embed is not the stored probability. No publication clock from this page is stored. firstObservedAt and capturedAt are the local body-receipt clock. HTTP Date is not stored.",
+          "sourceUrl": "https://polymarket.com/event/gemini-4pt0-released-by-june-30-2026",
+          "capturedAt": "2026-10-07T14:53:52.306Z",
+          "provenance": "sourced",
+          "recordedBy": "omen.operator",
+          "sourceName": "Polymarket",
+          "reliability": null,
+          "firstObservedAt": "2026-10-07T14:53:52.306Z",
+          "sourcePublishedAt": null
+        },
+        {
+          "id": "ev-google-gemini-4-argon",
+          "stance": "contextual",
+          "summary": "NewsArticle datePublished and meta published_time both state 2026-09-30T20:00:00+00:00. article:published_time states the calendar date 2026-09-30 only. dateModified 2026-10-01T21:09:53.663080+00:00 is not the publication time. The article says Google is announcing Gemini 4 Argon, rolling out to trusted cyber defenders through the Fairwind Program, and that wider access to developers, enterprises, and consumers would follow as soon as possible, starting with paid API customers and Google AI Ultra subscribers. It does not state that a product named Gemini 4.0 was publicly available. firstObservedAt and capturedAt are the local body-receipt clock. HTTP Date is not stored.",
+          "sourceUrl": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-argon/",
+          "capturedAt": "2026-10-07T14:53:52.456Z",
+          "provenance": "sourced",
+          "recordedBy": "omen.operator",
+          "sourceName": "Google blog",
+          "reliability": null,
+          "firstObservedAt": "2026-10-07T14:53:52.456Z",
+          "sourcePublishedAt": "2026-09-30T20:00:00.000Z"
+        }
+      ],
+      "observations": [
+        {
+          "note": "Gamma market id 3584362, slug gemini-4pt0-released-by-october-31-2026, outcomePrices Yes is 0.945, stored as 94.5 percentage points. observedAt is that same object's updatedAt 2026-10-07T14:50:34.604743Z, truncated to milliseconds by the bundle clock parser. It is the market record's update clock, not a last-trade time: lastTradePrice on that object is 0.94 and has no timestamp of its own. The same updatedAt string is on other markets in this response that have different outcomePrices. An earlier gamma body for this market carried the same Yes price 0.945 with updatedAt 2026-10-07T14:20:36.391848Z, so this clock is not the moment 94.5 began. bestBid 0.94, bestAsk 0.95. A public page embed listed outcomePrices 0.95 and 0.06 and no updatedAt; that embed is not this observation. capturedAt is the local gamma body-receipt clock. HTTP Date is not stored.",
+          "capturedAt": "2026-10-07T14:53:51.789Z",
+          "observedAt": "2026-10-07T14:50:34.604Z",
+          "provenance": "sourced",
+          "sourceKind": "provider",
+          "sourceName": "Polymarket",
+          "probabilityPct": 94.5,
+          "probabilityType": "market_implied"
+        }
+      ],
+      "moveLogRevisions": []
+    },
+    "writeSummary": {
+      "event": "inserted",
+      "eventId": "evt-gemini-4-public-2026-10-31",
+      "evidence": {
+        "appended": 3,
+        "unchanged": 0
+      },
+      "checkpoint": {
+        "id": "1",
+        "created": true,
+        "sequence": 1,
+        "contentMd5": "2d8a51ce0af7e94b63ac6027129ae635",
+        "semanticHistory": "recorded"
+      },
+      "observations": {
+        "appended": 1,
+        "unchanged": 0
+      },
+      "eventRevisions": {
+        "appended": 1,
+        "unchanged": 0
+      },
+      "moveLogRevisions": {
+        "appended": 0,
+        "unchanged": 0
+      }
+    },
+    "checkpointId": "1",
+    "checkpointSequence": 1,
+    "sourceReviewItemId": "src-gemini-4-public-2026-10-31",
+    "lastError": null,
+    "createdAt": "2026-10-07T14:59:59.246Z",
+    "updatedAt": "2026-10-07T14:59:59.264Z"
+  },
+  "summary": {
+    "eventId": "evt-gemini-4-public-2026-10-31",
+    "event": "inserted",
+    "eventRevisions": {
+      "appended": 1,
+      "unchanged": 0
+    },
+    "observations": {
+      "appended": 1,
+      "unchanged": 0
+    },
+    "evidence": {
+      "appended": 3,
+      "unchanged": 0
+    },
+    "moveLogRevisions": {
+      "appended": 0,
+      "unchanged": 0
+    },
+    "checkpoint": {
+      "id": "1",
+      "sequence": 1,
+      "created": true,
+      "semanticHistory": "recorded",
+      "contentMd5": "2d8a51ce0af7e94b63ac6027129ae635"
+    }
+  }
+}
+PUBLISH_EXIT 0
+===== publish approved replay =====
+
+> aion@0.1.0 operator
+> tsx scripts/omen-operator.ts publish approved --review-item src-gemini-4-public-2026-10-31 --idempotency-key gemini-4-public-2026-10-31-v1
+
+{
+  "operation": {
+    "id": "pub-aad78c215d4b1f72",
+    "idempotencyKey": "gemini-4-public-2026-10-31-v1",
+    "eventId": "evt-gemini-4-public-2026-10-31",
+    "status": "completed",
+    "bundle": {
+      "event": {
+        "id": "evt-gemini-4-public-2026-10-31",
+        "tags": [
+          "Gemini",
+          "Google"
+        ],
+        "title": "Gemini 4.0 released by October 31, 2026",
+        "region": "United States",
+        "status": "active",
+        "display": {},
+        "summary": "Tracked question copied from the Polymarket market for a public Gemini 4.0 release by that contract's listed date. The current state is one market-implied price from the gamma record for that market. The public Polymarket page and Google's 30 September 2026 Gemini 4 Argon post are stored beside it. OMEN first-observed and capture times are local body-receipt clocks, not HTTP Date headers. No move log is recorded.",
+        "category": "AI",
+        "deadline": "2026-11-01T03:59:00.000Z",
+        "question": "Gemini 4.0 released by October 31, 2026?",
+        "provenance": "sourced",
+        "significance": "medium",
+        "catalogPosition": 0,
+        "relatedEventIds": [],
+        "followedByDefault": false,
+        "resolutionCriteria": "This market will resolve to \"Yes\" if Google's Gemini 4.0 is made available to the general public by the listed date. Otherwise, this market will resolve to \"No\".\n\nFor this market to resolve to \"Yes,\" Gemini 4.0 must be launched and publicly accessible, including via open beta or open rolling waitlist signups. A closed beta or any form of private access will not suffice. The release must be clearly defined and publicly announced by Google as being accessible to the general public.\n\nIf a qualifying model is made publicly accessible and explicitly labeled with the relevant version name within the company’s official website, this will qualify as “publicly announced”. Labeling errors, placeholder text, or version names displayed on the website that do not correspond to a model that is actually accessible to the general public under the rules will not qualify.\n\nGemini 4.0 refers to a product explicitly named Gemini 4.0 or one that is recognized as a successor to Gemini 3 similar to the progression from Gemini 2.0 to Gemini 3. Products labeled as Gemini 3.0 Flash, Gemini 2.5, or similar will not count for this market's resolution.\n\nThe primary resolution source for this market will be official information from Google, with additional verification from a consensus of credible reporting."
+      },
+      "eventId": "evt-gemini-4-public-2026-10-31",
+      "evidence": [
+        {
+          "id": "ev-gamma-gemini-4-2026-10-31",
+          "stance": "contextual",
+          "summary": "Market id 3584362, slug gemini-4pt0-released-by-october-31-2026, question copied onto the event. outcomePrices Yes 0.945 and No 0.055. bestBid 0.94, bestAsk 0.95, lastTradePrice 0.94, spread 0.01. updatedAt 2026-10-07T14:50:34.604743Z is the market record's update clock on the same object as outcomePrices. It is not a last-trade time and not a publication time. The same updatedAt appears on other markets in this response with different prices. endDate 2026-11-01T03:59:00Z. closed false. resolutionSource was empty. The parent event description says the contract resolves on a Gemini 4.0 Flash model; this market description does not, and it is the resolution criteria. firstObservedAt and capturedAt are the local body-receipt clock. The response was a cache HIT with age 142. HTTP Date is not stored.",
+          "sourceUrl": "https://gamma-api.polymarket.com/events?slug=gemini-4pt0-released-by-june-30-2026",
+          "capturedAt": "2026-10-07T14:53:51.789Z",
+          "provenance": "sourced",
+          "recordedBy": "omen.operator",
+          "sourceName": "Polymarket gamma API",
+          "reliability": null,
+          "firstObservedAt": "2026-10-07T14:53:51.789Z",
+          "sourcePublishedAt": null
+        },
+        {
+          "id": "ev-polymarket-page-gemini-4-2026-10-31",
+          "stance": "contextual",
+          "summary": "The fetched event page embedded slug gemini-4pt0-released-by-october-31-2026 with outcomePrices 0.95 and 0.06, bestBid 0.94, and bestAsk 0.95, and no updatedAt on that object. That embed is not the stored probability. No publication clock from this page is stored. firstObservedAt and capturedAt are the local body-receipt clock. HTTP Date is not stored.",
+          "sourceUrl": "https://polymarket.com/event/gemini-4pt0-released-by-june-30-2026",
+          "capturedAt": "2026-10-07T14:53:52.306Z",
+          "provenance": "sourced",
+          "recordedBy": "omen.operator",
+          "sourceName": "Polymarket",
+          "reliability": null,
+          "firstObservedAt": "2026-10-07T14:53:52.306Z",
+          "sourcePublishedAt": null
+        },
+        {
+          "id": "ev-google-gemini-4-argon",
+          "stance": "contextual",
+          "summary": "NewsArticle datePublished and meta published_time both state 2026-09-30T20:00:00+00:00. article:published_time states the calendar date 2026-09-30 only. dateModified 2026-10-01T21:09:53.663080+00:00 is not the publication time. The article says Google is announcing Gemini 4 Argon, rolling out to trusted cyber defenders through the Fairwind Program, and that wider access to developers, enterprises, and consumers would follow as soon as possible, starting with paid API customers and Google AI Ultra subscribers. It does not state that a product named Gemini 4.0 was publicly available. firstObservedAt and capturedAt are the local body-receipt clock. HTTP Date is not stored.",
+          "sourceUrl": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-argon/",
+          "capturedAt": "2026-10-07T14:53:52.456Z",
+          "provenance": "sourced",
+          "recordedBy": "omen.operator",
+          "sourceName": "Google blog",
+          "reliability": null,
+          "firstObservedAt": "2026-10-07T14:53:52.456Z",
+          "sourcePublishedAt": "2026-09-30T20:00:00.000Z"
+        }
+      ],
+      "observations": [
+        {
+          "note": "Gamma market id 3584362, slug gemini-4pt0-released-by-october-31-2026, outcomePrices Yes is 0.945, stored as 94.5 percentage points. observedAt is that same object's updatedAt 2026-10-07T14:50:34.604743Z, truncated to milliseconds by the bundle clock parser. It is the market record's update clock, not a last-trade time: lastTradePrice on that object is 0.94 and has no timestamp of its own. The same updatedAt string is on other markets in this response that have different outcomePrices. An earlier gamma body for this market carried the same Yes price 0.945 with updatedAt 2026-10-07T14:20:36.391848Z, so this clock is not the moment 94.5 began. bestBid 0.94, bestAsk 0.95. A public page embed listed outcomePrices 0.95 and 0.06 and no updatedAt; that embed is not this observation. capturedAt is the local gamma body-receipt clock. HTTP Date is not stored.",
+          "capturedAt": "2026-10-07T14:53:51.789Z",
+          "observedAt": "2026-10-07T14:50:34.604Z",
+          "provenance": "sourced",
+          "sourceKind": "provider",
+          "sourceName": "Polymarket",
+          "probabilityPct": 94.5,
+          "probabilityType": "market_implied"
+        }
+      ],
+      "moveLogRevisions": []
+    },
+    "writeSummary": {
+      "event": "inserted",
+      "eventId": "evt-gemini-4-public-2026-10-31",
+      "evidence": {
+        "appended": 3,
+        "unchanged": 0
+      },
+      "checkpoint": {
+        "id": "1",
+        "created": true,
+        "sequence": 1,
+        "contentMd5": "2d8a51ce0af7e94b63ac6027129ae635",
+        "semanticHistory": "recorded"
+      },
+      "observations": {
+        "appended": 1,
+        "unchanged": 0
+      },
+      "eventRevisions": {
+        "appended": 1,
+        "unchanged": 0
+      },
+      "moveLogRevisions": {
+        "appended": 0,
+        "unchanged": 0
+      }
+    },
+    "checkpointId": "1",
+    "checkpointSequence": 1,
+    "sourceReviewItemId": "src-gemini-4-public-2026-10-31",
+    "lastError": null,
+    "createdAt": "2026-10-07T14:59:59.246Z",
+    "updatedAt": "2026-10-07T14:59:59.264Z"
+  },
+  "summary": {
+    "event": "inserted",
+    "eventId": "evt-gemini-4-public-2026-10-31",
+    "evidence": {
+      "appended": 3,
+      "unchanged": 0
+    },
+    "checkpoint": {
+      "id": "1",
+      "created": true,
+      "sequence": 1,
+      "contentMd5": "2d8a51ce0af7e94b63ac6027129ae635",
+      "semanticHistory": "recorded"
+    },
+    "observations": {
+      "appended": 1,
+      "unchanged": 0
+    },
+    "eventRevisions": {
+      "appended": 1,
+      "unchanged": 0
+    },
+    "moveLogRevisions": {
+      "appended": 0,
+      "unchanged": 0
+    }
+  }
+}
+REPLAY_EXIT 0
+===== checkpoint =====
+
+> aion@0.1.0 operator
+> tsx scripts/omen-operator.ts checkpoint verify --id 1
+
+{
+  "checkpointId": "1",
+  "result": "ok"
+}
+VERIFY_EXIT 0
