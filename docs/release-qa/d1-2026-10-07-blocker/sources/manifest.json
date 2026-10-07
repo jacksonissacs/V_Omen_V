@@ -1,0 +1,92 @@
+[
+  {
+    "name": "gamma.headers",
+    "bytes": 876,
+    "sha256": "d7d4d1474ea8c7bd4011a1ae2ce4a2e3b11c1fe65db2e5979fe5470f030f34e4"
+  },
+  {
+    "name": "gamma.json",
+    "bytes": 46425,
+    "sha256": "7e949b8aa65b0a1c5014b896bcbffbb1d98179e67e5461c89aa948d828405a78"
+  },
+  {
+    "name": "gamma2.headers",
+    "bytes": 878,
+    "sha256": "da41c10bc7ba468dea7dd1ed8fbdaf5db4607fefa31b56875643c67f641a5c1c"
+  },
+  {
+    "name": "gamma2.json",
+    "bytes": 46425,
+    "sha256": "7e949b8aa65b0a1c5014b896bcbffbb1d98179e67e5461c89aa948d828405a78"
+  },
+  {
+    "name": "google-article-excerpt.txt",
+    "bytes": 2105,
+    "sha256": "38c8039da60585925d68cb61598ac92ec4845d88f51f7695da406d4e519a4099"
+  },
+  {
+    "name": "google.headers",
+    "bytes": 2804,
+    "sha256": "f16cf5bbe33c7679d4bd186a0f062e2ca8150e8cff1500676752b90ee4c09d04"
+  },
+  {
+    "name": "google.html",
+    "bytes": 405965,
+    "sha256": "690b84699965b25fc0ee94f95806834425c3f2041fd51d7a86d7ca0ba6141aa8"
+  },
+  {
+    "name": "last.json",
+    "bytes": 31,
+    "sha256": "1adabc839722a27dd3bd8d70c0badec68f1b425fc697b6c73ba947d57ae4d8db"
+  },
+  {
+    "name": "manifest.json",
+    "bytes": 2052,
+    "sha256": "8d154f1415ef1e4fa8584972f21e05cd11c4968aa9d80c53bf97669ebc0d8317"
+  },
+  {
+    "name": "mid.headers",
+    "bytes": 624,
+    "sha256": "74a676d36dd49f4cfae8f2dab8356e4f191d47d66d43df0f230b2983f7f4262f"
+  },
+  {
+    "name": "mid.json",
+    "bytes": 16,
+    "sha256": "42e9833822efe559a3424781576005c849175109d44331df018b7c0abb2aef02"
+  },
+  {
+    "name": "october-31-market.json",
+    "bytes": 2010,
+    "sha256": "71d7d0ad808bf784543d1f1972c37eef2ebc74aadd634543aba729aa2d0a454e"
+  },
+  {
+    "name": "poly-october-31-excerpt.txt",
+    "bytes": 901,
+    "sha256": "130980a576829e4f6533af5ec8c7890644742f9c9a7bb95eb001a9e45446d689"
+  },
+  {
+    "name": "poly.headers",
+    "bytes": 11595,
+    "sha256": "efcb5c591039f34ec33cba7bea48ec8ca5818d043762c216a3e1f5e6e2df432f"
+  },
+  {
+    "name": "poly.html",
+    "bytes": 1127670,
+    "sha256": "2caebf18ded4d24d3261a89c74ee9b3e8b2f6d1a6478196e0dead65592c0a435"
+  },
+  {
+    "name": "price.headers",
+    "bytes": 624,
+    "sha256": "187709191817da0eb7a31789ec185a53e249b157e606c465a37ced5f2383aee1"
+  },
+  {
+    "name": "price.json",
+    "bytes": 17,
+    "sha256": "0285bad839010c71e11d74652c970d618d88ef13bfea9764ecfe97820662cf3c"
+  },
+  {
+    "name": "spread.json",
+    "bytes": 18,
+    "sha256": "2386d960a38023e3b52aef662ca8496dd3d154c0cdf8ff8460194b0c9645be3b"
+  }
+]

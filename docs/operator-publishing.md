@@ -38,6 +38,8 @@ npm run operator -- checkpoint verify --id <checkpointId>
 
 `npm run db:upsert` remains available for fixture bundles. Prefer `operator publish` when you need review metadata, idempotency, or retry after a checkpoint failure.
 
+A bundle candidate that includes `bundle.event` can be staged, approved, and published while that event is absent. `publish approved` creates the event. Evidence, Move Log, and source-capture candidates still require an event that is already stored. Import does not create an event or a probability.
+
 ## Intake JSON
 
 ```json
@@ -84,4 +86,6 @@ After publishing, open Pulse and the event detail route for the target event. Co
 - Following persistence is browser `localStorage` only; there is no per-user server watchlist.
 - Simulated checkpoint failures in tests use a mocked publisher; production retry depends on PostgreSQL availability at publish time.
 - File-queue import stages a captured source version. It does not approve or publish it, and a calendar date is not stored as a publication timestamp.
+- Evidence `reliability` may be null on a bundle. Null means no recorder rating was stored. Source-capture approval still requires an explicit stance and reliability; import does not invent either one.
+- Staging a bundle does not insert the event. The event row appears when the approved bundle is published.
 - Checkpoint ids are decimal text end to end, including values that are not safe JavaScript numbers.

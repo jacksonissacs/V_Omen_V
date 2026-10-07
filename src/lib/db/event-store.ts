@@ -430,7 +430,7 @@ async function appendEvidence(client: ClientBase, eventId: string, item: Evidenc
     first_observed_at: Date
     summary: string
     stance: string
-    reliability: number
+    reliability: number | null
     recorded_by: string
     provenance: string
   }>(

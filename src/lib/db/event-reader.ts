@@ -58,7 +58,7 @@ interface EvidenceRow {
   captured_at: Date
   summary: string
   stance: EventSource["stance"]
-  reliability: number
+  reliability: number | null
   provenance: Provenance
 }
 

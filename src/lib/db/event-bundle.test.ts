@@ -104,6 +104,52 @@ describe("parseEventBundle", () => {
     )
   })
 
+  it("stores no reliability rating when the field is omitted or null", () => {
+    const bundle = fixture("demo-evt-boc-cut.json")
+    delete bundle.evidence[0].reliability
+    bundle.evidence[1].reliability = null
+    const parsed = parseEventBundle(bundle)
+    expect(parsed.evidence[0]?.reliability).toBeNull()
+    expect(parsed.evidence[1]?.reliability).toBeNull()
+    bundle.evidence[0].reliability = 1.001
+    expect(issuesFor(bundle)).toContain("bundle.evidence[0].reliability must be between 0 and 1")
+  })
+
+  it("accepts the sourced Gemini operator bundle without a rating, move log, or invented publication time", () => {
+    const file = path.resolve(__dirname, "../../../db/operator-inputs/evt-gemini-4-public-by-2026-10-31.json")
+    const bundle = parseEventBundle(JSON.parse(readFileSync(file, "utf8")))
+    expect(bundle.event?.provenance).toBe("sourced")
+    expect(bundle.event?.question).toBe("Gemini 4.0 released by October 31, 2026?")
+    expect(bundle.event?.significance).toBe("medium")
+    expect(bundle.observations).toEqual([
+      expect.objectContaining({
+        sourceKind: "provider",
+        sourceName: "Polymarket",
+        probabilityType: "market_implied",
+        probabilityPct: 94.5,
+        observedAt: "2026-10-07T14:50:34.604Z",
+        capturedAt: "2026-10-07T14:53:51.789Z",
+        provenance: "sourced",
+      }),
+    ])
+    expect(bundle.observations[0]?.note).toMatch(/not a last-trade time/)
+    expect(bundle.observations[0]?.note).toMatch(/HTTP Date is not stored/)
+    expect(bundle.moveLogRevisions).toEqual([])
+    expect(bundle.evidence.map((item) => item.reliability)).toEqual([null, null, null])
+    const gamma = bundle.evidence.find((item) => item.id === "ev-gamma-gemini-4-2026-10-31")
+    const page = bundle.evidence.find((item) => item.id === "ev-polymarket-page-gemini-4-2026-10-31")
+    const google = bundle.evidence.find((item) => item.id === "ev-google-gemini-4-argon")
+    expect(gamma?.sourcePublishedAt).toBeNull()
+    expect(page?.sourcePublishedAt).toBeNull()
+    expect(google?.sourcePublishedAt).toBe("2026-09-30T20:00:00.000Z")
+    expect(gamma?.firstObservedAt).toBe("2026-10-07T14:53:51.789Z")
+    expect(gamma?.capturedAt).toBe("2026-10-07T14:53:51.789Z")
+    expect(page?.firstObservedAt).toBe("2026-10-07T14:53:52.306Z")
+    expect(google?.firstObservedAt).toBe("2026-10-07T14:53:52.456Z")
+    expect(gamma?.firstObservedAt).not.toBe("2026-10-07T14:53:51.000Z")
+    expect(bundle.observations[0]?.observedAt).not.toBe(bundle.observations[0]?.capturedAt)
+  })
+
   it("rejects unknown provenance and non-object input", () => {
     const bundle = fixture("demo-evt-boc-cut.json")
     bundle.event.provenance = "live"

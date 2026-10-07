@@ -1,0 +1,218 @@
+HEAD 79596c41232b092dbf5640979039d14f49a0d83c
+PORCELAIN<<
+>>
+SB ## HEAD (no branch)
+===== CMD: npm ci =====
+npm warn deprecated eslint@9.39.5: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+
+added 807 packages, and audited 808 packages in 9s
+
+261 packages are looking for funding
+  run `npm fund` for details
+
+26 vulnerabilities (3 moderate, 19 high, 4 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+EXIT 0 :: npm ci
+===== CMD: npm run lint =====
+
+> aion@0.1.0 lint
+> eslint
+
+EXIT 0 :: npm run lint
+===== CMD: npx next typegen =====
+Generating route types...
+✓ Types generated successfully
+EXIT 0 :: npx next typegen
+===== CMD: npm run typecheck =====
+
+> aion@0.1.0 typecheck
+> tsc --noEmit
+
+EXIT 0 :: npm run typecheck
+===== CMD: npm test =====
+
+> aion@0.1.0 test
+> vitest run
+
+
+ RUN  v3.2.7 /tmp/omen-d1-79596c4
+
+ ✓ src/components/intelligence/event-intelligence-view.test.tsx (18 tests) 1154ms
+ ✓ src/app/(workspace)/workspace-routes.test.tsx (26 tests) 1352ms
+   ✓ Pulse route > sorts, filters by category, searches and narrows to the watchlist  309ms
+ ✓ src/components/screens/archive-screen.test.tsx (8 tests) 409ms
+ ✓ src/components/events/event-card.test.tsx (7 tests) 320ms
+ ✓ src/lib/domain/historical-reconstruction.test.ts (10 tests) 9ms
+ ✓ src/lib/domain/probability-history.test.ts (17 tests) 7ms
+ ✓ src/lib/archive/load-archive-page.test.tsx (4 tests) 20ms
+ ✓ src/components/archive/archive-navigation.test.tsx (24 tests) 4706ms
+   ✓ archive checkpoint navigation > keeps the first page and steps by sequence across page boundaries  3579ms
+ ✓ src/components/layout/app-shell.test.tsx (8 tests) 1067ms
+   ✓ AppShell desktop navigation > promotes Pulse, Explore, Following, and More — not unfinished destinations  432ms
+ ✓ src/components/marketing/spectrum-stage.test.tsx (5 tests) 280ms
+ ✓ src/lib/db/event-bundle.test.ts (11 tests) 9ms
+ ✓ src/lib/data/mock-repository.test.ts (13 tests) 9ms
+ ✓ src/lib/db/publication-bundle.test.ts (4 tests) 7ms
+ ✓ src/lib/following/following.browser.test.tsx (8 tests) 480ms
+ ✓ src/lib/db/config.test.ts (11 tests) 6ms
+ ✓ src/data/build-event.test.ts (3 tests) 3ms
+ ✓ src/test/data-boundary.test.ts (9 tests) 12ms
+ ✓ src/lib/db/event-reader.test.ts (2 tests) 5ms
+ ✓ src/components/screens/pulse-screen.test.tsx (4 tests) 473ms
+ ✓ src/components/marketing/landing-page.test.tsx (4 tests) 579ms
+ ✓ src/lib/events.test.ts (4 tests) 9ms
+ ✓ src/lib/marketing/demo-data.test.ts (9 tests) 8ms
+ ✓ src/app/(workspace)/events/[id]/history/[checkpointId]/page.test.tsx (2 tests) 138ms
+ ✓ src/app/(workspace)/legacy-fixture-routes.test.tsx (11 tests) 221ms
+ ✓ src/components/screens/events-screen.test.tsx (3 tests) 461ms
+ ✓ src/components/marketing/walkthrough.test.tsx (2 tests) 308ms
+ ✓ src/lib/domain/event-chronology.test.ts (2 tests) 8ms
+ ✓ src/lib/following/persistence.test.ts (6 tests) 5ms
+ ✓ src/lib/history/historical-request.test.ts (4 tests) 3ms
+ ✓ src/app/aion-workspace.css.test.ts (6 tests) 3ms
+ ✓ src/lib/search/command-index.test.ts (4 tests) 3ms
+ ✓ src/lib/domain/scoring.test.ts (5 tests) 3ms
+ ✓ src/lib/db/bigint-id.test.ts (2 tests) 3ms
+ ✓ src/lib/http-url.test.ts (2 tests) 7ms
+ ✓ src/components/sidebar/sidebar.test.tsx (3 tests) 2ms
+ ✓ src/components/screens/agents-screen.test.tsx (1 test) 68ms
+ ✓ src/lib/intake/refresh.test.ts (18 tests) 66ms
+ ✓ src/lib/analyst/proposal.test.ts (19 tests) 10ms
+ ✓ src/lib/format.test.ts (2 tests) 2ms
+ ✓ src/lib/intake/network.test.ts (7 tests) 17ms
+ ✓ src/app/api/events/[id]/history/[checkpointId]/route.test.ts (5 tests) 12ms
+ ✓ src/app/api/events/[id]/history/route.test.ts (4 tests) 12ms
+ ✓ src/lib/data/repository.test.ts (9 tests) 10ms
+ ✓ src/app/api/events/route.test.ts (7 tests) 11ms
+ ✓ src/lib/analyst/safety.test.ts (2 tests) 7ms
+ ✓ src/lib/intake/safety.test.ts (2 tests) 7ms
+ ✓ src/lib/intake/text.test.ts (4 tests) 3ms
+ ✓ src/lib/intake/command.test.ts (1 test) 3ms
+
+ Test Files  48 passed (48)
+      Tests  342 passed (342)
+   Start at  15:00:18
+   Duration  14.81s (transform 1.47s, setup 4.63s, collect 3.91s, tests 12.32s, environment 16.12s, prepare 2.18s)
+
+EXIT 0 :: npm test
+===== CMD: npm run build =====
+
+> aion@0.1.0 build
+> next build
+
+▲ Next.js 16.3.4 (Turbopack)
+✓ Running next.config.ts took 18ms
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 3.6s
+  Running TypeScript ...
+  Finished TypeScript in 4.7s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/21) ...
+  Generating static pages using 3 workers (5/21) 
+  Generating static pages using 3 workers (10/21) 
+  Generating static pages using 3 workers (15/21) 
+✓ Generating static pages using 3 workers (21/21) in 267ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /agents
+├ ƒ /alerts
+├ ƒ /api-access
+├ ƒ /api/events
+├ ƒ /api/events/[id]
+├ ƒ /api/events/[id]/history
+├ ƒ /api/events/[id]/history/[checkpointId]
+├ ○ /apple-icon.png
+├ ƒ /archive
+├ ƒ /events
+├ ƒ /events/[id]
+├ ƒ /events/[id]/history/[checkpointId]
+├ ○ /graph
+├ ○ /icon.png
+├ ƒ /markets
+├ ƒ /pulse
+├ ƒ /relations
+├ ƒ /research
+├ ƒ /settings
+├ ƒ /signals
+├ ƒ /team
+└ ƒ /watchlists
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+EXIT 0 :: npm run build
+===== CMD: npm run test:db =====
+
+> aion@0.1.0 test:db
+> vitest run --config vitest.db.config.ts
+
+
+ RUN  v3.2.7 /tmp/omen-d1-79596c4
+
+ ✓ src/lib/db/postgres.db.test.ts (47 tests) 8530ms
+   ✓ persistence across processes > reads in this process what separate CLI processes wrote, and a third process reads it back  783ms
+   ✓ persistence across processes > refuses to write from a production process or to an unidentified database  716ms
+   ✓ persistence across processes > reports an unreachable database without printing the connection string or password  340ms
+   ✓ temporal visibility checkpoints > keeps an earlier transaction timestamp from ranking as earlier visibility  319ms
+ ✓ src/lib/analyst/integrity.db.test.ts (15 tests) 4368ms
+ ✓ src/lib/db/historical-reconstruction.db.test.ts (7 tests) 824ms
+ ✓ src/lib/db/intake-publication.db.test.ts (6 tests) 1421ms
+   ✓ intake publication bridge > imports, reviews, publishes, corrects, and retries without inventing a probability or a publication time  435ms
+ ✓ src/lib/db/operator-publishing.db.test.ts (2 tests) 711ms
+   ✓ operator publishing workflow > reviews intake, publishes evidence and an authored Move Log, corrects, and retries checkpoint publication  374ms
+   ✓ operator publishing workflow > stages and approves a previously absent event, then publishes and retries the checkpoint  303ms
+ ✓ src/lib/analyst/analyst.db.test.ts (4 tests) 1113ms
+
+ Test Files  6 passed (6)
+      Tests  81 passed (81)
+   Start at  15:00:43
+   Duration  18.36s (transform 353ms, setup 0ms, collect 681ms, tests 16.97s, environment 1ms, prepare 219ms)
+
+EXIT 0 :: npm run test:db
+===== CMD: npm run test:workflow =====
+
+> aion@0.1.0 test:workflow
+> vitest run --config vitest.workflow.config.ts
+
+
+ RUN  v3.2.7 /tmp/omen-d1-79596c4
+
+ ✓ src/test/workflow/integrated-workflow.workflow.test.ts (32 tests) 11346ms
+   ✓ browser workspace > opens Pulse from the homepage with a real click  800ms
+   ✓ browser workspace > reaches the same checkpoint from Archive and keeps the URL shareable  629ms
+   ✓ browser workspace > opens a shared checkpoint URL in a fresh browser session  388ms
+   ✓ browser workspace > keeps mobile layout inside the viewport  340ms
+   ✓ browser workspace > supports keyboard navigation from the homepage CTA, command palette and checkpoint list  1092ms
+   ✓ browser workspace > honours browser back and forward across the workflow  627ms
+   ✓ intake review publication and checkpoint stability > stages an intake import without publishing evidence  444ms
+   ✓ intake review publication and checkpoint stability > requires an explicit review before publication  926ms
+   ✓ intake review publication and checkpoint stability > does not duplicate evidence, Move Logs or checkpoints when publication is retried  404ms
+   ✓ intake review publication and checkpoint stability > keeps the earlier checkpoint stable after later evidence, metadata edits and corrections  541ms
+   ✓ intake review publication and checkpoint stability > opens an off-page checkpoint and crosses the first page with real pagination  1134ms
+ ✓ src/test/workflow/analyst-proposal.workflow.test.ts (1 test) 1333ms
+   ✓ analyst proposal staging workflow > generates a synthetic proposal, stages it, and refuses publish bypass  969ms
+
+ Test Files  2 passed (2)
+      Tests  33 passed (33)
+   Start at  15:01:02
+   Duration  13.16s (transform 125ms, setup 0ms, collect 240ms, tests 12.68s, environment 0ms, prepare 74ms)
+
+EXIT 0 :: npm run test:workflow
+ALL_OK

@@ -1,0 +1,8 @@
+HEAD 79596c41232b092dbf5640979039d14f49a0d83c
+git status --porcelain
+(empty)
+git status -sb
+## HEAD (no branch)
+
+Recorded on the clean worktree /tmp/omen-d1-79596c4 before npm ci.
+This file is evidence. It is not part of the tested code SHA.

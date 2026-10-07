@@ -38,8 +38,8 @@ export interface StoredEvidenceInput {
   capturedAt: string
   summary: string
   stance: "supports" | "contradicts" | "contextual"
-  /** Stored reliability is not copied into proposal output. */
-  reliability: number
+  /** Stored reliability is not copied into proposal output. Null when no rating was stored. */
+  reliability: number | null
   recordedBy: string
   provenance: "demo" | "sourced"
   contentIdentity: string

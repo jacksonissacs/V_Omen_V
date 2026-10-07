@@ -1,0 +1,21 @@
+===== article:published_time meta offset 1583 =====
+<meta property="article:published_time" content="2026-09-30" 
+
+===== published_time meta offset 3730 =====
+<meta name="published_time" content="2026-09-30T20:00:00+00:00" 
+
+===== jsonld dates offset 2652 =====
+"datePublished": "2026-09-30T20:00:00+00:00",
+        "dateModified": "2026-10-01T21:09:53.663080+00:00",
+        "description": "Announcing Gemini 4 Argon, our frontier model for real-world coding, enterprise knowledge work, and cyber defense, rolling out soon.",
+        
+
+===== announce paragraph offset 334040 =====
+Today, we’re announcing our new frontier model, Gemini 4 Argon, which is rolling out to a set of trusted cyber defenders through our <a href="https://deepmind.google/fairwind-program/">Fairwind Program</a>. Built to sustain deep reasoning across complex, long-horizon workflows, Argon is fundamentally changing the way we work and build at Google. It delivers frontier performance in complex workflows across real-world software engineering, enterprise knowledge work like legal and finance, and cybersecurity defense.
+
+===== phased paragraph offset 334587 =====
+Safely releasing frontier capabilities at this level requires a phased approach. We are actively engaged in the U.S. government’s voluntary process for pre-release model access while we gradually expand access. We’ll continue to gather feedback from early testers as we iterate on guardrails before making Argon available to developers, enterprises, and consumers as soon as possible.
+
+===== paid API paragraph offset 367574 =====
+We built Gemini 4 Argon with frontier-level capabilities on coding, knowledge work, cybersecurity defense, and creative writing to be a partner for developers, professionals, and enterprises while they tackle the most difficult problems. We’re grateful for the initial cohort of cyber defenders and trusted testers whose real-world evaluations and feedback will help us strengthen our systems before we release to developers, enterprises, and consumers, starting with paid API customers and Google AI Ultra subscribers.
+

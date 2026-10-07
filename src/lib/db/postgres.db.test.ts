@@ -121,13 +121,13 @@ describe("migrations", () => {
       expect(identity.environment).toBe("test")
 
       const migrations = loadMigrations()
-      expect(migrations.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6, 7])
+      expect(migrations.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
       expect(migrations.at(-1)?.version).toBe(EXPECTED_SCHEMA_VERSION)
       const first = await migrate(client, migrations)
-      expect(first.applied.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6, 7])
+      expect(first.applied.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
       const second = await migrate(client, migrations)
       expect(second.applied).toEqual([])
-      expect(second.alreadyApplied).toBe(7)
+      expect(second.alreadyApplied).toBe(10)
 
       const { rows } = await client.query("SELECT version, checksum FROM omen_schema_migrations ORDER BY version")
       expect(rows).toEqual(migrations.map((migration) => ({ version: migration.version, checksum: migration.checksum })))
@@ -302,6 +302,11 @@ describe("constraints", () => {
       [null, "2026-09-01T00:00:00Z", null, 0.5],
       /null value in column "captured_at"/,
     )
+    const unrated = await client.query(
+      `${insertEvidence.replace("'ev-constraint'", "'ev-unrated'")} RETURNING reliability`,
+      [null, "2026-09-01T00:00:00Z", "2026-09-02T00:00:00Z", null],
+    )
+    expect(unrated.rows[0].reliability).toBeNull()
   })
 
   const insertRevision = `INSERT INTO move_log_revisions
@@ -1932,5 +1937,49 @@ describe("explicit database failures", () => {
     __resetRepositoryForTests()
     const events = await getRepository().listEvents()
     expect(events.map((event) => [event.id, event.provenance])).toEqual([["evt-boc-cut", "demo"]])
+  })
+})
+
+describe("sourced operator bundle", () => {
+  it("writes the Gemini quote with null reliability and does not turn that into a score", async () => {
+    const database = await migratedDatabase()
+    const bundle = parseEventBundle(
+      readJson(path.join(ROOT, "db/operator-inputs/evt-gemini-4-public-by-2026-10-31.json")),
+    )
+    const summary = await withClient(database.url, (client) => writeEventBundle(client, bundle))
+    expect(summary.eventId).toBe("evt-gemini-4-public-2026-10-31")
+    expect(summary.event).toBe("inserted")
+    expect(summary.observations).toEqual({ appended: 1, unchanged: 0 })
+    expect(summary.evidence).toEqual({ appended: 3, unchanged: 0 })
+    expect(summary.moveLogRevisions).toEqual({ appended: 0, unchanged: 0 })
+    expect(summary.checkpoint.sequence).toBe(1)
+
+    await withClient(database.url, async (client) => {
+      const observation = await client.query<{ probability_pct: string; observed_at: Date; captured_at: Date }>(
+        `SELECT probability_pct::text AS probability_pct, observed_at, captured_at
+           FROM probability_observations WHERE event_id = $1`,
+        [bundle.eventId],
+      )
+      expect(observation.rows).toEqual([
+        {
+          probability_pct: "94.50",
+          observed_at: new Date("2026-10-07T14:50:34.604Z"),
+          captured_at: new Date("2026-10-07T14:53:51.789Z"),
+        },
+      ])
+      const evidence = await client.query<{ id: string; reliability: number | null; source_published_at: Date | null }>(
+        `SELECT id, reliability::float8 AS reliability, source_published_at
+           FROM evidence WHERE event_id = $1 ORDER BY id`,
+        [bundle.eventId],
+      )
+      expect(evidence.rows.map((row) => [row.id, row.reliability])).toEqual([
+        ["ev-gamma-gemini-4-2026-10-31", null],
+        ["ev-google-gemini-4-argon", null],
+        ["ev-polymarket-page-gemini-4-2026-10-31", null],
+      ])
+      const google = evidence.rows.find((row) => row.id === "ev-google-gemini-4-argon")
+      expect(google?.source_published_at?.toISOString()).toBe("2026-09-30T20:00:00.000Z")
+      expect(evidence.rows.filter((row) => row.id !== "ev-google-gemini-4-argon").every((row) => row.source_published_at === null)).toBe(true)
+    })
   })
 })

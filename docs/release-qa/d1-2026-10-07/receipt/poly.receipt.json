@@ -1,0 +1,18 @@
+{
+  "name": "poly",
+  "url": "https://polymarket.com/event/gemini-4pt0-released-by-june-30-2026",
+  "finalUrl": "https://polymarket.com/event/gemini-4pt0-released-by-june-30-2026",
+  "status": 200,
+  "requestStartedAt": "2026-10-07T14:53:51.800Z",
+  "headersReceivedAt": "2026-10-07T14:53:51.984Z",
+  "bodyReceivedAt": "2026-10-07T14:53:52.306Z",
+  "clock": "Date.toISOString local process clock, UTC",
+  "timeZone": "UTC",
+  "bytes": 1128174,
+  "sha256": "0f4b9da60bd733965dcefdbc39b097ea1b2cb434245b35639e3a583d98cd42d1",
+  "httpDate": "Wed, 07 Oct 2026 14:53:51 GMT",
+  "lastModified": null,
+  "age": "174",
+  "cacheStatus": "DYNAMIC",
+  "note": "httpDate, lastModified, age, and cache status are recorded and are not OMEN firstObservedAt or capturedAt."
+}

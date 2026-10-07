@@ -1,0 +1,43 @@
+{
+  "eventSlug": "gemini-4pt0-released-by-june-30-2026",
+  "eventUpdatedAt": "2026-10-07T14:50:45.60482Z",
+  "parentDescriptionStarts": "This market will resolve to \"Yes\" if Google's Gemini 4.0 Flash model is made available to the general public by the listed date. Otherwise, this market will resolve to \"No\".\n\nFor t",
+  "market": {
+    "id": "3584362",
+    "slug": "gemini-4pt0-released-by-october-31-2026",
+    "question": "Gemini 4.0 released by October 31, 2026?",
+    "description": "This market will resolve to \"Yes\" if Google's Gemini 4.0 is made available to the general public by the listed date. Otherwise, this market will resolve to \"No\".\n\nFor this market to resolve to \"Yes,\" Gemini 4.0 must be launched and publicly accessible, including via open beta or open rolling waitlist signups. A closed beta or any form of private access will not suffice. The release must be clearly defined and publicly announced by Google as being accessible to the general public.\n\nIf a qualifying model is made publicly accessible and explicitly labeled with the relevant version name within the company’s official website, this will qualify as “publicly announced”. Labeling errors, placeholder text, or version names displayed on the website that do not correspond to a model that is actually accessible to the general public under the rules will not qualify.\n\nGemini 4.0 refers to a product explicitly named Gemini 4.0 or one that is recognized as a successor to Gemini 3 similar to the progression from Gemini 2.0 to Gemini 3. Products labeled as Gemini 3.0 Flash, Gemini 2.5, or similar will not count for this market's resolution.\n\nThe primary resolution source for this market will be official information from Google, with additional verification from a consensus of credible reporting.",
+    "outcomePrices": "[\"0.945\", \"0.055\"]",
+    "outcomes": "[\"Yes\", \"No\"]",
+    "bestBid": 0.94,
+    "bestAsk": 0.95,
+    "lastTradePrice": 0.94,
+    "spread": 0.01,
+    "updatedAt": "2026-10-07T14:50:34.604743Z",
+    "endDate": "2026-11-01T03:59:00Z",
+    "closed": false,
+    "acceptingOrders": true,
+    "resolutionSource": "",
+    "conditionId": "0x092f0fc94b42a22d82d38ea96a905a3624bb57d8f5fea2d503a7a3f0230cb766"
+  },
+  "sameUpdatedAt": [
+    {
+      "id": "3584362",
+      "slug": "gemini-4pt0-released-by-october-31-2026",
+      "outcomePrices": "[\"0.945\", \"0.055\"]",
+      "updatedAt": "2026-10-07T14:50:34.604743Z"
+    },
+    {
+      "id": "5084763",
+      "slug": "gemini-4pt0-released-by-october-15-2026",
+      "outcomePrices": "[\"0.765\", \"0.235\"]",
+      "updatedAt": "2026-10-07T14:50:34.604743Z"
+    },
+    {
+      "id": "5165009",
+      "slug": "gemini-4pt0-released-by-october-10-2026",
+      "outcomePrices": "[\"0.64\", \"0.36\"]",
+      "updatedAt": "2026-10-07T14:50:34.604743Z"
+    }
+  ]
+}

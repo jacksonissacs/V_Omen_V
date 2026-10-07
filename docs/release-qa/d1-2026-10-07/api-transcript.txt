@@ -1,0 +1,30 @@
+GET http://127.0.0.1:3210/api/events -> 200
+{"storage":"database","provenance":"sourced","events":[{"id":"evt-gemini-4-public-2026-10-31","provenance":"sourced","title":"Gemini 4.0 released by October 31, 2026","category":"AI","probability":94.5,"previousProbability":null,"confidence":null,"change":null,"timestamp":"2026-10-07T14:50:34.604Z","displayTime":"14:50 UTC","status":"active","summary":"Tracked question copied from the Polymarket market for a public Gemini 4.0 release by that contract's listed date. The current state is one marke
+GET http://127.0.0.1:3212/api/events -> 503
+{"storage":"misconfigured","error":"Event storage is unavailable"}
+GET http://127.0.0.1:3214/api/events -> 503
+{"storage":"misconfigured","error":"Event storage is unavailable"}
+GET http://127.0.0.1:3212/markets -> 404 bytes=9164 seeded=False
+GET http://127.0.0.1:3212/signals -> 404 bytes=9040 seeded=False
+GET http://127.0.0.1:3212/agents -> 404 bytes=9037 seeded=False
+GET http://127.0.0.1:3212/research -> 404 bytes=8922 seeded=False
+GET http://127.0.0.1:3212/relations -> 404 bytes=9046 seeded=False
+GET http://127.0.0.1:3212/alerts -> 404 bytes=8916 seeded=False
+GET http://127.0.0.1:3212/graph -> 404 bytes=7278 seeded=False
+GET http://127.0.0.1:3210/markets -> 404 bytes=9845 seeded=False
+GET http://127.0.0.1:3210/signals -> 404 bytes=9721 seeded=False
+GET http://127.0.0.1:3210/agents -> 404 bytes=9718 seeded=False
+GET http://127.0.0.1:3210/research -> 404 bytes=9603 seeded=False
+GET http://127.0.0.1:3210/relations -> 404 bytes=9727 seeded=False
+GET http://127.0.0.1:3210/alerts -> 404 bytes=9597 seeded=False
+GET http://127.0.0.1:3210/graph -> 404 bytes=7278 seeded=False
+GET http://127.0.0.1:3212/pulse -> 200
+  contains 'Data unavailable': True
+  contains 'Workspace data unavailable': False
+  contains 'evt-boc-cut': False
+  contains 'Bank of Canada': False
+GET http://127.0.0.1:3214/pulse -> 200
+  contains 'Data unavailable': True
+  contains 'Workspace data unavailable': False
+  contains 'evt-boc-cut': False
+  contains 'Bank of Canada': False

@@ -1,0 +1,424 @@
+{
+  "shots": [
+    {
+      "requested": "http://127.0.0.1:3210/pulse",
+      "finalUrl": "http://127.0.0.1:3210/pulse",
+      "httpStatus": 200,
+      "file": "discover-pulse-1440.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "Pulse · OMEN",
+      "h1": "Pulse",
+      "chips": [
+        {
+          "text": "Sourced data",
+          "testid": null,
+          "display": "flex"
+        },
+        {
+          "text": "PostgreSQL",
+          "testid": null,
+          "display": "flex"
+        },
+        {
+          "text": "Market-implied",
+          "testid": "series-basis",
+          "display": "flex"
+        },
+        {
+          "text": "Sourced",
+          "testid": "event-provenance",
+          "display": "flex"
+        }
+      ],
+      "overflow": 0,
+      "eventHrefs": [
+        "/events/evt-gemini-4-public-2026-10-31",
+        "/events/evt-gemini-4-public-2026-10-31",
+        "/events/evt-gemini-4-public-2026-10-31#event-evidence"
+      ],
+      "seededHits": [],
+      "textExcerpt": "OMEN\nPulse\nExplore\nFollowing\nMore\ncollapse\nPulse\nSourced data\nPostgreSQL\nSearch\n⌘K\nPulse\n\nEvents worth scanning right now: largest recorded moves first. Not a recommendation engine.\n\nShowing 1 of 1 matching · 1 in the book · ordered by largest recorded move. Browse Explore\n\nAll\nAI\nTechnology\nEconomics\nGeopolitics\nCompanies\nRegulation\nMarkets\nEnergy\nCrypto\nScience\nLargest move\nMy watchlist\nOpen brief for Gemini 4.0 released by October 31, 2026?\nAI\nMarket-implied\nSourced\nGemini 4.0 released by October 31, 2026?\nCurrent probability\n94.5%\nChange\nNot computable\nOne observation\nResolution\nNov 1 2026\nWhy it moved\nNo cause has been recorded.\n\nNo attribution percentage is recorded.\n\nSource\nPolymarket\nObserved\n07 Oct, 14:50 UTC\nCaptured by OMEN\n07 Oct, 14:53 UTC\nRecorded comparisons\nn = 0\n\nNo analogues are recorded.\n\nView brief\nInspect evidence\nFollow"
+    },
+    {
+      "requested": "http://127.0.0.1:3210/pulse",
+      "finalUrl": "http://127.0.0.1:3210/pulse",
+      "httpStatus": 200,
+      "file": "discover-pulse-390.png",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "title": "Pulse · OMEN",
+      "h1": "Pulse",
+      "chips": [
+        {
+          "text": "Sourced data",
+          "testid": null,
+          "display": "flex"
+        },
+        {
+          "text": "PostgreSQL",
+          "testid": null,
+          "display": "flex"
+        },
+        {
+          "text": "Market-implied",
+          "testid": "series-basis",
+          "display": "flex"
+        },
+        {
+          "text": "Sourced",
+          "testid": "event-provenance",
+          "display": "flex"
+        }
+      ],
+      "overflow": 0,
+      "eventHrefs": [
+        "/events/evt-gemini-4-public-2026-10-31",
+        "/events/evt-gemini-4-public-2026-10-31",
+        "/events/evt-gemini-4-public-2026-10-31#event-evidence"
+      ],
+      "seededHits": [],
+      "textExcerpt": "Pulse\nSourced data\nPostgreSQL\nSearch\nPulse\n\nEvents worth scanning right now: largest recorded moves first. Not a recommendation engine.\n\nShowing 1 of 1 matching · 1 in the book · ordered by largest recorded move. Browse Explore\n\nAll\nAI\nTechnology\nEconomics\nGeopolitics\nCompanies\nRegulation\nMarkets\nEnergy\nCrypto\nScience\nLargest move\nMy watchlist\nOpen brief for Gemini 4.0 released by October 31, 2026?\nAI\nMarket-implied\nSourced\nGemini 4.0 released by October 31, 2026?\nCurrent probability\n94.5%\nChange\nNot computable\nOne observation\nResolution\nNov 1 2026\nWhy it moved\nNo cause has been recorded.\n\nNo attribution percentage is recorded.\n\nSource\nPolymarket\nObserved\n07 Oct, 14:50 UTC\nCaptured by OMEN\n07 Oct, 14:53 UTC\nRecorded comparisons\nn = 0\n\nNo analogues are recorded.\n\nView brief\nInspect evidence\nFollow\nPulse\nExplore\nFollowing\nMore"
+    },
+    {
+      "requested": "http://127.0.0.1:3210/events",
+      "finalUrl": "http://127.0.0.1:3210/events",
+      "httpStatus": 200,
+      "file": "discover-explore-1440.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "Explore · OMEN",
+      "h1": "Explore",
+      "chips": [
+        {
+          "text": "Sourced data",
+          "testid": null,
+          "display": "flex"
+        },
+        {
+          "text": "PostgreSQL",
+          "testid": null,
+          "display": "flex"
+        },
+        {
+          "text": "Market-implied",
+          "testid": "series-basis",
+          "display": "flex"
+        },
+        {
+          "text": "Sourced",
+          "testid": "event-provenance",
+          "display": "flex"
+        }
+      ],
+      "overflow": 0,
+      "eventHrefs": [
+        "/events/evt-gemini-4-public-2026-10-31",
+        "/events/evt-gemini-4-public-2026-10-31",
+        "/events/evt-gemini-4-public-2026-10-31#event-evidence"
+      ],
+      "seededHits": [],
+      "textExcerpt": "OMEN\nPulse\nExplore\nFollowing\nMore\ncollapse\nExplore\nSourced data\nPostgreSQL\nSearch\n⌘K\nExplore\n\nThe full book of questions OMEN is tracking — broader than Pulse.\n\n1 events in view · 1 in the book\n\nAll\nAI\nTechnology\nEconomics\nGeopolitics\nCompanies\nRegulation\nMarkets\nEnergy\nCrypto\nScience\nChange\nProbability\nTime\nOpen brief for Gemini 4.0 released by October 31, 2026?\nAI\nMarket-implied\nSourced\nGemini 4.0 released by October 31, 2026?\nCurrent probability\n94.5%\nChange\nNot computable\nOne observation\nResolution\nNov 1 2026\nWhy it moved\nNo cause has been recorded.\n\nNo attribution percentage is recorded.\n\nSource\nPolymarket\nObserved\n07 Oct, 14:50 UTC\nCaptured by OMEN\n07 Oct, 14:53 UTC\nRecorded comparisons\nn = 0\n\nNo analogues are recorded.\n\nView brief\nInspect evidence\nFollow\n\n1 events in view · 1 in the book"
+    },
+    {
+      "requested": "http://127.0.0.1:3210/events",
+      "finalUrl": "http://127.0.0.1:3210/events",
+      "httpStatus": 200,
+      "file": "discover-explore-390.png",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "title": "Explore · OMEN",
+      "h1": "Explore",
+      "chips": [
+        {
+          "text": "Sourced data",
+          "testid": null,
+          "display": "flex"
+        },
+        {
+          "text": "PostgreSQL",
+          "testid": null,
+          "display": "flex"
+        },
+        {
+          "text": "Market-implied",
+          "testid": "series-basis",
+          "display": "flex"
+        },
+        {
+          "text": "Sourced",
+          "testid": "event-provenance",
+          "display": "flex"
+        }
+      ],
+      "overflow": 0,
+      "eventHrefs": [
+        "/events/evt-gemini-4-public-2026-10-31",
+        "/events/evt-gemini-4-public-2026-10-31",
+        "/events/evt-gemini-4-public-2026-10-31#event-evidence"
+      ],
+      "seededHits": [],
+      "textExcerpt": "Explore\nSourced data\nPostgreSQL\nSearch\nExplore\n\nThe full book of questions OMEN is tracking — broader than Pulse.\n\n1 events in view · 1 in the book\n\nAll\nAI\nTechnology\nEconomics\nGeopolitics\nCompanies\nRegulation\nMarkets\nEnergy\nCrypto\nScience\nChange\nProbability\nTime\nOpen brief for Gemini 4.0 released by October 31, 2026?\nAI\nMarket-implied\nSourced\nGemini 4.0 released by October 31, 2026?\nCurrent probability\n94.5%\nChange\nNot computable\nOne observation\nResolution\nNov 1 2026\nWhy it moved\nNo cause has been recorded.\n\nNo attribution percentage is recorded.\n\nSource\nPolymarket\nObserved\n07 Oct, 14:50 UTC\nCaptured by OMEN\n07 Oct, 14:53 UTC\nRecorded comparisons\nn = 0\n\nNo analogues are recorded.\n\nView brief\nInspect evidence\nFollow\n\n1 events in view · 1 in the book\n\nPulse\nExplore\nFollowing\nMore"
+    },
+    {
+      "requested": "click brief from pulse",
+      "finalUrl": "http://127.0.0.1:3210/events/evt-gemini-4-public-2026-10-31",
+      "file": "brief-evidence-1440.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "Gemini 4.0 released by October 31, 2026 · OMEN",
+      "h1": "Gemini 4.0 released by October 31, 2026",
+      "chips": [
+        {
+          "text": "Sourced data",
+          "testid": null,
+          "display": "flex"
+        },
+        {
+          "text": "PostgreSQL",
+          "testid": null,
+          "display": "flex"
+        },
+        {
+          "text": "Market-implied probability",
+          "testid": "probability-basis",
+          "display": "flex"
+        },
+        {
+          "text": "3 evidence records",
+          "testid": null,
+          "display": "flex"
+        },
+        {
+          "text": "Resolves Nov 1 2026",
+          "testid": null,
+          "display": "flex"
+        }
+      ],
+      "overflow": 0,
+      "eventHrefs": [],
+      "seededHits": [],
+      "textExcerpt": "OMEN\nPulse\nExplore\nFollowing\nMore\ncollapse\nEvents\n/\nAI\n/\nGemini 4.0 released by October 31, 2026\nSourced data\nPostgreSQL\nSearch\n⌘K\nAI\nMarket-implied probability\n3 evidence records\nResolves Nov 1 2026\nGemini 4.0 released by October 31, 2026\n\nGemini 4.0 released by October 31, 2026?\n\nResolution criteria\nThis market will resolve to \"Yes\" if Google's Gemini 4.0 is made available to the general public by the listed date. Otherwise, this market will resolve to \"No\". For this market to resolve to \"Yes,\" Gemini 4.0 must be launched and publicly accessible, including via open beta or open rolling waitlist signups. A closed beta or any form of private access will not suffice. The release must be clearly defined and publicly announced by Google as being accessible to the general public. If a qualifying model is made publicly accessible and explicitly labeled with the relevant version name within the company’s official website, this will qualify as “publicly announced”. Labeling errors, placeholder text, or version names displayed on the website that do not correspond to a model that is actually accessible to the general public under the rules will not qualify. Gemini 4.0 refers to a product explicitly named Gemini 4.0 or one that is recognized as a successor to Gemini 3 similar to the progression from Gemini 2.0 to Gemini 3. Products labeled as Gemini 3.0 Flash, Gemini 2.5, or similar will not count for this market's resolution. The primary resolution source for this market will be official information from Google, with additional verification from a consensus of credible reporting.\n\n"
+    },
+    {
+      "requested": "http://127.0.0.1:3210/events/evt-gemini-4-public-2026-10-31",
+      "finalUrl": "http://127.0.0.1:3210/events/evt-gemini-4-public-2026-10-31",
+      "file": "brief-evidence-390.png",
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "title": "Gemini 4.0 released by October 31, 2026 · OMEN",
+      "h1": "Gemini 4.0 released by October 31, 2026",
+      "chips": [
+        {
+          "text": "Sourced data",
+          "testid": null,
+          "display": "flex"
+        },
+        {
+          "text": "PostgreSQL",
+          "testid": null,
+          "display": "flex"
+        },
+        {
+          "text": "Market-implied probability",
+          "testid": "probability-basis",
+          "display": "flex"
+        },
+        {
+          "text": "3 evidence records",
+          "testid": null,
+          "display": "flex"
+        },
+        {
+          "text": "Resolves Nov 1 2026",
+          "testid": null,
+          "display": "flex"
+        }
+      ],
+      "overflow": 0,
+      "eventHrefs": [],
+      "seededHits": [],
+      "textExcerpt": "Events\n/\nAI\n/\nGemini 4.0 released by October 31, 2026\nSourced data\nPostgreSQL\nSearch\nAI\nMarket-implied probability\n3 evidence records\nResolves Nov 1 2026\nGemini 4.0 released by October 31, 2026\n\nGemini 4.0 released by October 31, 2026?\n\nResolution criteria\nThis market will resolve to \"Yes\" if Google's Gemini 4.0 is made available to the general public by the listed date. Otherwise, this market will resolve to \"No\". For this market to resolve to \"Yes,\" Gemini 4.0 must be launched and publicly accessible, including via open beta or open rolling waitlist signups. A closed beta or any form of private access will not suffice. The release must be clearly defined and publicly announced by Google as being accessible to the general public. If a qualifying model is made publicly accessible and explicitly labeled with the relevant version name within the company’s official website, this will qualify as “publicly announced”. Labeling errors, placeholder text, or version names displayed on the website that do not correspond to a model that is actually accessible to the general public under the rules will not qualify. Gemini 4.0 refers to a product explicitly named Gemini 4.0 or one that is recognized as a successor to Gemini 3 similar to the progression from Gemini 2.0 to Gemini 3. Products labeled as Gemini 3.0 Flash, Gemini 2.5, or similar will not count for this market's resolution. The primary resolution source for this market will be official information from Google, with additional verification from a consensus of credible reporting.\n\nCurrent probability\n94.5%\nPrevious observation"
+    },
+    {
+      "requested": "http://127.0.0.1:3210/watchlists",
+      "finalUrl": "http://127.0.0.1:3210/watchlists",
+      "httpStatus": 200,
+      "file": "return-following-1440.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "Following · OMEN",
+      "h1": "Following",
+      "chips": [
+        {
+          "text": "Sourced data",
+          "testid": null,
+          "display": "flex"
+        },
+        {
+          "text": "PostgreSQL",
+          "testid": null,
+          "display": "flex"
+        }
+      ],
+      "overflow": 0,
+      "eventHrefs": [],
+      "seededHits": [],
+      "textExcerpt": "OMEN\nPulse\nExplore\nFollowing\nMore\ncollapse\nFollowing\nSourced data\nPostgreSQL\nSearch\n⌘K\nFollowing\n\nMarkets, entities and event classes you follow. Saved in this browser.\n\nItem\nCurrent state\nLargest recent move\nLast catalyst\nNext event\nGemini 4.0 released by October 31, 2026AI · open event\n94.5%\nNot computable\nNot yet attributed\nNov 1 2026\nFollowing"
+    },
+    {
+      "requested": "http://127.0.0.1:3210/archive?event=evt-gemini-4-public-2026-10-31",
+      "finalUrl": "http://127.0.0.1:3210/archive?event=evt-gemini-4-public-2026-10-31&checkpoint=1",
+      "file": "return-archive-1440.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "Archive · OMEN",
+      "h1": "Archive",
+      "chips": [
+        {
+          "text": "Sourced data",
+          "testid": null,
+          "display": "flex"
+        },
+        {
+          "text": "PostgreSQL",
+          "testid": null,
+          "display": "flex"
+        }
+      ],
+      "overflow": 0,
+      "eventHrefs": [
+        "/events/evt-gemini-4-public-2026-10-31/history/1"
+      ],
+      "seededHits": [],
+      "textExcerpt": "OMEN\nPulse\nExplore\nFollowing\nMore\ncollapse\nHistorical checkpoint view\nSourced data\nPostgreSQL\nSearch\n⌘K\nArchive\n\nReplay verified history checkpoints from stored observations, evidence and Move Log revisions.\n\nViewing stored checkpoint history for evt-gemini-4-public-2026-10-31. Current navigation and the live event record stay outside this view until you return to present.\n\nEvent\nGemini 4.0 released by October 31, 2026\nPrevious checkpoint\nNext checkpoint\nReturn to present\nCoverage limitations\nReplay uses published checkpoint membership only — not wall-clock cutoffs or fabricated checkpoint ids.\nSemantic title and status appear only when an eligible event_revisions row is a checkpoint member.\nDemo storage does not publish checkpoints; use PostgreSQL mode for stored reconstruction.\n\nStorage: database · Sourced data.\n\nHistorical checkpoint view · not the current record\n\nVerified checkpoint #1 · id 1. Member count 5. Semantic history recorded.\n\nEvent semantics in this checkpoint\nTitle\nGemini 4.0 released by October 31, 2026\nStatus\nactive\nQuestion\nGemini 4.0 released by October 31, 2026?\nSummary\nTracked question copied from the Polymarket market for a public Gemini 4.0 release by that contract's listed date. The current state is one market-implied price from the gamma record for that market. The public Polymarket page and Google's 30 September 2026 Gemini 4 Argon post are stored beside it. OMEN first-observed and capture times are local body-receipt clocks, not HTTP Date headers. No move log is recorded.\nHeadline probability in this checkpoint\nMarket-implied\n94.5%\nPrevious obser"
+    },
+    {
+      "requested": "http://127.0.0.1:3212/pulse",
+      "finalUrl": "http://127.0.0.1:3212/pulse",
+      "httpStatus": 200,
+      "file": "quarantine-pulse-1440.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "Pulse · OMEN",
+      "h1": "",
+      "chips": [
+        {
+          "text": "Data unavailable",
+          "testid": null,
+          "display": "flex"
+        }
+      ],
+      "overflow": 0,
+      "eventHrefs": [],
+      "seededHits": [],
+      "textExcerpt": "OMEN\nPulse\nExplore\nFollowing\nMore\ncollapse\nPulse\nData unavailable\nSearch\n⌘K\nWorkspace data unavailable\n\nThe event repository could not be read, so this screen cannot be shown. Reference 658949213.\n\nTry again"
+    },
+    {
+      "requested": "http://127.0.0.1:3212/markets",
+      "finalUrl": "http://127.0.0.1:3212/markets",
+      "httpStatus": 404,
+      "file": "quarantine-markets-1440.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "Markets · OMEN",
+      "h1": "This view is not available",
+      "chips": [
+        {
+          "text": "Unavailable",
+          "testid": null,
+          "display": "flex"
+        }
+      ],
+      "overflow": 0,
+      "eventHrefs": [],
+      "seededHits": [],
+      "textExcerpt": "OMEN\nPulse\nExplore\nFollowing\nMore\ncollapse\nMarkets\nUnavailable\nSearch\n⌘K\n\n404\n\nThis view is not available\n\nOMEN is not serving a substitute book for this screen.\n\nBack to Pulse"
+    },
+    {
+      "requested": "http://127.0.0.1:3214/pulse",
+      "finalUrl": "http://127.0.0.1:3214/pulse",
+      "httpStatus": 200,
+      "file": "unset-mode-pulse-1440.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "Pulse · OMEN",
+      "h1": "",
+      "chips": [
+        {
+          "text": "Data unavailable",
+          "testid": null,
+          "display": "flex"
+        }
+      ],
+      "overflow": 0,
+      "eventHrefs": [],
+      "seededHits": [],
+      "textExcerpt": "OMEN\nPulse\nExplore\nFollowing\nMore\ncollapse\nPulse\nData unavailable\nSearch\n⌘K\nWorkspace data unavailable\n\nThe event repository could not be read, so this screen cannot be shown. Reference 3409557085.\n\nTry again"
+    }
+  ],
+  "checks": {
+    "provenanceChip390": {
+      "text": "Sourced",
+      "testid": "event-provenance",
+      "display": "flex"
+    },
+    "briefChips390": [
+      {
+        "text": "Sourced data",
+        "testid": null,
+        "display": "flex"
+      },
+      {
+        "text": "PostgreSQL",
+        "testid": null,
+        "display": "flex"
+      },
+      {
+        "text": "Market-implied probability",
+        "testid": "probability-basis",
+        "display": "flex"
+      },
+      {
+        "text": "3 evidence records",
+        "testid": null,
+        "display": "flex"
+      },
+      {
+        "text": "Resolves Nov 1 2026",
+        "testid": null,
+        "display": "flex"
+      }
+    ],
+    "localStorageAfterFollow": "{\"version\":1,\"eventIds\":[\"evt-gemini-4-public-2026-10-31\"],\"userSaved\":true}",
+    "localStorageAfterReload": "{\"version\":1,\"eventIds\":[\"evt-gemini-4-public-2026-10-31\"],\"userSaved\":true}"
+  }
+}

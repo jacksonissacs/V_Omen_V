@@ -6,7 +6,7 @@ import { afterAll, describe, expect, it, vi } from "vitest"
 
 import { PostgresIntelligenceRepository } from "@/lib/data/postgres-repository"
 import { parseEventBundle } from "@/lib/db/event-bundle"
-import { readMoveLogHistory } from "@/lib/db/event-reader"
+import { readEvents, readMoveLogHistory } from "@/lib/db/event-reader"
 import * as historyCheckpoint from "@/lib/db/history-checkpoint"
 import { writeEventBundle } from "@/lib/db/event-store"
 import {
@@ -204,6 +204,139 @@ describe("operator publishing workflow", () => {
           "ev-boc-retry-check",
         ])
         expect(afterRows[0].count).toBe(1)
+      })
+    } finally {
+      vi.restoreAllMocks()
+    }
+  })
+
+  it("stages and approves a previously absent event, then publishes and retries the checkpoint", async () => {
+    const database = await migratedDatabase()
+    const review = JSON.parse(
+      readFileSync(path.join(ROOT, "db/operator-inputs/evt-gemini-4-public-by-2026-10-31.review.json"), "utf8"),
+    )
+    const bundle = parseEventBundle(review.candidate.bundle)
+    const idempotencyKey = "gemini-4-public-2026-10-31-v1"
+
+    await withClient(database.url, async (client) => {
+      const events = async () =>
+        (await client.query<{ count: number }>("SELECT count(*)::int AS count FROM events")).rows[0]!.count
+      expect(await events()).toBe(0)
+      await expect(
+        stageSourceReviewItem(client, {
+          id: "src-absent-evidence-only",
+          eventId: bundle.eventId,
+          stagedBy: "omen.operator",
+          candidate: {
+            kind: "evidence",
+            evidence: {
+              id: "ev-absent-probe",
+              sourceName: "Probe",
+              sourcePublishedAt: null,
+              firstObservedAt: "2026-10-07T14:53:51.789Z",
+              capturedAt: "2026-10-07T14:53:51.789Z",
+              summary: "This candidate must not create an event.",
+              stance: "contextual",
+              reliability: null,
+              recordedBy: "omen.operator",
+              provenance: "sourced",
+            },
+          },
+        }),
+      ).rejects.toThrow(/not stored/)
+      expect(await events()).toBe(0)
+
+      const staged = await stageSourceReviewItem(client, review)
+      expect(staged.status).toBe("staged")
+      expect(await events()).toBe(0)
+      const approved = await approveSourceReviewItem(
+        client,
+        staged.id,
+        "omen.operator",
+        "Approved the staged bundle. No reliability score was added.",
+      )
+      expect(approved.status).toBe("approved")
+      expect(await events()).toBe(0)
+    })
+
+    const originalPublish = historyCheckpoint.publishHistoryCheckpoint
+    let publishCalls = 0
+    vi.spyOn(historyCheckpoint, "publishHistoryCheckpoint").mockImplementation(async (client, eventId) => {
+      publishCalls += 1
+      if (publishCalls === 1) throw new Error("simulated checkpoint publisher failure")
+      return originalPublish(client, eventId)
+    })
+
+    try {
+      await withClient(database.url, async (client) => {
+        const item = await getSourceReviewItem(client, review.id)
+        expect(item?.status).toBe("approved")
+        await expect(publishApprovedReviewItem(client, item!, idempotencyKey)).rejects.toThrow(
+          /simulated checkpoint/,
+        )
+        const pending = await getPublicationOperation(client, idempotencyKey)
+        expect(pending?.status).toBe("checkpoint_pending")
+        expect(pending?.sourceReviewItemId).toBe(review.id)
+        const present = await client.query<{ count: number }>(
+          "SELECT count(*)::int AS count FROM events WHERE id = $1",
+          [bundle.eventId],
+        )
+        expect(present.rows[0]!.count).toBe(1)
+        const checkpointsBefore = await client.query<{ count: number }>(
+          "SELECT count(*)::int AS count FROM history_checkpoints WHERE event_id = $1",
+          [bundle.eventId],
+        )
+        expect(checkpointsBefore.rows[0]!.count).toBe(0)
+
+        const retried = await retryPublicationOperation(client, idempotencyKey)
+        expect(retried.operation.status).toBe("completed")
+        expect(retried.summary.checkpoint.sequence).toBe(1)
+        expect(retried.summary.observations).toEqual({ appended: 0, unchanged: 1 })
+        expect(retried.summary.evidence).toEqual({ appended: 0, unchanged: 3 })
+        expect(await verifyCheckpointDigest(client, retried.summary.checkpoint.id)).toBe("ok")
+
+        const again = await publishApprovedReviewItem(client, item!, idempotencyKey)
+        expect(again.operation.id).toBe(retried.operation.id)
+        expect(again.summary.checkpoint.id).toBe(retried.summary.checkpoint.id)
+        const checkpointsAfter = await client.query<{ count: number }>(
+          "SELECT count(*)::int AS count FROM history_checkpoints WHERE event_id = $1",
+          [bundle.eventId],
+        )
+        expect(checkpointsAfter.rows[0]!.count).toBe(1)
+
+        const observation = await client.query<{ probability_pct: string; observed_at: Date; captured_at: Date }>(
+          `SELECT probability_pct::text AS probability_pct, observed_at, captured_at
+             FROM probability_observations WHERE event_id = $1`,
+          [bundle.eventId],
+        )
+        expect(observation.rows).toEqual([
+          {
+            probability_pct: "94.50",
+            observed_at: new Date(bundle.observations[0]!.observedAt),
+            captured_at: new Date(bundle.observations[0]!.capturedAt!),
+          },
+        ])
+        const reliability = await client.query<{ reliability: number | null; source_published_at: Date | null }>(
+          "SELECT reliability::float8 AS reliability, source_published_at FROM evidence WHERE event_id = $1",
+          [bundle.eventId],
+        )
+        expect(reliability.rows.every((row) => row.reliability === null)).toBe(true)
+        const stored = await readEvents(client, [bundle.eventId])
+        const event = stored.events[0]
+        expect(event?.question).toBe("Gemini 4.0 released by October 31, 2026?")
+        expect(event?.probability).toBe(94.5)
+        expect(event?.provenance).toBe("sourced")
+        expect(event?.evidence.every((item) => item.reliability === null)).toBe(true)
+        expect(event?.evidence.find((item) => item.id === "ev-google-gemini-4-argon")?.publishedAt).toBe(
+          "2026-09-30T20:00:00.000Z",
+        )
+        expect(event?.evidence.find((item) => item.id === "ev-gamma-gemini-4-2026-10-31")?.publishedAt).toBeNull()
+
+        const different = structuredClone(bundle)
+        different.evidence[0]!.summary = `${different.evidence[0]!.summary} (altered)`
+        await expect(publishEventBundle(client, different, { idempotencyKey })).rejects.toThrow(
+          /already bound to a different bundle/,
+        )
       })
     } finally {
       vi.restoreAllMocks()

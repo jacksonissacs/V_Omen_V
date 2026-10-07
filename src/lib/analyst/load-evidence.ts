@@ -13,7 +13,7 @@ interface EvidenceRow {
   captured_at: Date
   summary: string
   stance: StoredEvidenceInput["stance"]
-  reliability: number
+  reliability: number | null
   recorded_by: string
   provenance: StoredEvidenceInput["provenance"]
 }
@@ -29,7 +29,7 @@ function rowToStored(row: EvidenceRow): StoredEvidenceInput {
     capturedAt: row.captured_at.toISOString(),
     summary: row.summary,
     stance: row.stance,
-    reliability: Number(row.reliability),
+    reliability: row.reliability === null ? null : Number(row.reliability),
     recordedBy: row.recorded_by,
     provenance: row.provenance,
   }
