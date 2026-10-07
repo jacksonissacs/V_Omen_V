@@ -74,7 +74,26 @@ function newOperationId(): string {
 }
 
 function bundleFingerprint(bundle: EventBundle): string {
-  return createHash("sha256").update(JSON.stringify(bundle)).digest("hex")
+  return createHash("sha256").update(canonicalJson(bundle)).digest("hex")
+}
+
+/**
+ * jsonb does not preserve object key order. Idempotency compares canonical JSON
+ * so a replay of the same bundle matches the stored row, and a different bundle does not.
+ */
+function canonicalJson(value: unknown): string {
+  return JSON.stringify(sortJson(value))
+}
+
+function sortJson(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sortJson)
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>
+    const out: Record<string, unknown> = {}
+    for (const key of Object.keys(record).sort()) out[key] = sortJson(record[key])
+    return out
+  }
+  return value
 }
 
 async function withPublicationLock<T>(client: ClientBase, key: string, body: () => Promise<T>): Promise<T> {

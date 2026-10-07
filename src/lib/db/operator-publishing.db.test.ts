@@ -6,7 +6,7 @@ import { afterAll, describe, expect, it, vi } from "vitest"
 
 import { PostgresIntelligenceRepository } from "@/lib/data/postgres-repository"
 import { parseEventBundle } from "@/lib/db/event-bundle"
-import { readMoveLogHistory } from "@/lib/db/event-reader"
+import { readEvents, readMoveLogHistory } from "@/lib/db/event-reader"
 import * as historyCheckpoint from "@/lib/db/history-checkpoint"
 import { writeEventBundle } from "@/lib/db/event-store"
 import {
@@ -208,5 +208,41 @@ describe("operator publishing workflow", () => {
     } finally {
       vi.restoreAllMocks()
     }
+  })
+
+  it("publishes a new sourced event through the operator path before any review row can exist", async () => {
+    const database = await migratedDatabase()
+    const bundle = parseEventBundle(
+      JSON.parse(readFileSync(path.join(ROOT, "db/operator-inputs/evt-gemini-4-public-by-2026-10-31.json"), "utf8")),
+    )
+    const published = await withClient(database.url, (client) =>
+      publishEventBundle(client, bundle, { idempotencyKey: "gemini-4-public-2026-10-31-v1" }),
+    )
+    expect(published.operation.status).toBe("completed")
+    expect(published.summary.event).toBe("inserted")
+    expect(published.summary.checkpoint.sequence).toBe(1)
+
+    await withClient(database.url, async (client) => {
+      const again = await publishEventBundle(client, bundle, { idempotencyKey: "gemini-4-public-2026-10-31-v1" })
+      expect(again.operation.id).toBe(published.operation.id)
+      expect(again.summary.checkpoint.id).toBe(published.summary.checkpoint.id)
+      const reliability = await client.query<{ reliability: number | null }>(
+        "SELECT reliability::float8 AS reliability FROM evidence WHERE event_id = $1",
+        [bundle.eventId],
+      )
+      expect(reliability.rows.every((row) => row.reliability === null)).toBe(true)
+      const stored = await readEvents(client, [bundle.eventId])
+      const event = stored.events[0]
+      expect(event?.question).toBe("Gemini 4.0 released by October 31, 2026?")
+      expect(event?.probability).toBe(94.5)
+      expect(event?.provenance).toBe("sourced")
+      expect(event?.evidence.every((item) => item.reliability === null)).toBe(true)
+
+      const different = structuredClone(bundle)
+      different.evidence[0]!.summary = `${different.evidence[0]!.summary} (altered)`
+      await expect(
+        publishEventBundle(client, different, { idempotencyKey: "gemini-4-public-2026-10-31-v1" }),
+      ).rejects.toThrow(/already bound to a different bundle/)
+    })
   })
 })
