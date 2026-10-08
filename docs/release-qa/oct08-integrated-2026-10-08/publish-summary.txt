@@ -1,0 +1,19 @@
+HEAD d4ee41203a6474ae06a5982aaf34a905a3ab46b3
+DATABASE host localhost only
+> tsx scripts/omen-db.ts migrate --identify development --label oct08 integrated disposable
+Database identity: development (oct08 integrated disposable)
+Applied 0001_core_event_storage, 0002_trustworthy_temporal_storage, 0003_history_visibility_checkpoints, 0004_operator_publishing, 0005_intake_review_bridge, 0006_analyst_proposals, 0007_analyst_proposal_integrity, 0008_evidence_reliability_optional, 0009_publication_may_precede_event, 0010_review_may_precede_event.
+MIGRATE_EXIT 0
+> tsx scripts/omen-operator.ts intake stage --file db/operator-inputs/evt-gemini-4-public-by-2026-10-31.review.json
+STAGE_EXIT 0
+ events_after_stage 
+--------------------
+APPROVE_EXIT 0
+ events_after_approve 
+----------------------
+PUBLISH_EXIT 0
+REPLAY_EXIT 0
+> tsx scripts/omen-operator.ts checkpoint verify --id 1
+VERIFY_EXIT 0
+--------------------------------+-----------------------------------------+--------+------------
+ evt-gemini-4-public-2026-10-31 | Gemini 4.0 released by October 31, 2026 | active | sourced
