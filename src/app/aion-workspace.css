@@ -702,8 +702,9 @@
 
 .aion-event-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  margin-left: auto;
+  margin: 0 0 16px;
 }
 
 .aion-event-layout,
@@ -1925,6 +1926,10 @@ a.aion-button {
   .aion-event-actions {
     width: 100%;
     margin-left: 0;
+  }
+
+  .aion-event-actions .aion-button {
+    min-height: 44px;
   }
 
   .aion-watch-head,
