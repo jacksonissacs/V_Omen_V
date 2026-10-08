@@ -1,0 +1,148 @@
+{
+  "task": 14,
+  "superseded": "The DOM-inserted long-rule probe from the d37a716 review is superseded. It was not committed. This capture renders the resolutionCriteria prop through the normal event route.",
+  "separation": "Demo fixture evt-boc-cut only. This report makes no claim about the PR #34 sourced Gemini event or a production database.",
+  "productHead": "d37a716997ac146e663ab19c4648cdcac6789bf7",
+  "procedure": "Temporary resolutionCriteria on demo event evt-boc-cut in src/data/events.ts, then the normal /events/evt-boc-cut route. No DOM insertion, no screenshot CSS, no production route. Source restored before exit.",
+  "fixture": {
+    "eventId": "evt-boc-cut",
+    "label": "DEMO FIXTURE TASK14",
+    "ruleCharacters": 1356,
+    "ruleSha256": "afb549dd84757975ec1b9c0fbd3086597352f644a33b8a09ae423584cacd0102"
+  },
+  "source": {
+    "file": "src/data/events.ts",
+    "sha256Before": "ad869490cd1a67e31749704e6419f442c056508a330f5e88b7558cc1137451be",
+    "sha256AfterRestore": "ad869490cd1a67e31749704e6419f442c056508a330f5e88b7558cc1137451be",
+    "restored": true,
+    "gitDiffAfterRestore": ""
+  },
+  "patch": "    tags: [\"BoC\", \"CPI\", \"rates\"],\n    resolvesAt: \"Oct 29 2026\",\n    resolutionCriteria: \"DEMO FIXTURE TASK14. This resolution rule is fixture input for the event brief layout check. It is not a source claim and it is not a production claim. The recorded rule continues so the full criteria stay in the resolutionCriteria prop and render below the action row. The recorded rule continues so the full criteria stay in the resolutionCriteria prop and render below the action row. The recorded rule continues so the full criteria stay in the resolutionCriteria prop and render below the action row. The recorded rule continues so the full criteria stay in the resolutionCriteria prop and render below the action row. The recorded rule continues so the full criteria stay in the resolutionCriteria prop and render below the action row. The recorded rule continues so the full criteria stay in the resolutionCriteria prop and render below the action row. The recorded rule continues so the full criteria stay in the resolutionCriteria prop and render below the action row. The recorded rule continues so the full criteria stay in the resolutionCriteria prop and render below the action row. The recorded rule continues so the full criteria stay in the resolutionCriteria prop and render below the action row. The recorded rule continues so the full criteria stay in the resolutionCriteria prop and render below the action row. END DEMO FIXTURE TASK14.\",\n    entities: [\"Canada\", \"CPI\", \"Bank of Canada\"],",
+  "results": [
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "brief": {
+        "title": "Bank of Canada cuts rates in October",
+        "question": "Will the Bank of Canada cut the overnight rate at the 28–29 October 2026 decision?",
+        "scrollTop": 0,
+        "questionBeforeActions": true,
+        "actionsBeforeCriteria": true,
+        "ruleMatches": true,
+        "archiveHref": "/archive?event=evt-boc-cut",
+        "controls": [
+          {
+            "text": "Inspect evidence",
+            "x": 16,
+            "y": 219.28125,
+            "width": 130.609375,
+            "height": 44
+          },
+          {
+            "text": "Following",
+            "x": 154.609375,
+            "y": 219.28125,
+            "width": 85.09375,
+            "height": 44
+          },
+          {
+            "text": "Open recorded history",
+            "x": 16,
+            "y": 271.28125,
+            "width": 163.015625,
+            "height": 44
+          }
+        ],
+        "renderedRuleLength": 1356
+      },
+      "checks": {
+        "demoTitle": true,
+        "scrollTopZero": true,
+        "order": true,
+        "fullRule": true,
+        "actionsVisible": true,
+        "archiveHref": true,
+        "mobileTargets": true,
+        "keyboardFocus": true,
+        "followPersisted": true
+      },
+      "keyboard": {
+        "activeElementLabel": "Evidence inspector",
+        "evidenceTabSelected": "true"
+      },
+      "follow": {
+        "before": null,
+        "afterToggle": "{\"version\":1,\"eventIds\":[\"evt-frontier-release\",\"evt-fed-cut\",\"evt-housing-ca\"],\"userSaved\":true}",
+        "afterReload": "{\"version\":1,\"eventIds\":[\"evt-frontier-release\",\"evt-fed-cut\",\"evt-housing-ca\"],\"userSaved\":true}",
+        "survivedReload": true,
+        "labelAfterReload": "Follow"
+      },
+      "screenshot": "docs/release-qa/task14-2026-10-08/evt-boc-cut-390x844.png"
+    },
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "brief": {
+        "title": "Bank of Canada cuts rates in October",
+        "question": "Will the Bank of Canada cut the overnight rate at the 28–29 October 2026 decision?",
+        "scrollTop": 0,
+        "questionBeforeActions": true,
+        "actionsBeforeCriteria": true,
+        "ruleMatches": true,
+        "archiveHref": "/archive?event=evt-boc-cut",
+        "controls": [
+          {
+            "text": "Inspect evidence",
+            "x": 268,
+            "y": 181.640625,
+            "width": 130.609375,
+            "height": 32.75
+          },
+          {
+            "text": "Following",
+            "x": 406.609375,
+            "y": 181.640625,
+            "width": 85.09375,
+            "height": 32.75
+          },
+          {
+            "text": "Open recorded history",
+            "x": 499.703125,
+            "y": 181.640625,
+            "width": 163.015625,
+            "height": 32.75
+          }
+        ],
+        "renderedRuleLength": 1356
+      },
+      "checks": {
+        "demoTitle": true,
+        "scrollTopZero": true,
+        "order": true,
+        "fullRule": true,
+        "actionsVisible": true,
+        "archiveHref": true,
+        "mobileTargets": true,
+        "keyboardFocus": true,
+        "followPersisted": true
+      },
+      "keyboard": {
+        "activeElementLabel": "Evidence inspector",
+        "evidenceTabSelected": "true"
+      },
+      "follow": {
+        "before": null,
+        "afterToggle": "{\"version\":1,\"eventIds\":[\"evt-frontier-release\",\"evt-fed-cut\",\"evt-housing-ca\"],\"userSaved\":true}",
+        "afterReload": "{\"version\":1,\"eventIds\":[\"evt-frontier-release\",\"evt-fed-cut\",\"evt-housing-ca\"],\"userSaved\":true}",
+        "survivedReload": true,
+        "labelAfterReload": "Follow"
+      },
+      "screenshot": "docs/release-qa/task14-2026-10-08/evt-boc-cut-1440x900.png"
+    }
+  ],
+  "passed": true
+}
