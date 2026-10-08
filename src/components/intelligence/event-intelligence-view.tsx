@@ -72,8 +72,17 @@ export function EventIntelligenceView({
         </div>
         <h1>{event.title}</h1>
         <p className="aion-event-question">{event.question}</p>
+        <div className="aion-event-actions" data-testid="event-actions">
+          <button type="button" className="aion-button" data-primary="true" onClick={inspectEvidence}>
+            Inspect evidence
+          </button>
+          <FollowEventButton eventId={event.id} eventTitle={event.title} quiet={false} />
+          <Link className="aion-button" href={buildArchiveHref(event.id)} data-testid="event-archive-link">
+            Open recorded history
+          </Link>
+        </div>
         {event.resolutionCriteria ? (
-          <p className="aion-note" style={{ marginBottom: 14 }}>
+          <p className="aion-note" data-testid="resolution-criteria" style={{ marginBottom: 14 }}>
             <span className="aion-label">Resolution criteria</span> {event.resolutionCriteria}
           </p>
         ) : null}
@@ -98,15 +107,6 @@ export function EventIntelligenceView({
           {forecast ? (
             <EventFigure label="OMEN forecast" value={formatProbability(forecast.probability)} muted small />
           ) : null}
-          <div className="aion-event-actions">
-            <button type="button" className="aion-button" data-primary="true" onClick={inspectEvidence}>
-              Inspect evidence
-            </button>
-            <FollowEventButton eventId={event.id} eventTitle={event.title} quiet={false} />
-            <Link className="aion-button" href={buildArchiveHref(event.id)} data-testid="event-archive-link">
-              Open recorded history
-            </Link>
-          </div>
         </div>
         <dl className="aion-event-record" data-testid="event-record">
           <RecordLine label="Probability source">

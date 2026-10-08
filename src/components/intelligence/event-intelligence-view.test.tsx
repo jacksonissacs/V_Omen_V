@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react"
+import { cleanup, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
@@ -8,6 +8,8 @@ import { EventIntelligenceView } from "@/components/intelligence/event-intellige
 import { AppShell } from "@/components/layout/app-shell"
 import { MockIntelligenceRepository } from "@/lib/data/mock-repository"
 import { groupIntoSeries } from "@/lib/domain/probability-history"
+import { followingStorageKey } from "@/lib/following/persistence"
+import { __resetFollowingStoresForTests } from "@/lib/following/following-store"
 import { testEvent } from "@/test/fake-repository"
 import type { AionEvent, ProbabilitySeries, StoredForecast } from "@/types/event"
 
@@ -258,6 +260,75 @@ describe("EventIntelligenceView", () => {
     expect(screen.getByRole("tab", { name: "Evidence" })).toHaveAttribute("aria-selected", "true")
     expect(screen.getAllByTestId("evidence-item")).toHaveLength(event.evidence.length)
     expect(screen.getByRole("complementary", { name: "Evidence inspector" })).toHaveFocus()
+  })
+
+  it("places the action row after the question and before the full resolution rule", () => {
+    const resolutionCriteria = `DEMO FIXTURE resolution rule, not a sourced observation. ${"rule ".repeat(400)}`
+    expect(resolutionCriteria.length).toBeGreaterThan(1299)
+    const event = testEvent({
+      id: "evt-long-rule",
+      title: "Long rule fixture",
+      provenance: "demo",
+      explained: null,
+      resolutionCriteria,
+    })
+    renderView(event)
+
+    const question = screen.getByText(event.question)
+    const actions = screen.getByTestId("event-actions")
+    const criteria = screen.getByTestId("resolution-criteria")
+    expect(question.compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(actions.compareDocumentPosition(criteria) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(criteria.textContent?.includes(resolutionCriteria)).toBe(true)
+    expect(criteria.textContent?.startsWith("Resolution criteria")).toBe(true)
+    expect(within(actions).getByRole("button", { name: "Inspect evidence" })).toBeInTheDocument()
+    expect(within(actions).getByRole("button", { name: "Follow Long rule fixture" })).toBeInTheDocument()
+    expect(within(actions).getByTestId("event-archive-link")).toHaveAttribute("href", "/archive?event=evt-long-rule")
+  })
+
+  it("activates Inspect evidence from the keyboard and focuses the inspector", async () => {
+    const { event } = await loadEvent("evt-boc-cut")
+    const { user } = renderView(event)
+    const inspector = screen.getByRole("complementary", { name: "Evidence inspector" })
+    const scrollIntoView = vi.fn()
+    Object.defineProperty(inspector, "scrollIntoView", { value: scrollIntoView, configurable: true })
+
+    await user.click(screen.getByRole("tab", { name: "Record" }))
+    const button = screen.getByRole("button", { name: "Inspect evidence" })
+    button.focus()
+    await user.keyboard("{Enter}")
+
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" })
+    expect(inspector).toHaveFocus()
+    expect(screen.getByRole("tab", { name: "Evidence" })).toHaveAttribute("aria-selected", "true")
+  })
+
+  it("saves Follow from the brief in this browser and reads it back", async () => {
+    window.localStorage.clear()
+    __resetFollowingStoresForTests()
+    const event = testEvent({
+      id: "evt-follow-brief",
+      title: "Brief follow",
+      provenance: "demo",
+      explained: null,
+    })
+    const { user } = renderView(event)
+    await user.click(screen.getByRole("button", { name: "Follow Brief follow" }))
+
+    const raw = window.localStorage.getItem(followingStorageKey("demo"))
+    expect(raw).toContain("evt-follow-brief")
+    expect(JSON.parse(raw ?? "")).toMatchObject({
+      version: 1,
+      eventIds: ["evt-follow-brief"],
+      userSaved: true,
+    })
+
+    cleanup()
+    __resetFollowingStoresForTests()
+    renderView(event)
+    expect(screen.getByRole("button", { name: "Unfollow Brief follow" })).toBeInTheDocument()
+    window.localStorage.clear()
+    __resetFollowingStoresForTests()
   })
 
   it("scrolls to and focuses the evidence inspector when scrolling is supported", async () => {
